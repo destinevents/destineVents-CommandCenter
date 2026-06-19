@@ -1141,7 +1141,46 @@ function enterApp(email, name) {
   }
   const savedKey = loadLS('anthropic_key', '');
   if (savedKey) { const k = document.getElementById('ai-api-key'); if (k) k.value = savedKey; }
+  setupRealtime();
   showPage('dashboard');
+}
+
+// ─── REALTIME ─────────────────────────────────────────────────────────────────
+function setupRealtime() {
+  if (DEMO || !sb) return;
+
+  // Which page to reload when each table changes
+  const pageMap = {
+    clients:      { page: 'clients',   reload: () => loadClients() },
+    proposals:    { page: 'proposals', reload: () => loadProposals() },
+    partners:     { page: 'partners',  reload: () => loadPartners() },
+    invoices:     { page: 'finance',   reload: () => loadFinance() },
+    bills:        { page: 'finance',   reload: () => loadFinance() },
+    payroll_runs: { page: 'finance',   reload: () => loadFinance() },
+    documents:    { page: 'documents', reload: () => loadDocuments() },
+  };
+
+  const ch = sb.channel('db-realtime');
+
+  Object.entries(pageMap).forEach(([table, { page, reload }]) => {
+    ch.on('postgres_changes', { event: '*', schema: 'public', table }, (payload) => {
+      // Only re-render if that page is currently open
+      const pageEl = document.getElementById('page-' + page);
+      if (pageEl && pageEl.classList.contains('active')) {
+        reload();
+      }
+      // Subtle indicator for changes from other users
+      if (payload.eventType === 'INSERT') {
+        toast(`New ${table.replace('_runs', '')} added by another user`, 'success');
+      } else if (payload.eventType === 'DELETE') {
+        toast(`A ${table.replace('_runs', '')} record was removed`, '');
+      }
+    });
+  });
+
+  ch.subscribe((status) => {
+    if (status === 'SUBSCRIBED') console.log('Realtime connected');
+  });
 }
 
 async function handleSignIn() {

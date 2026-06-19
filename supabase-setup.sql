@@ -105,6 +105,16 @@ create policy "auth_all" on bills        for all to authenticated using (true) w
 create policy "auth_all" on payroll_runs for all to authenticated using (true) with check (true);
 create policy "auth_all" on documents    for all to authenticated using (true) with check (true);
 
+-- ─── REALTIME ────────────────────────────────────────────────────────────────
+-- Enable real-time updates for all tables (run this in SQL Editor)
+alter publication supabase_realtime add table clients;
+alter publication supabase_realtime add table proposals;
+alter publication supabase_realtime add table partners;
+alter publication supabase_realtime add table invoices;
+alter publication supabase_realtime add table bills;
+alter publication supabase_realtime add table payroll_runs;
+alter publication supabase_realtime add table documents;
+
 -- ─── STORAGE BUCKET (for Document Vault file uploads) ────────────────────────
 -- Run this separately in Supabase → Storage → New Bucket
 -- Bucket name: documents
