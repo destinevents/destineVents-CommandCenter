@@ -8,206 +8,226 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&family=Dancing+Script:wght@600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
+  /* ─── TOKENS ─── */
   :root {
-    --linen:  #F5F0E8;
-    --linen-2:#EDE8DE;
-    --linen-3:#E2DDD3;
-    --ink:    #1A1410;
-    --ink-2:  #3a3228;
-    --ink-3:  rgba(26,20,16,0.45);
-    --ink-4:  rgba(26,20,16,0.15);
-    --ink-5:  rgba(26,20,16,0.07);
-    --accent: #1A1410;
-    --red:    #C0392B;
-    --green:  #2a7a4b;
-    --blue:   #2563eb;
+    --linen:   #F5F0E8;
+    --linen-2: #EDE8DE;
+    --linen-3: #E2DDD3;
+    --ink:     #1A1410;
+    --ink-2:   #3a3228;
+    --ink-3:   rgba(26,20,16,0.45);
+    --ink-4:   rgba(26,20,16,0.15);
+    --ink-5:   rgba(26,20,16,0.06);
+    --red:     #C0392B;
+    --green:   #2a7a4b;
+    --blue:    #2563eb;
+    --amber:   #92400e;
+    --shadow-sm: 0 1px 4px rgba(26,20,16,0.08), 0 1px 2px rgba(26,20,16,0.05);
+    --shadow:    0 4px 16px rgba(26,20,16,0.10), 0 2px 4px rgba(26,20,16,0.06);
+    --shadow-lg: 0 20px 50px rgba(26,20,16,0.16), 0 6px 16px rgba(26,20,16,0.08);
+    --ease:    cubic-bezier(0.16, 1, 0.3, 1);
   }
   * { margin:0; padding:0; box-sizing:border-box; }
-  body {
-    background: var(--linen);
-    color: var(--ink);
-    font-family: 'DM Sans', sans-serif;
-    height: 100vh;
-    overflow: hidden;
-    display: flex;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
-  }
+  body { background:var(--linen); color:var(--ink); font-family:'DM Sans',sans-serif; height:100vh; overflow:hidden; display:flex; }
 
-  /* ─── LOGIN ─── */
+  /* ─── KEYFRAMES ─── */
+  @keyframes fadeUp  { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes fadeIn  { from{opacity:0} to{opacity:1} }
+  @keyframes modalIn { from{opacity:0;transform:scale(0.96) translateY(10px)} to{opacity:1;transform:scale(1) translateY(0)} }
+  @keyframes toastIn { from{opacity:0;transform:translateY(10px) scale(0.97)} to{opacity:1;transform:translateY(0) scale(1)} }
+  @keyframes pulse   { 0%,80%,100%{opacity:0.15} 40%{opacity:1} }
+  @keyframes spin    { to{transform:translate(-50%,-50%) rotate(360deg)} }
+
+  /* ─── LOGIN — split screen ─── */
   .login-screen {
-    position:fixed; inset:0;
-    background:var(--linen);
-    display:flex; align-items:center; justify-content:center;
-    z-index:1000;
+    position:fixed; inset:0; display:flex; z-index:1000;
+    animation:fadeIn 0.3s ease;
   }
-  .login-box {
-    width:340px;
-    background:var(--linen-2);
-    border:1px solid var(--ink-4);
-    padding:36px 32px;
+  .login-brand {
+    width:400px; flex-shrink:0; background:var(--ink);
+    display:flex; flex-direction:column; justify-content:space-between;
+    padding:52px 48px; position:relative; overflow:hidden;
   }
-  .login-logo { margin-bottom:24px; }
-  .login-title {
-    font-family:'Cormorant Garamond',serif;
-    font-size:22px; font-weight:600; color:var(--ink);
-    margin-bottom:3px;
+  .login-brand::before {
+    content:''; position:absolute; inset:0;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+    pointer-events:none;
   }
-  .login-sub { font-size:11px; color:var(--ink-3); letter-spacing:0.05em; margin-bottom:24px; }
-  .login-error { font-size:11px; color:var(--red); margin-bottom:10px; min-height:16px; }
-  .login-demo-note {
-    margin-top:16px; font-size:10px; color:var(--ink-3);
-    text-align:center; letter-spacing:0.05em;
+  .lb-logo { position:relative; }
+  .lb-script { font-family:'Dancing Script',cursive; font-size:30px; font-weight:700; color:var(--linen); }
+  .lb-sans { font-family:'DM Sans',sans-serif; font-size:17px; font-weight:600; letter-spacing:0.08em; color:var(--linen); text-transform:lowercase; }
+  .lb-divider { height:1px; background:rgba(245,240,232,0.12); margin:20px 0; }
+  .lb-tagline { font-size:9px; letter-spacing:0.24em; text-transform:uppercase; color:rgba(245,240,232,0.35); }
+  .lb-quote {
+    position:relative;
+    font-family:'Cormorant Garamond',serif; font-size:19px; font-style:italic;
+    color:rgba(245,240,232,0.45); line-height:1.75;
   }
+  .lb-quote strong { color:rgba(245,240,232,0.8); font-style:normal; }
+  .lb-footer { position:relative; font-size:9px; letter-spacing:0.18em; text-transform:uppercase; color:rgba(245,240,232,0.2); }
+  .login-form-wrap {
+    flex:1; display:flex; align-items:center; justify-content:center;
+    padding:48px; background:var(--linen);
+  }
+  .login-box { width:340px; animation:fadeUp 0.4s var(--ease) 0.1s both; }
+  .login-greeting { font-family:'Cormorant Garamond',serif; font-size:30px; font-weight:600; color:var(--ink); margin-bottom:4px; line-height:1.1; }
+  .login-sub { font-size:12px; color:var(--ink-3); margin-bottom:32px; }
+  .login-error { font-size:11px; color:var(--red); margin-bottom:12px; min-height:16px; }
 
   /* ─── TOAST ─── */
   .toast {
-    position:fixed; bottom:20px; right:20px;
+    position:fixed; bottom:24px; right:24px;
     background:var(--ink); color:var(--linen);
-    padding:10px 16px; font-size:12px; letter-spacing:0.03em;
-    z-index:2000; display:none;
-    border-left:3px solid var(--linen);
-    max-width:300px;
+    padding:13px 20px; font-size:12px; letter-spacing:0.02em;
+    z-index:2000; display:none; border-left:3px solid var(--linen);
+    box-shadow:var(--shadow); max-width:320px; line-height:1.4;
   }
+  .toast.visible { display:block; animation:toastIn 0.28s var(--ease); }
   .toast.success { border-left-color:var(--green); }
   .toast.error   { border-left-color:var(--red); }
 
   /* ─── MODAL ─── */
   .modal-overlay {
-    position:fixed; inset:0;
-    background:rgba(26,20,16,0.5);
-    z-index:900; display:none;
-    align-items:center; justify-content:center;
+    position:fixed; inset:0; background:rgba(26,20,16,0.5);
+    backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px);
+    z-index:900; display:none; align-items:center; justify-content:center;
   }
-  .modal-overlay.open { display:flex; }
+  .modal-overlay.open { display:flex; animation:fadeIn 0.18s ease; }
   .modal {
     background:var(--linen); border:1px solid var(--ink-4);
-    width:560px; max-width:95vw;
-    max-height:85vh; overflow-y:auto;
+    width:560px; max-width:95vw; max-height:88vh; overflow-y:auto;
+    box-shadow:var(--shadow-lg); animation:modalIn 0.26s var(--ease);
   }
   .modal-header {
-    padding:16px 20px; border-bottom:1px solid var(--ink-4);
+    padding:18px 22px; border-bottom:1px solid var(--ink-4);
     display:flex; align-items:center; justify-content:space-between;
+    position:sticky; top:0; background:var(--linen); z-index:1;
   }
-  .modal-title { font-size:8.5px; letter-spacing:0.2em; text-transform:uppercase; color:var(--ink-3); }
-  .modal-close { font-size:16px; color:var(--ink-3); cursor:pointer; line-height:1; }
-  .modal-close:hover { color:var(--ink); }
-  .modal-body { padding:20px; }
-  .modal-footer {
-    padding:14px 20px; border-top:1px solid var(--ink-4);
-    display:flex; justify-content:flex-end; gap:8px;
+  .modal-title { font-size:8.5px; letter-spacing:0.22em; text-transform:uppercase; color:var(--ink-3); font-weight:600; }
+  .modal-close {
+    width:28px; height:28px; display:flex; align-items:center; justify-content:center;
+    font-size:16px; color:var(--ink-3); cursor:pointer; transition:all 0.15s;
   }
+  .modal-close:hover { color:var(--ink); background:var(--linen-2); }
+  .modal-body { padding:22px; }
+  .modal-footer { padding:16px 22px; border-top:1px solid var(--ink-4); display:flex; justify-content:flex-end; gap:8px; }
 
   /* ─── DEMO BANNER ─── */
-  .demo-banner {
-    background:var(--ink); color:var(--linen);
-    font-size:10px; letter-spacing:0.1em; text-transform:uppercase;
-    text-align:center; padding:5px;
-    display:none;
-  }
+  .demo-banner { background:var(--ink); color:var(--linen); font-size:10px; letter-spacing:0.1em; text-transform:uppercase; text-align:center; padding:6px; display:none; }
   .demo-banner.visible { display:block; }
 
   /* ─── SIDEBAR ─── */
   .sidebar {
-    width:210px; flex-shrink:0;
-    background:var(--linen-2); border-right:1px solid var(--ink-4);
-    display:flex; flex-direction:column; height:100vh;
+    width:224px; flex-shrink:0; background:var(--linen-2);
+    border-right:1px solid var(--ink-4);
+    display:flex; flex-direction:column; height:100vh; user-select:none;
   }
-  .sidebar-logo { padding:22px 18px 16px; border-bottom:1px solid var(--ink-4); }
+  .sidebar-logo { padding:24px 20px 18px; border-bottom:1px solid var(--ink-4); }
   .logo-mark { display:flex; align-items:baseline; gap:0; line-height:1; }
-  .logo-script { font-family:'Dancing Script',cursive; font-size:22px; font-weight:700; color:var(--ink); letter-spacing:-0.5px; }
-  .logo-sans { font-family:'DM Sans',sans-serif; font-size:13px; font-weight:600; letter-spacing:0.08em; color:var(--ink); text-transform:lowercase; }
-  .logo-arrow { display:block; margin-top:3px; font-size:10px; letter-spacing:0.3em; color:var(--ink-3); }
-  .logo-tagline { font-size:8.5px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-3); margin-top:5px; }
-  .sidebar-cta { padding:12px; border-bottom:1px solid var(--ink-4); }
+  .logo-script { font-family:'Dancing Script',cursive; font-size:23px; font-weight:700; color:var(--ink); letter-spacing:-0.5px; }
+  .logo-sans { font-family:'DM Sans',sans-serif; font-size:14px; font-weight:600; letter-spacing:0.08em; color:var(--ink); text-transform:lowercase; }
+  .logo-arrow { display:block; margin-top:4px; font-size:10px; letter-spacing:0.3em; color:var(--ink-3); }
+  .logo-tagline { font-size:8px; letter-spacing:0.2em; text-transform:uppercase; color:var(--ink-3); margin-top:5px; }
+  .sidebar-cta { padding:12px 14px; border-bottom:1px solid var(--ink-4); }
   .btn-new {
     width:100%; background:var(--ink); color:var(--linen); border:none;
-    padding:9px 12px; font-family:'DM Sans',sans-serif; font-size:11px;
-    font-weight:600; cursor:pointer; display:flex; align-items:center;
-    justify-content:center; gap:6px; letter-spacing:0.08em;
-    text-transform:uppercase; transition:background 0.15s;
+    padding:10px 12px; font-family:'DM Sans',sans-serif; font-size:10.5px;
+    font-weight:700; cursor:pointer; display:flex; align-items:center;
+    justify-content:center; gap:7px; letter-spacing:0.1em;
+    text-transform:uppercase; transition:all 0.18s var(--ease);
   }
-  .btn-new:hover { background:var(--ink-2); }
-  .nav { flex:1; padding:10px 0; overflow-y:auto; }
-  .nav-section { font-size:8.5px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-3); padding:10px 16px 4px; }
+  .btn-new:hover { background:var(--ink-2); box-shadow:0 4px 14px rgba(26,20,16,0.22); transform:translateY(-1px); }
+  .btn-new:active { transform:translateY(0); box-shadow:none; }
+  .nav { flex:1; padding:8px 0; overflow-y:auto; }
+  .nav-section { font-size:8px; letter-spacing:0.24em; text-transform:uppercase; color:var(--ink-4); padding:14px 18px 5px; font-weight:600; }
   .nav-item {
     display:flex; align-items:center; gap:10px;
-    padding:9px 16px; font-size:12.5px; color:var(--ink-3);
-    cursor:pointer; transition:all 0.12s;
+    padding:9px 18px; font-size:13px; color:var(--ink-3);
+    cursor:pointer; transition:all 0.15s;
     border-left:2px solid transparent; letter-spacing:0.01em;
   }
-  .nav-item:hover { color:var(--ink); background:var(--ink-5); }
+  .nav-item svg { width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:1.75; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; }
+  .nav-item:hover { color:var(--ink); background:rgba(26,20,16,0.04); }
   .nav-item.active { color:var(--ink); background:var(--linen-3); border-left-color:var(--ink); font-weight:500; }
-  .nav-icon { font-size:13px; width:16px; flex-shrink:0; }
-  .nav-backslash { margin-left:auto; font-size:11px; color:var(--ink-3); font-weight:700; }
-  .sidebar-footer { padding:12px 16px; border-top:1px solid var(--ink-4); }
-  .signout { display:flex; align-items:center; gap:8px; font-size:11.5px; color:var(--ink-3); cursor:pointer; transition:color 0.12s; letter-spacing:0.01em; }
+  .sidebar-footer { padding:14px 18px; border-top:1px solid var(--ink-4); }
+  .user-row { display:flex; align-items:center; gap:10px; margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid var(--ink-5); }
+  .user-avatar { width:30px; height:30px; background:var(--ink); color:var(--linen); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; flex-shrink:0; letter-spacing:0.05em; }
+  .user-email { font-size:11px; color:var(--ink-2); font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:140px; }
+  .user-role { font-size:9px; letter-spacing:0.08em; text-transform:uppercase; color:var(--ink-3); margin-top:1px; }
+  .signout { display:flex; align-items:center; gap:8px; font-size:11px; color:var(--ink-3); cursor:pointer; transition:color 0.15s; }
+  .signout svg { width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:1.75; stroke-linecap:round; stroke-linejoin:round; }
   .signout:hover { color:var(--red); }
-  .footer-brand { font-size:8px; letter-spacing:0.15em; text-transform:uppercase; color:var(--ink-4); margin-top:8px; }
+  .footer-brand { font-size:8px; letter-spacing:0.15em; text-transform:uppercase; color:var(--ink-4); margin-top:10px; }
 
   /* ─── MAIN ─── */
-  .main { flex:1; overflow-y:auto; background:var(--linen); display:flex; flex-direction:column; }
+  .main { flex:1; overflow-y:auto; background:var(--linen); display:flex; flex-direction:column; min-width:0; }
   .topbar {
     display:flex; align-items:center; padding:0 24px;
     border-bottom:1px solid var(--ink-4); background:var(--linen-2);
-    height:44px; justify-content:space-between; flex-shrink:0;
+    height:46px; justify-content:space-between; flex-shrink:0;
+    position:sticky; top:0; z-index:10;
   }
   .tabs { display:flex; gap:0; height:100%; }
   .tab {
-    padding:0 14px; font-size:10.5px; font-weight:500; color:var(--ink-3);
+    padding:0 16px; font-size:10px; font-weight:600; color:var(--ink-3);
     cursor:pointer; border-bottom:2px solid transparent;
-    display:flex; align-items:center; letter-spacing:0.1em;
-    transition:all 0.12s; text-transform:uppercase;
+    display:flex; align-items:center; letter-spacing:0.12em;
+    transition:all 0.15s; text-transform:uppercase;
   }
   .tab:hover { color:var(--ink); }
   .tab.active { color:var(--ink); border-bottom-color:var(--ink); }
-  .topbar-right { font-size:11px; color:var(--ink-3); letter-spacing:0.03em; }
+  .topbar-meta { display:flex; align-items:center; gap:16px; }
+  .topbar-date { font-size:10.5px; color:var(--ink-3); letter-spacing:0.03em; }
+  .topbar-avatar { width:26px; height:26px; background:var(--ink); color:var(--linen); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:700; cursor:pointer; flex-shrink:0; }
 
   /* ─── PAGES ─── */
-  .page { display:none; padding:28px 28px 40px; flex:1; }
-  .page.active { display:block; }
-  .page-eyebrow { font-size:9px; letter-spacing:0.25em; text-transform:uppercase; color:var(--ink-3); margin-bottom:4px; }
+  .page { display:none; padding:28px 28px 48px; flex:1; }
+  .page.active { display:block; animation:fadeUp 0.24s var(--ease); }
+  .page-eyebrow { font-size:9px; letter-spacing:0.26em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px; }
   .page-eyebrow::before { content:'\\ '; font-weight:700; }
-  .page-title { font-family:'Cormorant Garamond',serif; font-size:28px; font-weight:600; color:var(--ink); line-height:1.1; margin-bottom:16px; }
-  .divider { height:1px; background:var(--ink-4); margin:16px 0; }
+  .page-title { font-family:'Cormorant Garamond',serif; font-size:30px; font-weight:600; color:var(--ink); line-height:1.1; margin-bottom:20px; }
+  .divider { height:1px; background:var(--ink-4); margin:18px 0; }
 
-  /* Stats */
+  /* ─── STATS ─── */
   .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--ink-4); border:1px solid var(--ink-4); margin-bottom:20px; }
-  .stat-card { background:var(--linen); padding:18px 16px; }
-  .stat-label { font-size:8.5px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px; }
-  .stat-value { font-family:'Cormorant Garamond',serif; font-size:30px; font-weight:600; color:var(--ink); line-height:1; }
-  .stat-change { font-size:10.5px; margin-top:5px; color:var(--ink-3); }
+  .stat-card { background:var(--linen); padding:20px 18px; position:relative; overflow:hidden; transition:background 0.15s; }
+  .stat-card:hover { background:var(--linen-2); }
+  .stat-accent { position:absolute; left:0; top:0; bottom:0; width:3px; }
+  .stat-label { font-size:8.5px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-3); margin-bottom:8px; }
+  .stat-value { font-family:'Cormorant Garamond',serif; font-size:32px; font-weight:600; color:var(--ink); line-height:1; }
+  .stat-change { font-size:10.5px; margin-top:6px; color:var(--ink-3); }
   .stat-change.up { color:var(--green); }
 
   .two-col { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
   .three-col { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
 
-  .card { background:var(--linen-2); border:1px solid var(--ink-4); padding:16px; }
-  .card-title { font-size:8.5px; letter-spacing:0.2em; text-transform:uppercase; color:var(--ink-3); margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; }
+  .card { background:var(--linen-2); border:1px solid var(--ink-4); padding:18px; }
+  .card-title { font-size:8.5px; letter-spacing:0.22em; text-transform:uppercase; color:var(--ink-3); margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; font-weight:600; }
   .card-title::before { content:'\\ '; font-weight:800; color:var(--ink); }
-  .card-title span { font-size:9px; letter-spacing:0.05em; text-transform:none; color:var(--ink-4); }
+  .card-title span { font-size:9px; letter-spacing:0.05em; text-transform:none; color:var(--ink-4); font-weight:400; }
 
-  /* Pipeline */
-  .pipeline-bar { margin-bottom:11px; }
-  .pipeline-label { display:flex; justify-content:space-between; font-size:11.5px; margin-bottom:4px; color:var(--ink-2); }
+  /* ─── PIPELINE ─── */
+  .pipeline-bar { margin-bottom:12px; }
+  .pipeline-label { display:flex; justify-content:space-between; font-size:11.5px; margin-bottom:5px; color:var(--ink-2); }
   .pipeline-label span:last-child { font-weight:600; color:var(--ink); }
-  .pipeline-track { height:3px; background:var(--ink-4); }
-  .pipeline-fill { height:100%; background:var(--ink); transition:width 0.6s ease; }
+  .pipeline-track { height:3px; background:var(--ink-5); border-radius:99px; overflow:hidden; }
+  .pipeline-fill { height:100%; background:var(--ink); transition:width 0.7s var(--ease); border-radius:99px; }
 
-  /* Activity */
-  .activity-item { display:flex; align-items:flex-start; gap:10px; padding:8px 0; border-bottom:1px solid var(--ink-5); }
+  /* ─── ACTIVITY ─── */
+  .activity-item { display:flex; align-items:flex-start; gap:10px; padding:9px 0; border-bottom:1px solid var(--ink-5); }
   .activity-item:last-child { border-bottom:none; }
-  .activity-dot { width:5px; height:5px; border-radius:50%; background:var(--ink); margin-top:5px; flex-shrink:0; }
+  .activity-dot { width:6px; height:6px; border-radius:50%; background:var(--ink); margin-top:5px; flex-shrink:0; }
   .activity-dot.green { background:var(--green); }
   .activity-dot.blue  { background:var(--blue); }
   .activity-dot.red   { background:var(--red); }
   .activity-text { font-size:12px; color:var(--ink-2); line-height:1.5; }
-  .activity-time { font-size:10px; color:var(--ink-3); margin-top:1px; }
+  .activity-time { font-size:10px; color:var(--ink-3); margin-top:2px; }
 
-  /* Badges */
-  .badge { display:inline-block; padding:2px 8px; font-size:9.5px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; border:1px solid currentColor; }
+  /* ─── BADGES ─── */
+  .badge { display:inline-flex; align-items:center; padding:3px 9px; font-size:9px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; border:1px solid currentColor; }
   .badge-active    { color:var(--green); }
   .badge-proposal  { color:var(--blue); }
-  .badge-nda       { color:#92400e; }
+  .badge-nda       { color:var(--amber); }
   .badge-lead      { color:var(--ink-3); }
   .badge-completed { background:var(--ink); color:var(--linen); border-color:var(--ink); }
   .badge-paid      { color:var(--green); }
@@ -218,171 +238,190 @@
   .badge-sent      { color:var(--blue); }
   .badge-expired   { color:var(--ink-3); }
   .badge-released  { color:var(--green); }
-  .badge-pending   { color:#92400e; }
+  .badge-pending   { color:var(--amber); }
   .badge-draft     { color:var(--ink-3); }
 
-  /* Tables */
-  .project-table { width:100%; border-collapse:collapse; }
-  .project-table th { font-size:8.5px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-3); padding:10px 12px; text-align:left; border-bottom:1px solid var(--ink-4); font-weight:500; background:var(--linen-2); }
-  .project-table td { padding:11px 12px; font-size:12.5px; border-bottom:1px solid var(--ink-5); vertical-align:middle; color:var(--ink-2); }
-  .project-table tr:hover td { background:var(--linen-3); cursor:pointer; }
+  /* ─── TABLES ─── */
+  .project-table,.ledger-table { width:100%; border-collapse:collapse; }
+  .project-table th,.ledger-table th { font-size:8.5px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-3); padding:11px 14px; text-align:left; border-bottom:1px solid var(--ink-4); font-weight:600; background:var(--linen-2); white-space:nowrap; }
+  .project-table td,.ledger-table td { padding:12px 14px; font-size:12.5px; border-bottom:1px solid var(--ink-5); vertical-align:middle; color:var(--ink-2); }
+  .project-table tbody tr,.ledger-table tbody tr { transition:background 0.1s; }
+  .project-table tbody tr:hover td,.ledger-table tbody tr:hover td { background:var(--linen-3); cursor:pointer; }
   .project-name { font-weight:500; color:var(--ink); font-size:13px; }
   .project-client { font-size:10.5px; color:var(--ink-3); margin-top:2px; }
-  .project-value { font-weight:600; color:var(--ink); font-family:'Cormorant Garamond',serif; font-size:15px; }
+  .project-value,.amount-cell { font-weight:600; color:var(--ink); font-family:'Cormorant Garamond',serif; font-size:15px; }
 
-  /* Ledger table (finance) */
-  .ledger-table { width:100%; border-collapse:collapse; }
-  .ledger-table th { font-size:8.5px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-3); padding:10px 12px; text-align:left; border-bottom:1px solid var(--ink-4); font-weight:500; background:var(--linen-2); }
-  .ledger-table td { padding:10px 12px; font-size:12px; border-bottom:1px solid var(--ink-5); color:var(--ink-2); vertical-align:middle; }
-  .ledger-table tr:hover td { background:var(--linen-3); }
-  .amount-cell { font-family:'Cormorant Garamond',serif; font-size:14px; font-weight:600; color:var(--ink); }
-
-  /* Forms */
-  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px; }
-  .form-group { display:flex; flex-direction:column; gap:4px; }
+  /* ─── FORMS ─── */
+  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
+  .form-group { display:flex; flex-direction:column; gap:5px; }
   .form-group.full { grid-column:1 / -1; }
-  .form-label { font-size:8.5px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-3); }
-  .form-input { background:var(--linen); border:1px solid var(--ink-4); border-radius:0; padding:8px 10px; font-size:12.5px; color:var(--ink); font-family:'DM Sans',sans-serif; outline:none; transition:border-color 0.12s; width:100%; }
-  .form-input:focus { border-color:var(--ink); }
+  .form-label { font-size:8.5px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-3); font-weight:600; }
+  .form-input {
+    background:var(--linen); border:1px solid var(--ink-4); border-radius:0;
+    padding:9px 12px; font-size:13px; color:var(--ink);
+    font-family:'DM Sans',sans-serif; outline:none;
+    transition:border-color 0.15s, box-shadow 0.15s; width:100%;
+  }
+  .form-input:focus { border-color:var(--ink); box-shadow:0 0 0 3px rgba(26,20,16,0.07); }
   .form-input::placeholder { color:var(--ink-3); }
   select.form-input { cursor:pointer; }
 
-  /* Stepper */
-  .stepper { display:flex; align-items:center; margin-bottom:24px; }
+  /* ─── STEPPER ─── */
+  .stepper { display:flex; align-items:center; margin-bottom:28px; }
   .step-item { display:flex; align-items:center; gap:8px; }
-  .step-circle { width:26px; height:26px; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; border:1.5px solid var(--ink-4); color:var(--ink-3); flex-shrink:0; }
+  .step-circle { width:28px; height:28px; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; border:1.5px solid var(--ink-4); color:var(--ink-3); flex-shrink:0; transition:all 0.2s; }
   .step-circle.done   { background:var(--ink); color:var(--linen); border-color:var(--ink); }
   .step-circle.active { border-color:var(--ink); color:var(--ink); }
   .step-label { font-size:10.5px; color:var(--ink-3); letter-spacing:0.05em; text-transform:uppercase; }
   .step-label.active { color:var(--ink); font-weight:600; }
   .step-line { flex:1; height:1px; background:var(--ink-4); margin:0 14px; }
 
-  /* AI */
+  /* ─── AI ─── */
   .ai-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:16px; }
-  .ai-template { background:var(--linen-2); border:1px solid var(--ink-4); padding:12px 14px; cursor:pointer; transition:all 0.12s; }
-  .ai-template:hover,.ai-template.selected { background:var(--linen-3); border-color:var(--ink); }
-  .ai-template-icon { font-size:16px; margin-bottom:5px; }
-  .ai-template-name { font-size:11.5px; font-weight:600; color:var(--ink); margin-bottom:1px; }
+  .ai-template { background:var(--linen-2); border:1px solid var(--ink-4); padding:14px 16px; cursor:pointer; transition:all 0.15s; }
+  .ai-template:hover { background:var(--linen-3); border-color:var(--ink-3); transform:translateY(-1px); box-shadow:var(--shadow-sm); }
+  .ai-template.selected { background:var(--linen-3); border-color:var(--ink); box-shadow:0 0 0 2px rgba(26,20,16,0.08); }
+  .ai-template-icon { font-size:18px; margin-bottom:6px; }
+  .ai-template-name { font-size:12px; font-weight:600; color:var(--ink); margin-bottom:2px; }
   .ai-template-desc { font-size:10px; color:var(--ink-3); }
-  .ai-output { background:var(--linen-2); border:1px solid var(--ink-4); padding:16px; min-height:140px; font-size:12.5px; line-height:1.8; color:var(--ink-2); }
+  .ai-output { background:var(--linen-2); border:1px solid var(--ink-4); padding:18px; min-height:160px; font-size:12.5px; line-height:1.85; color:var(--ink-2); }
   .ai-output-label { font-size:8.5px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-3); margin-bottom:10px; }
   .ai-output-label::before { content:'\\ '; font-weight:800; color:var(--ink); }
   .ai-generating { display:flex; align-items:center; gap:8px; color:var(--ink-3); font-size:12px; }
-  .dot-pulse span { display:inline-block; width:4px; height:4px; border-radius:50%; background:var(--ink); animation:pulse 1.2s infinite; margin:0 1px; }
+  .dot-pulse span { display:inline-block; width:4px; height:4px; border-radius:50%; background:var(--ink-3); animation:pulse 1.2s infinite; margin:0 1px; }
   .dot-pulse span:nth-child(2){animation-delay:.2s} .dot-pulse span:nth-child(3){animation-delay:.4s}
-  @keyframes pulse{0%,80%,100%{opacity:0.15}40%{opacity:1}}
 
-  /* Impact */
+  /* ─── IMPACT ─── */
   .impact-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--ink-4); border:1px solid var(--ink-4); margin-bottom:20px; }
-  .impact-card { background:var(--linen); padding:18px 14px; text-align:center; }
-  .impact-icon { font-size:18px; margin-bottom:6px; }
-  .impact-num { font-family:'Cormorant Garamond',serif; font-size:32px; font-weight:600; color:var(--ink); }
-  .impact-lbl { font-size:9.5px; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink-3); margin-top:2px; }
+  .impact-card { background:var(--linen); padding:22px 16px; text-align:center; transition:background 0.15s; }
+  .impact-card:hover { background:var(--linen-2); }
+  .impact-icon { font-size:22px; margin-bottom:8px; }
+  .impact-num { font-family:'Cormorant Garamond',serif; font-size:34px; font-weight:600; color:var(--ink); line-height:1; }
+  .impact-lbl { font-size:9.5px; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink-3); margin-top:4px; }
 
-  /* Mini chart */
-  .mini-chart { display:flex; align-items:flex-end; gap:4px; height:48px; }
+  /* ─── MINI CHART ─── */
+  .mini-chart { display:flex; align-items:flex-end; gap:4px; height:52px; }
   .bar { flex:1; background:var(--linen-3); position:relative; }
-  .bar-fill { position:absolute; bottom:0; left:0; right:0; background:var(--ink); }
+  .bar-fill { position:absolute; bottom:0; left:0; right:0; background:var(--ink); transition:height 0.7s var(--ease); }
 
-  /* Buttons */
-  .btn { padding:9px 20px; font-size:10.5px; font-weight:600; cursor:pointer; border:none; font-family:'DM Sans',sans-serif; letter-spacing:0.1em; text-transform:uppercase; transition:all 0.12s; }
+  /* ─── BUTTONS ─── */
+  .btn { padding:10px 22px; font-size:10.5px; font-weight:700; cursor:pointer; border:none; font-family:'DM Sans',sans-serif; letter-spacing:0.1em; text-transform:uppercase; transition:all 0.15s var(--ease); display:inline-flex; align-items:center; gap:6px; }
+  .btn:active { transform:scale(0.975); }
   .btn-primary { background:var(--ink); color:var(--linen); }
-  .btn-primary:hover { background:var(--ink-2); }
+  .btn-primary:hover { background:var(--ink-2); box-shadow:0 4px 14px rgba(26,20,16,0.22); transform:translateY(-1px); }
+  .btn-primary:active { transform:scale(0.975) translateY(0); box-shadow:none; }
   .btn-ghost { background:transparent; color:var(--ink); border:1px solid var(--ink-4); }
-  .btn-ghost:hover { border-color:var(--ink); }
-  .btn-sm { padding:6px 12px; font-size:9.5px; }
+  .btn-ghost:hover { border-color:var(--ink); background:var(--linen-3); }
+  .btn-sm { padding:6px 14px; font-size:9.5px; }
+  .btn:disabled { opacity:0.45; cursor:not-allowed; pointer-events:none; }
+  .btn-loading { position:relative; color:transparent !important; pointer-events:none; }
+  .btn-loading::after { content:''; position:absolute; width:14px; height:14px; border:2px solid rgba(245,240,232,0.3); border-top-color:var(--linen); border-radius:50%; animation:spin 0.7s linear infinite; top:50%; left:50%; transform:translate(-50%,-50%); }
 
-  /* NDA */
-  .nda-preview { background:#fff; color:#1a1a1a; border:1px solid #ddd; padding:20px 24px; font-size:11px; line-height:1.75; max-height:200px; overflow-y:auto; font-family:'Georgia',serif; }
-  .nda-preview h3 { font-size:12px; text-align:center; margin-bottom:8px; letter-spacing:0.1em; text-transform:uppercase; }
-  .nda-preview p { margin-bottom:7px; color:#333; }
+  /* ─── NDA ─── */
+  .nda-preview { background:#fff; color:#1a1a1a; border:1px solid #e8e4dc; padding:22px 26px; font-size:11px; line-height:1.8; max-height:220px; overflow-y:auto; font-family:'Georgia',serif; }
+  .nda-preview h3 { font-size:12px; text-align:center; margin-bottom:10px; letter-spacing:0.1em; text-transform:uppercase; }
+  .nda-preview p { margin-bottom:8px; color:#333; }
   .nda-preview strong { color:#111; }
 
-  /* Sub-tabs (Finance) */
+  /* ─── SUB-TABS ─── */
   .sub-tabs { display:flex; gap:0; border-bottom:1px solid var(--ink-4); margin-bottom:20px; }
-  .sub-tab { padding:8px 16px; font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-3); cursor:pointer; border-bottom:2px solid transparent; transition:all 0.12s; }
+  .sub-tab { padding:10px 18px; font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-3); cursor:pointer; border-bottom:2px solid transparent; transition:all 0.15s; font-weight:500; }
   .sub-tab:hover { color:var(--ink); }
   .sub-tab.active { color:var(--ink); border-bottom-color:var(--ink); }
   .ftab { display:none; }
   .ftab.active { display:block; }
 
-  /* Finance */
+  /* ─── FINANCE ─── */
   .finance-stat-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--ink-4); border:1px solid var(--ink-4); margin-bottom:20px; }
-  .bir-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-  .bir-card { background:var(--linen-2); border:1px solid var(--ink-4); padding:16px; }
-  .bir-form-name { font-family:'Cormorant Garamond',serif; font-size:24px; font-weight:600; color:var(--ink); }
-  .bir-form-desc { font-size:11px; color:var(--ink-3); margin:4px 0 12px; line-height:1.6; }
+  .bir-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .bir-card { background:var(--linen-2); border:1px solid var(--ink-4); padding:18px; transition:box-shadow 0.15s; }
+  .bir-card:hover { box-shadow:var(--shadow-sm); }
+  .bir-form-name { font-family:'Cormorant Garamond',serif; font-size:26px; font-weight:600; color:var(--ink); }
+  .bir-form-desc { font-size:11px; color:var(--ink-3); margin:4px 0 14px; line-height:1.6; }
   .bir-deadline { font-size:10.5px; color:var(--ink-3); }
 
-  /* Partners */
+  /* ─── PARTNERS ─── */
   .partner-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
-  .partner-card { background:var(--linen-2); border:1px solid var(--ink-4); padding:14px 16px; }
-  .partner-type-tag { font-size:8.5px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px; }
-  .partner-name { font-size:13px; font-weight:500; color:var(--ink); margin-bottom:2px; }
+  .partner-card { background:var(--linen-2); border:1px solid var(--ink-4); padding:16px 18px; transition:all 0.15s; }
+  .partner-card:hover { box-shadow:var(--shadow-sm); border-color:var(--ink-3); transform:translateY(-1px); }
+  .partner-type-tag { font-size:8px; letter-spacing:0.2em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px; font-weight:600; }
+  .partner-name { font-size:13px; font-weight:500; color:var(--ink); margin-bottom:4px; }
   .partner-contact { font-size:11px; color:var(--ink-3); line-height:1.6; }
-  .partner-filter-btn { padding:5px 12px; font-size:9.5px; letter-spacing:0.1em; text-transform:uppercase; border:1px solid var(--ink-4); background:transparent; color:var(--ink-3); cursor:pointer; font-family:'DM Sans',sans-serif; transition:all 0.12s; }
+  .partner-filter-btn { padding:6px 14px; font-size:9.5px; letter-spacing:0.1em; text-transform:uppercase; border:1px solid var(--ink-4); background:transparent; color:var(--ink-3); cursor:pointer; font-family:'DM Sans',sans-serif; transition:all 0.15s; font-weight:500; }
   .partner-filter-btn:hover { border-color:var(--ink); color:var(--ink); }
   .partner-filter-btn.active { background:var(--ink); color:var(--linen); border-color:var(--ink); }
 
-  /* Document Vault */
-  .drop-zone { border:1.5px dashed var(--ink-4); padding:28px; text-align:center; cursor:pointer; transition:all 0.12s; margin-bottom:16px; }
+  /* ─── DOCUMENT VAULT ─── */
+  .drop-zone { border:1.5px dashed var(--ink-4); padding:32px; text-align:center; cursor:pointer; transition:all 0.15s; margin-bottom:16px; }
   .drop-zone:hover,.drop-zone.dragover { border-color:var(--ink); background:var(--linen-2); }
-  .drop-zone-icon { font-size:22px; margin-bottom:8px; }
-  .drop-zone-text { font-size:11.5px; color:var(--ink-3); line-height:1.8; }
+  .drop-zone-icon { font-size:24px; margin-bottom:8px; opacity:0.4; }
+  .drop-zone-text { font-size:12px; color:var(--ink-3); line-height:1.8; }
   .doc-list { display:flex; flex-direction:column; gap:1px; }
-  .doc-item { display:flex; align-items:center; gap:12px; padding:10px 14px; background:var(--linen-2); border:1px solid var(--ink-4); margin-bottom:1px; }
-  .doc-icon { font-size:14px; flex-shrink:0; }
-  .doc-name { font-size:12.5px; color:var(--ink); flex:1; }
+  .doc-item { display:flex; align-items:center; gap:12px; padding:11px 16px; background:var(--linen-2); border:1px solid var(--ink-4); margin-bottom:1px; transition:background 0.12s; }
+  .doc-item:hover { background:var(--linen-3); }
+  .doc-icon { font-size:15px; flex-shrink:0; }
+  .doc-name { font-size:12.5px; color:var(--ink); flex:1; font-weight:500; }
   .doc-meta { font-size:10.5px; color:var(--ink-3); white-space:nowrap; }
   .doc-actions { display:flex; gap:10px; }
-  .doc-btn { font-size:9.5px; color:var(--ink-3); cursor:pointer; letter-spacing:0.05em; text-transform:uppercase; background:none; border:none; font-family:'DM Sans',sans-serif; }
+  .doc-btn { font-size:9.5px; color:var(--ink-3); cursor:pointer; letter-spacing:0.05em; text-transform:uppercase; background:none; border:none; font-family:'DM Sans',sans-serif; transition:color 0.12s; font-weight:500; }
   .doc-btn:hover { color:var(--ink); }
 
-  /* Proposals win rate */
-  .win-summary { display:grid; grid-template-columns:auto 1fr; gap:20px; align-items:center; margin-bottom:20px; }
-  .win-rate-big { font-family:'Cormorant Garamond',serif; font-size:48px; font-weight:600; color:var(--ink); line-height:1; }
+  /* ─── PROPOSALS ─── */
+  .win-summary { display:grid; grid-template-columns:auto 1fr; gap:24px; align-items:center; margin-bottom:20px; }
+  .win-rate-big { font-family:'Cormorant Garamond',serif; font-size:52px; font-weight:600; color:var(--ink); line-height:1; }
   .win-rate-label { font-size:9px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-3); margin-top:4px; }
 
-  /* Empty state */
-  .empty-state { text-align:center; padding:40px 20px; color:var(--ink-3); font-size:12px; }
+  /* ─── EMPTY STATE ─── */
+  .empty-state { text-align:center; padding:48px 20px; color:var(--ink-3); font-size:12.5px; line-height:1.6; }
+  .empty-state-icon { font-size:28px; opacity:0.25; margin-bottom:10px; }
 
-  /* Utilities */
+  /* ─── UTILITIES ─── */
   .flex-between { display:flex; align-items:center; justify-content:space-between; }
   .flex-gap { display:flex; align-items:center; gap:8px; }
-  .page-actions { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
-  .search-row { display:flex; align-items:center; gap:8px; }
+  .page-actions { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
 
-  /* Scrollbar */
-  ::-webkit-scrollbar { width:4px; }
-  ::-webkit-scrollbar-track { background:var(--linen-2); }
-  ::-webkit-scrollbar-thumb { background:var(--ink-4); }
+  /* ─── SCROLLBAR ─── */
+  ::-webkit-scrollbar { width:4px; height:4px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:var(--ink-4); border-radius:99px; }
+  ::-webkit-scrollbar-thumb:hover { background:var(--ink-3); }
 </style>
 </head>
 <body>
 
 <!-- LOGIN SCREEN -->
 <div class="login-screen" id="login-screen" style="display:none">
-  <div class="login-box">
-    <div class="login-logo">
-      <div class="logo-mark">
-        <span class="logo-script">destine</span>
-        <span class="logo-sans">vents</span>
+  <div class="login-brand">
+    <div class="lb-logo">
+      <div style="display:flex;align-items:baseline;gap:0;line-height:1">
+        <span class="lb-script">destine</span>
+        <span class="lb-sans">vents</span>
       </div>
-      <div class="logo-tagline">Command Center</div>
+      <div class="lb-divider"></div>
+      <div class="lb-tagline">Command Center · Baguio</div>
     </div>
-    <div class="login-title">Sign in</div>
-    <div class="login-sub">DestineVents Collective OPC · Baguio</div>
-    <div class="login-error" id="login-error"></div>
-    <div class="form-group" style="margin-bottom:10px">
-      <div class="form-label">Email</div>
-      <input class="form-input" id="login-email" type="email" placeholder="jenn@destinevents.biz" autocomplete="email"/>
+    <div class="lb-quote">
+      Every detail,<br>
+      <strong>perfectly placed.</strong>
     </div>
-    <div class="form-group" style="margin-bottom:18px">
-      <div class="form-label">Password</div>
-      <input class="form-input" id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')handleSignIn()"/>
+    <div class="lb-footer">DestineVents Collective OPC · Internal Tool</div>
+  </div>
+  <div class="login-form-wrap">
+    <div class="login-box">
+      <div class="login-greeting">Welcome back.</div>
+      <div class="login-sub">Sign in to your Command Center</div>
+      <div class="login-error" id="login-error"></div>
+      <div class="form-group" style="margin-bottom:12px">
+        <div class="form-label">Email</div>
+        <input class="form-input" id="login-email" type="email" placeholder="you@destinevents.biz" autocomplete="email"/>
+      </div>
+      <div class="form-group" style="margin-bottom:22px">
+        <div class="form-label">Password</div>
+        <input class="form-input" id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')handleSignIn()"/>
+      </div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="handleSignIn()">Sign In</button>
+      <div id="login-demo-note" style="display:none;margin-top:18px;font-size:10px;color:var(--ink-3);text-align:center;letter-spacing:0.05em">No Supabase configured — running in demo mode</div>
     </div>
-    <button class="btn btn-primary" style="width:100%" onclick="handleSignIn()">\ Sign In</button>
-    <div class="login-demo-note" id="login-demo-note" style="display:none">No Supabase configured — running in demo mode</div>
   </div>
 </div>
 
@@ -420,46 +459,65 @@
 
   <div class="sidebar-cta">
     <button class="btn-new" onclick="showPage('new-project')">
-      &nbsp;Start New Project
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      New Project
     </button>
   </div>
 
   <nav class="nav">
     <div class="nav-section">Workspace</div>
     <div class="nav-item active" data-page="dashboard" onclick="showPage('dashboard')">
-      <span class="nav-icon">▪</span> Dashboard
-      <span class="nav-backslash">\</span>
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
     </div>
     <div class="nav-item" data-page="clients" onclick="showPage('clients')">
-      <span class="nav-icon">◦</span> Clients
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Clients
     </div>
     <div class="nav-item" data-page="projects" onclick="showPage('projects')">
-      <span class="nav-icon">◦</span> Projects
+      <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+      Projects
     </div>
     <div class="nav-item" data-page="proposals" onclick="showPage('proposals')">
-      <span class="nav-icon">◦</span> Proposals
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      Proposals
     </div>
     <div class="nav-section">Operations</div>
     <div class="nav-item" data-page="finance" onclick="showPage('finance')">
-      <span class="nav-icon">◦</span> Finance & BIR
+      <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      Finance & BIR
     </div>
     <div class="nav-item" data-page="partners" onclick="showPage('partners')">
-      <span class="nav-icon">◦</span> Partners
+      <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+      Partners
     </div>
     <div class="nav-item" data-page="documents" onclick="showPage('documents')">
-      <span class="nav-icon">◦</span> Document Vault
+      <svg viewBox="0 0 24 24"><path d="M22 11V3h-7v3H9V3H2v8h7V8h2v10h4v3h7v-8h-7v3h-2V8h2v3z"/></svg>
+      Document Vault
     </div>
     <div class="nav-item" data-page="impact" onclick="showPage('impact')">
-      <span class="nav-icon">◦</span> Impact Tracker
+      <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Impact Tracker
     </div>
     <div class="nav-item" data-page="ai" onclick="showPage('ai')">
-      <span class="nav-icon">◦</span> AI Assistant
+      <svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/><line x1="9" y1="21" x2="15" y2="21"/><line x1="9" y1="18" x2="15" y2="18"/></svg>
+      AI Assistant
     </div>
   </nav>
 
   <div class="sidebar-footer">
-    <div class="signout" onclick="handleSignOut()">↩ &nbsp;Sign Out</div>
-    <div class="footer-brand">DestineVents Collective OPC · Baguio</div>
+    <div class="user-row">
+      <div class="user-avatar" id="sidebar-avatar">DV</div>
+      <div>
+        <div class="user-email" id="sidebar-email">demo@destinevents.biz</div>
+        <div class="user-role">Admin</div>
+      </div>
+    </div>
+    <div class="signout" onclick="handleSignOut()">
+      <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sign Out
+    </div>
+    <div class="footer-brand">DestineVents Collective OPC</div>
   </div>
 </aside>
 
@@ -476,7 +534,10 @@
       <div class="tab" data-page="ai" onclick="showPage('ai')">AI Assistant</div>
       <div class="tab" data-page="impact" onclick="showPage('impact')">Impact</div>
     </div>
-    <div class="topbar-right" id="topbar-user">jenn@destinevents.biz</div>
+    <div class="topbar-meta">
+      <div class="topbar-date" id="topbar-date"></div>
+      <div class="topbar-avatar" id="topbar-avatar">DV</div>
+    </div>
   </div>
 
   <!-- DASHBOARD -->
@@ -485,21 +546,25 @@
     <div class="page-title" id="dashboard-greeting">Good morning.</div>
     <div class="stats-grid">
       <div class="stat-card">
+        <div class="stat-accent" style="background:var(--green)"></div>
         <div class="stat-label">Active Projects</div>
         <div class="stat-value">12</div>
         <div class="stat-change up">↑ 3 this month</div>
       </div>
       <div class="stat-card">
+        <div class="stat-accent" style="background:var(--blue)"></div>
         <div class="stat-label">Pipeline Value</div>
         <div class="stat-value" style="font-size:24px">₱148K</div>
         <div class="stat-change up">↑ ₱32K vs last mo.</div>
       </div>
       <div class="stat-card">
+        <div class="stat-accent" style="background:var(--amber)"></div>
         <div class="stat-label">NDAs Signed</div>
         <div class="stat-value">7</div>
         <div class="stat-change">2 pending signature</div>
       </div>
       <div class="stat-card">
+        <div class="stat-accent" style="background:var(--ink)"></div>
         <div class="stat-label">Total Clients</div>
         <div class="stat-value">24</div>
         <div class="stat-change up">↑ 4 new this quarter</div>
@@ -583,37 +648,55 @@
     <div class="page-title">Start New Project</div>
     <div class="stepper">
       <div class="step-item">
-        <div class="step-circle done">✓</div>
-        <div class="step-label done">Client Info</div>
+        <div class="step-circle active" id="np-circle-1">1</div>
+        <div class="step-label active" id="np-label-1">Client Info</div>
       </div>
       <div class="step-line"></div>
       <div class="step-item">
-        <div class="step-circle active">2</div>
-        <div class="step-label active">NDA Preview</div>
+        <div class="step-circle" id="np-circle-2">2</div>
+        <div class="step-label" id="np-label-2">NDA Preview</div>
       </div>
       <div class="step-line"></div>
       <div class="step-item">
-        <div class="step-circle">3</div>
-        <div class="step-label">Send & Done</div>
+        <div class="step-circle" id="np-circle-3">3</div>
+        <div class="step-label" id="np-label-3">Save & Done</div>
       </div>
     </div>
-    <div class="card" style="margin-bottom:14px">
-      <div class="card-title">NDA Preview — Auto-Generated</div>
-      <div class="nda-preview">
-        <h3>Non-Disclosure Agreement</h3>
-        <p>This Non-Disclosure Agreement is entered into as of <strong>June 3, 2026</strong>, between:</p>
-        <p><strong>DestineVents Collective OPC</strong>, a One Person Corporation registered under Philippine law, Baguio City, represented by <strong>Jennifer Castro, Founder</strong> ("Disclosing Party");</p>
-        <p>AND <strong>SM City Baguio — Events Team</strong>, Session Road, Baguio City ("Receiving Party").</p>
-        <p><strong>1. PURPOSE.</strong> The parties wish to explore a potential business relationship regarding <strong>Corporate Events Partnership 2026</strong>. In connection with this purpose, the Disclosing Party may share certain confidential information with the Receiving Party.</p>
-        <p><strong>2. CONFIDENTIAL INFORMATION</strong> means any information disclosed by DestineVents Collective that is designated as confidential or that reasonably should be understood to be confidential given the nature of the information and the circumstances of disclosure…</p>
-        <p><strong>IN WITNESS WHEREOF</strong>, the parties have executed this Agreement as of the date first written above.</p>
+
+    <!-- Step 1: Client Info -->
+    <div id="np-step1">
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-title">Client Information</div>
+        <div class="form-grid">
+          <div class="form-group"><div class="form-label">Client / Company Name</div><input class="form-input" id="np-client" placeholder="e.g. SM City Baguio — Events Team"/></div>
+          <div class="form-group"><div class="form-label">Client Address</div><input class="form-input" id="np-address" placeholder="e.g. Session Road, Baguio City"/></div>
+          <div class="form-group"><div class="form-label">Contact Person</div><input class="form-input" id="np-contact" placeholder="Full name"/></div>
+          <div class="form-group"><div class="form-label">Contact Email</div><input class="form-input" id="np-email" type="email" placeholder="email@org.ph"/></div>
+          <div class="form-group full"><div class="form-label">Project / Purpose</div><input class="form-input" id="np-purpose" placeholder="e.g. Corporate Events Partnership 2026"/></div>
+          <div class="form-group"><div class="form-label">Agreement Date</div><input class="form-input" id="np-date" type="date"/></div>
+          <div class="form-group"><div class="form-label">Brand</div>
+            <select class="form-input" id="np-brand"><option>DestineVents</option><option>DDC</option><option>AYA</option></select>
+          </div>
+        </div>
+      </div>
+      <div class="flex-between">
+        <button class="btn btn-ghost" onclick="showPage('dashboard')">← Cancel</button>
+        <button class="btn btn-primary" onclick="npGoStep2()">Preview NDA →</button>
       </div>
     </div>
-    <div class="flex-between">
-      <button class="btn btn-ghost" onclick="showPage('dashboard')">← Back</button>
-      <div class="flex-gap">
-        <button class="btn btn-ghost">Download PDF</button>
-        <button class="btn btn-primary">Send via Dropbox Sign →</button>
+
+    <!-- Step 2: NDA Preview -->
+    <div id="np-step2" style="display:none">
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-title">NDA Preview — Auto-Generated</div>
+        <div class="nda-preview" id="np-nda-content"></div>
+      </div>
+      <div class="flex-between">
+        <button class="btn btn-ghost" onclick="npGoStep1()">← Edit Info</button>
+        <div class="flex-gap">
+          <button class="btn btn-ghost" onclick="downloadNDA()">Download PDF</button>
+          <button class="btn btn-primary" onclick="npFinish()">Save Project</button>
+        </div>
       </div>
     </div>
   </div>
@@ -626,7 +709,7 @@
       <div style="font-size:11px;color:var(--ink-3)">6 projects · ₱148,500 total value</div>
       <div class="flex-gap">
         <input class="form-input" placeholder="Search…" style="width:180px;padding:6px 10px;font-size:12px" oninput="filterTable(this,'projects-tbody')"/>
-        <button class="btn btn-primary" onclick="showPage('new-project')">\ New</button>
+        <button class="btn btn-primary" onclick="showPage('new-project')">New</button>
       </div>
     </div>
     <div style="border:1px solid var(--ink-4);overflow:hidden">
@@ -651,7 +734,7 @@
       <div id="clients-summary" style="font-size:11px;color:var(--ink-3)"></div>
       <div class="flex-gap">
         <input class="form-input" placeholder="Search…" style="width:180px;padding:6px 10px;font-size:12px" oninput="filterTable(this,'clients-tbody')"/>
-        <button class="btn btn-primary" onclick="openAddClient()">\ Add Client</button>
+        <button class="btn btn-primary" onclick="openAddClient()">Add Client</button>
       </div>
     </div>
     <div style="border:1px solid var(--ink-4);overflow:hidden">
@@ -684,7 +767,7 @@
     </div>
     <div class="page-actions">
       <div id="proposals-summary" style="font-size:11px;color:var(--ink-3)"></div>
-      <button class="btn btn-primary" onclick="openAddProposal()">\ New Proposal</button>
+      <button class="btn btn-primary" onclick="openAddProposal()">New Proposal</button>
     </div>
     <div style="border:1px solid var(--ink-4);overflow:hidden">
       <table class="project-table">
@@ -725,7 +808,7 @@
     <div class="ftab" id="ftab-receivables">
       <div class="page-actions">
         <div id="ar-summary" style="font-size:11px;color:var(--ink-3)"></div>
-        <button class="btn btn-primary" onclick="openAddInvoice()">\ New Invoice</button>
+        <button class="btn btn-primary" onclick="openAddInvoice()">New Invoice</button>
       </div>
       <div style="border:1px solid var(--ink-4);overflow:hidden">
         <table class="ledger-table">
@@ -739,7 +822,7 @@
     <div class="ftab" id="ftab-payables">
       <div class="page-actions">
         <div id="ap-summary" style="font-size:11px;color:var(--ink-3)"></div>
-        <button class="btn btn-primary" onclick="openAddBill()">\ New Bill</button>
+        <button class="btn btn-primary" onclick="openAddBill()">New Bill</button>
       </div>
       <div style="border:1px solid var(--ink-4);overflow:hidden">
         <table class="ledger-table">
@@ -753,7 +836,7 @@
     <div class="ftab" id="ftab-payroll">
       <div class="page-actions">
         <div style="font-size:11px;color:var(--ink-3)">SSS / PhilHealth / Pag-IBIG deductions auto-computed</div>
-        <button class="btn btn-primary" onclick="openAddPayroll()">\ New Payroll Run</button>
+        <button class="btn btn-primary" onclick="openAddPayroll()">New Payroll Run</button>
       </div>
       <div style="border:1px solid var(--ink-4);overflow:hidden">
         <table class="ledger-table">
@@ -782,7 +865,7 @@
         <button class="partner-filter-btn" onclick="filterPartners('Sponsor',this)">Sponsors</button>
         <button class="partner-filter-btn" onclick="filterPartners('Media',this)">Media</button>
       </div>
-      <button class="btn btn-primary" onclick="openAddPartner()">\ Add Partner</button>
+      <button class="btn btn-primary" onclick="openAddPartner()">Add Partner</button>
     </div>
     <div class="partner-grid" id="partners-grid"></div>
   </div>
@@ -843,6 +926,16 @@
   <div class="page" id="page-ai">
     <div class="page-eyebrow">generate</div>
     <div class="page-title">AI Assistant</div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title">Settings</div>
+      <div style="display:flex;align-items:flex-end;gap:16px">
+        <div class="form-group" style="flex:1;margin:0">
+          <div class="form-label">Anthropic API Key</div>
+          <input class="form-input" id="ai-api-key" type="password" placeholder="sk-ant-api03-…" oninput="saveAIKey(this.value)"/>
+        </div>
+        <div style="font-size:10px;color:var(--ink-3);padding-bottom:9px;line-height:1.7;white-space:nowrap">Stored in your browser only.<br>Get a key at console.anthropic.com</div>
+      </div>
+    </div>
     <div class="ai-grid">
       <div class="ai-template selected" onclick="selectTemplate(this)"><div class="ai-template-icon">📧</div><div class="ai-template-name">Follow-up Email</div><div class="ai-template-desc">Professional client follow-ups</div></div>
       <div class="ai-template" onclick="selectTemplate(this)"><div class="ai-template-icon">📋</div><div class="ai-template-name">Proposal Summary</div><div class="ai-template-desc">Executive summaries that win</div></div>
@@ -858,7 +951,7 @@
         <div class="form-group full"><div class="form-label">Context / Purpose</div><input class="form-input" id="ai-context" placeholder="Brief context for the document…"/></div>
       </div>
       <div class="flex-gap">
-        <button class="btn btn-primary" onclick="simulateAI()">\ &nbsp;Generate</button>
+        <button class="btn btn-primary" onclick="simulateAI()">Generate</button>
         <button class="btn btn-ghost" onclick="copyAIOutput()">Copy Output</button>
       </div>
     </div>
@@ -872,8 +965,7 @@
 
 <script>
 // ─── SUPABASE CONFIG ──────────────────────────────────────────────────────────
-// Teammate: fill these in after Supabase project is created
-// Settings → API → Project URL / anon public key
+// Optional: fill these in after creating a Supabase project for cloud persistence
 const SUPABASE_URL      = '';
 const SUPABASE_ANON_KEY = '';
 // ─────────────────────────────────────────────────────────────────────────────
@@ -881,66 +973,77 @@ const SUPABASE_ANON_KEY = '';
 const DEMO = !SUPABASE_URL || !SUPABASE_ANON_KEY;
 const sb   = DEMO ? null : window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// ─── DEMO DATA ───────────────────────────────────────────────────────────────
-const DEMO_CLIENTS = [
-  { id:1, name:'DTI CAR',               type:'Government', brand:'DestineVents', contact:'Maria Santos',   email:'msantos@dti.gov.ph',           total_value:85000, status:'Active'    },
-  { id:2, name:'Baguio Central University', type:'Education', brand:'DDC',       contact:'Dr. Reyes',      email:'dreyes@bcu.edu.ph',            total_value:24000, status:'Active'    },
-  { id:3, name:'SM City Baguio',        type:'Corporate',  brand:'DestineVents', contact:'Events Team',    email:'events@smcitybaguio.com.ph',   total_value:18500, status:'NDA Signed'},
-  { id:4, name:'As You Are Baguio',     type:'Community',  brand:'AYA',          contact:'AYA Collective', email:'aya@ayabaguio.com',            total_value:12000, status:'Active'    },
-  { id:5, name:'Baguio City LGU',       type:'Government', brand:'DDC',          contact:'City Planning',  email:'planning@baguio.gov.ph',       total_value:5000,  status:'Completed' },
-  { id:6, name:'SIGLAT Youth Hub',      type:'NGO',        brand:'DestineVents', contact:'Youth Coord.',   email:'siglat@gmail.com',             total_value:8000,  status:'Lead'      },
-];
+// ─── LOCAL STORAGE ────────────────────────────────────────────────────────────
+function saveLS(key, data) {
+  try { localStorage.setItem('dv_' + key, JSON.stringify(data)); } catch(e) {}
+}
+function loadLS(key, def) {
+  try { const s = localStorage.getItem('dv_' + key); return s ? JSON.parse(s) : def; } catch(e) { return def; }
+}
 
-const DEMO_PROPOSALS = [
-  { id:1, name:'DTI CAR MSME Innovation Summit',      client:'DTI CAR',     value:85000, sent:'May 20, 2026', followup:'Jun 7, 2026',  status:'Won'  },
-  { id:2, name:'BCU Digital Confidence Training',     client:'BCU',         value:24000, sent:'May 28, 2026', followup:'Jun 5, 2026',  status:'Sent' },
-  { id:3, name:'SIGLAT Youth Leadership Camp',        client:'SIGLAT',      value:15000, sent:'May 10, 2026', followup:'May 24, 2026', status:'Lost' },
-  { id:4, name:'SM City Baguio Events Partnership',   client:'SM Baguio',   value:18500, sent:'May 15, 2026', followup:'Jun 2, 2026',  status:'Won'  },
-  { id:5, name:'Cordillera Agri Forum 2026',          client:'Baguio LGU',  value:30000, sent:'Jun 1, 2026',  followup:'Jun 15, 2026', status:'Sent' },
+// ─── DEFAULT DATA ─────────────────────────────────────────────────────────────
+const DEFAULT_CLIENTS = [
+  { id:1, name:'DTI CAR',                  type:'Government', brand:'DestineVents', contact:'Maria Santos',   email:'msantos@dti.gov.ph',         total_value:85000, status:'Active'    },
+  { id:2, name:'Baguio Central University', type:'Education',  brand:'DDC',         contact:'Dr. Reyes',      email:'dreyes@bcu.edu.ph',          total_value:24000, status:'Active'    },
+  { id:3, name:'SM City Baguio',            type:'Corporate',  brand:'DestineVents', contact:'Events Team',    email:'events@smcitybaguio.com.ph', total_value:18500, status:'NDA Signed'},
+  { id:4, name:'As You Are Baguio',         type:'Community',  brand:'AYA',          contact:'AYA Collective', email:'aya@ayabaguio.com',          total_value:12000, status:'Active'    },
+  { id:5, name:'Baguio City LGU',           type:'Government', brand:'DDC',          contact:'City Planning',  email:'planning@baguio.gov.ph',     total_value:5000,  status:'Completed' },
+  { id:6, name:'SIGLAT Youth Hub',          type:'NGO',        brand:'DestineVents', contact:'Youth Coord.',   email:'siglat@gmail.com',           total_value:8000,  status:'Lead'      },
 ];
-
-let _partners = [
-  { id:1, name:'Baguio Central University', type:'School',  contact:'Dr. Reyes',       email:'dreyes@bcu.edu.ph'             },
-  { id:2, name:'SLU School of Business',    type:'School',  contact:'Dean Villanueva', email:'business@slu.edu.ph'           },
-  { id:3, name:'DTI CAR',                   type:'LGU',     contact:'Maria Santos',    email:'msantos@dti.gov.ph'            },
-  { id:4, name:'Baguio City LGU',           type:'LGU',     contact:'City Planning',   email:'planning@baguio.gov.ph'        },
-  { id:5, name:'BLISTT Consortium',         type:'LGU',     contact:'Exec. Director',  email:'blistt@gov.ph'                 },
-  { id:6, name:'SIGLAT Youth Hub',          type:'NGO',     contact:'Youth Coord.',    email:'siglat@gmail.com'              },
-  { id:7, name:'As You Are Baguio',         type:'NGO',     contact:'AYA Collective',  email:'aya@ayabaguio.com'             },
-  { id:8, name:'SM City Baguio',            type:'Sponsor', contact:'Events Team',     email:'events@smcitybaguio.com.ph'    },
-  { id:9, name:'Baguio Midland Courier',    type:'Media',   contact:'Editor in Chief', email:'editor@midlandcourier.com'     },
-  { id:10,name:'Cordillera Today',          type:'Media',   contact:'News Desk',       email:'news@cordilleratoday.com'      },
+const DEFAULT_PROPOSALS = [
+  { id:1, name:'DTI CAR MSME Innovation Summit',    client:'DTI CAR',    value:85000, sent:'May 20, 2026', followup:'Jun 7, 2026',  status:'Won'  },
+  { id:2, name:'BCU Digital Confidence Training',   client:'BCU',        value:24000, sent:'May 28, 2026', followup:'Jun 5, 2026',  status:'Sent' },
+  { id:3, name:'SIGLAT Youth Leadership Camp',      client:'SIGLAT',     value:15000, sent:'May 10, 2026', followup:'May 24, 2026', status:'Lost' },
+  { id:4, name:'SM City Baguio Events Partnership', client:'SM Baguio',  value:18500, sent:'May 15, 2026', followup:'Jun 2, 2026',  status:'Won'  },
+  { id:5, name:'Cordillera Agri Forum 2026',        client:'Baguio LGU', value:30000, sent:'Jun 1, 2026',  followup:'Jun 15, 2026', status:'Sent' },
 ];
-
-let _documents = [
-  { id:1, name:'SM City Baguio — NDA Signed.pdf',  type:'NDA',      size:'142 KB', date:'Jun 2, 2026'  },
-  { id:2, name:'DTI CAR — Event Agreement.pdf',    type:'Contract', size:'287 KB', date:'May 20, 2026' },
-  { id:3, name:'BCU Training — Proposal.pdf',      type:'Proposal', size:'94 KB',  date:'May 28, 2026' },
-  { id:4, name:'AYA Baguio — MOU 2026.pdf',        type:'Agreement',size:'201 KB', date:'Apr 15, 2026' },
+const DEFAULT_PARTNERS = [
+  { id:1,  name:'Baguio Central University', type:'School',  contact:'Dr. Reyes',       email:'dreyes@bcu.edu.ph'          },
+  { id:2,  name:'SLU School of Business',    type:'School',  contact:'Dean Villanueva', email:'business@slu.edu.ph'        },
+  { id:3,  name:'DTI CAR',                   type:'LGU',     contact:'Maria Santos',    email:'msantos@dti.gov.ph'         },
+  { id:4,  name:'Baguio City LGU',           type:'LGU',     contact:'City Planning',   email:'planning@baguio.gov.ph'     },
+  { id:5,  name:'BLISTT Consortium',         type:'LGU',     contact:'Exec. Director',  email:'blistt@gov.ph'              },
+  { id:6,  name:'SIGLAT Youth Hub',          type:'NGO',     contact:'Youth Coord.',    email:'siglat@gmail.com'           },
+  { id:7,  name:'As You Are Baguio',         type:'NGO',     contact:'AYA Collective',  email:'aya@ayabaguio.com'          },
+  { id:8,  name:'SM City Baguio',            type:'Sponsor', contact:'Events Team',     email:'events@smcitybaguio.com.ph' },
+  { id:9,  name:'Baguio Midland Courier',    type:'Media',   contact:'Editor in Chief', email:'editor@midlandcourier.com'  },
+  { id:10, name:'Cordillera Today',          type:'Media',   contact:'News Desk',       email:'news@cordilleratoday.com'   },
 ];
-
-let _invoices = [
-  { id:1, or_num:'OR-2026-001', client:'DTI CAR',   amount:42500, date:'May 20, 2026', due:'Jun 20, 2026', status:'Paid'    },
-  { id:2, or_num:'OR-2026-002', client:'SM Baguio', amount:9250,  date:'Jun 2, 2026',  due:'Jul 2, 2026',  status:'Unpaid'  },
-  { id:3, or_num:'OR-2026-003', client:'BCU',       amount:12000, date:'Jun 1, 2026',  due:'Jul 1, 2026',  status:'Unpaid'  },
-  { id:4, or_num:'OR-2026-004', client:'AYA Baguio',amount:6000,  date:'Apr 15, 2026', due:'May 15, 2026', status:'Overdue' },
+const DEFAULT_DOCUMENTS = [
+  { id:1, name:'SM City Baguio — NDA Signed.pdf', type:'NDA',       size:'142 KB', date:'Jun 2, 2026'  },
+  { id:2, name:'DTI CAR — Event Agreement.pdf',   type:'Contract',  size:'287 KB', date:'May 20, 2026' },
+  { id:3, name:'BCU Training — Proposal.pdf',     type:'Proposal',  size:'94 KB',  date:'May 28, 2026' },
+  { id:4, name:'AYA Baguio — MOU 2026.pdf',       type:'Agreement', size:'201 KB', date:'Apr 15, 2026' },
 ];
-
-let _bills = [
-  { id:1, payee:'Venue — Camp John Hay',    amount:15000, date:'May 15, 2026', category:'Venue',     ewt:'0%',  status:'Paid'   },
-  { id:2, payee:'Catering — Tradisyon',     amount:8500,  date:'May 20, 2026', category:'Catering',  ewt:'2%',  status:'Paid'   },
-  { id:3, payee:'AV Equipment Rental',      amount:5000,  date:'Jun 1, 2026',  category:'Equipment', ewt:'2%',  status:'Unpaid' },
-  { id:4, payee:'Graphic Design — Freelance',amount:3500, date:'Jun 2, 2026',  category:'Services',  ewt:'10%', status:'Unpaid' },
+const DEFAULT_INVOICES = [
+  { id:1, or_num:'OR-2026-001', client:'DTI CAR',    amount:42500, date:'May 20, 2026', due:'Jun 20, 2026', status:'Paid'    },
+  { id:2, or_num:'OR-2026-002', client:'SM Baguio',  amount:9250,  date:'Jun 2, 2026',  due:'Jul 2, 2026',  status:'Unpaid'  },
+  { id:3, or_num:'OR-2026-003', client:'BCU',        amount:12000, date:'Jun 1, 2026',  due:'Jul 1, 2026',  status:'Unpaid'  },
+  { id:4, or_num:'OR-2026-004', client:'AYA Baguio', amount:6000,  date:'Apr 15, 2026', due:'May 15, 2026', status:'Overdue' },
 ];
-
-let _payroll = [
+const DEFAULT_BILLS = [
+  { id:1, payee:'Venue — Camp John Hay',      amount:15000, date:'May 15, 2026', category:'Venue',     ewt:'0%',  status:'Paid'   },
+  { id:2, payee:'Catering — Tradisyon',       amount:8500,  date:'May 20, 2026', category:'Catering',  ewt:'2%',  status:'Paid'   },
+  { id:3, payee:'AV Equipment Rental',        amount:5000,  date:'Jun 1, 2026',  category:'Equipment', ewt:'2%',  status:'Unpaid' },
+  { id:4, payee:'Graphic Design — Freelance', amount:3500,  date:'Jun 2, 2026',  category:'Services',  ewt:'10%', status:'Unpaid' },
+];
+const DEFAULT_PAYROLL = [
   { id:1, period:'May 2026', employees:3, gross:45000, deductions:6750, net:38250, status:'Released' },
   { id:2, period:'Apr 2026', employees:3, gross:45000, deductions:6750, net:38250, status:'Released' },
   { id:3, period:'Mar 2026', employees:2, gross:30000, deductions:4500, net:25500, status:'Released' },
 ];
 
+// ─── LIVE DATA (localStorage-backed) ─────────────────────────────────────────
+let _clients   = loadLS('clients',   DEFAULT_CLIENTS);
+let _proposals = loadLS('proposals', DEFAULT_PROPOSALS);
+let _partners  = loadLS('partners',  DEFAULT_PARTNERS);
+let _documents = loadLS('documents', DEFAULT_DOCUMENTS);
+let _invoices  = loadLS('invoices',  DEFAULT_INVOICES);
+let _bills     = loadLS('bills',     DEFAULT_BILLS);
+let _payroll   = loadLS('payroll',   DEFAULT_PAYROLL);
+
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
-const num = n => (+(n)||0).toLocaleString('en-PH');
+const num = n =>(+(n)||0).toLocaleString('en-PH');
 
 function statusClass(s='') {
   return ({
@@ -957,10 +1060,10 @@ function docTypeIcon(t) {
 
 function guessDocType(name) {
   const n = name.toLowerCase();
-  if (n.includes('nda'))                       return 'NDA';
-  if (n.includes('contract'))                  return 'Contract';
-  if (n.includes('proposal'))                  return 'Proposal';
-  if (n.includes('agreement')||n.includes('mou')) return 'Agreement';
+  if (n.includes('nda'))                            return 'NDA';
+  if (n.includes('contract'))                       return 'Contract';
+  if (n.includes('proposal'))                       return 'Proposal';
+  if (n.includes('agreement') || n.includes('mou')) return 'Agreement';
   return 'Document';
 }
 
@@ -970,14 +1073,21 @@ function formatBytes(b) {
   return (b/1024/1024).toFixed(1) + ' MB';
 }
 
+function fmtDate(isoVal) {
+  if (!isoVal) return '—';
+  return new Date(isoVal + 'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+}
+
 // ─── TOAST ───────────────────────────────────────────────────────────────────
 function toast(msg, type='') {
   const t = document.getElementById('toast');
   t.textContent = msg;
+  // reset to retrigger the slide-in animation on every call
   t.className = 'toast' + (type ? ' '+type : '');
-  t.style.display = 'block';
+  void t.offsetWidth;
+  t.classList.add('visible');
   clearTimeout(t._t);
-  t._t = setTimeout(() => t.style.display='none', 3000);
+  t._t = setTimeout(() => t.classList.remove('visible'), 3200);
 }
 
 // ─── MODAL ───────────────────────────────────────────────────────────────────
@@ -997,8 +1107,7 @@ function saveModal() { if (_onSave) _onSave(); }
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
 async function init() {
   if (DEMO) {
-    // document.getElementById('demo-banner').classList.add('visible');
-    enterApp('demo@destinevents.biz');
+    enterApp('jenn@destinevents.biz');
     return;
   }
   const { data:{ session } } = await sb.auth.getSession();
@@ -1012,11 +1121,26 @@ async function init() {
 
 function enterApp(email, name) {
   document.getElementById('login-screen').style.display = 'none';
-  if (email) document.getElementById('topbar-user').textContent = email;
   const hour = new Date().getHours();
   const timeOfDay = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
-  const greeting = name ? `${timeOfDay}, ${name}.` : `${timeOfDay}.`;
-  document.getElementById('dashboard-greeting').textContent = greeting;
+  document.getElementById('dashboard-greeting').textContent = name ? `${timeOfDay}, ${name}.` : `${timeOfDay}.`;
+  // Topbar date
+  const now = new Date();
+  const dateFmt = now.toLocaleDateString('en-PH', { weekday:'short', month:'long', day:'numeric', year:'numeric' });
+  const dateEl = document.getElementById('topbar-date');
+  if (dateEl) dateEl.textContent = dateFmt;
+  // Avatar / email
+  if (email) {
+    const initials = email.split('@')[0].slice(0,2).toUpperCase();
+    const av = document.getElementById('topbar-avatar');
+    const sav = document.getElementById('sidebar-avatar');
+    const sem = document.getElementById('sidebar-email');
+    if (av) av.textContent = initials;
+    if (sav) sav.textContent = initials;
+    if (sem) sem.textContent = email;
+  }
+  const savedKey = loadLS('anthropic_key', '');
+  if (savedKey) { const k = document.getElementById('ai-api-key'); if (k) k.value = savedKey; }
   showPage('dashboard');
 }
 
@@ -1040,59 +1164,54 @@ async function handleSignOut() {
 
 // ─── NAVIGATION ──────────────────────────────────────────────────────────────
 function showPage(name) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p =>p.classList.remove('active'));
   const page = document.getElementById('page-' + name);
   if (page) { page.classList.add('active'); loadPage(name); }
 
-  document.querySelectorAll('.nav-item').forEach(n => {
-    n.classList.remove('active');
-    const ch = n.querySelector('.nav-backslash');
-    if (ch) ch.remove();
-  });
+  document.querySelectorAll('.nav-item').forEach(n =>n.classList.remove('active'));
   const activeNav = document.querySelector(`.nav-item[data-page="${name}"]`);
-  if (activeNav) {
-    activeNav.classList.add('active');
-    const s = document.createElement('span');
-    s.className = 'nav-backslash'; s.textContent = '\\';
-    activeNav.appendChild(s);
-  }
+  if (activeNav) activeNav.classList.add('active');
 
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t =>t.classList.remove('active'));
   const activeTab = document.querySelector(`.tab[data-page="${name}"]`);
   if (activeTab) activeTab.classList.add('active');
 }
 
 function loadPage(name) {
   switch(name) {
-    case 'clients':   loadClients();   break;
-    case 'proposals': loadProposals(); break;
-    case 'partners':  loadPartners();  break;
-    case 'documents': loadDocuments(); break;
-    case 'finance':   loadFinance();   break;
+    case 'clients':     loadClients();      break;
+    case 'proposals':   loadProposals();    break;
+    case 'partners':    loadPartners();     break;
+    case 'documents':   loadDocuments();    break;
+    case 'finance':     loadFinance();      break;
+    case 'ai':          loadAIPage();       break;
+    case 'new-project': resetNewProject();  break;
   }
 }
 
 // ─── FILTER (table search) ────────────────────────────────────────────────────
 function filterTable(input, tbodyId) {
   const q = input.value.toLowerCase();
-  document.querySelectorAll('#' + tbodyId + ' tr').forEach(tr => {
+  document.querySelectorAll('#' + tbodyId + ' tr').forEach(tr =>{
     tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
   });
 }
 
 // ─── CLIENTS ─────────────────────────────────────────────────────────────────
 async function loadClients() {
-  const data = DEMO ? DEMO_CLIENTS
-    : ((await sb.from('clients').select('*').order('name')).data || []);
-  renderClients(data);
+  if (!DEMO) {
+    const { data } = await sb.from('clients').select('*').order('name');
+    if (data) { _clients = data; saveLS('clients', _clients); }
+  }
+  renderClients(_clients);
 }
 
 function renderClients(clients) {
-  const total = clients.reduce((s,c) => s + (c.total_value||0), 0);
+  const total = clients.reduce((s,c) =>s + (c.total_value||0), 0);
   document.getElementById('clients-summary').textContent =
     `${clients.length} clients · ₱${num(total)} total value`;
   document.getElementById('clients-tbody').innerHTML = clients.length
-    ? clients.map(c => `
+    ? clients.map(c =>`
         <tr>
           <td><div class="project-name">${c.name}</div><div class="project-client">${c.type}</div></td>
           <td><span class="badge badge-${statusClass(c.status)}">${c.status}</span></td>
@@ -1135,7 +1254,8 @@ async function saveClient() {
     total_value: 0,
   };
   if (DEMO) {
-    DEMO_CLIENTS.push(data);
+    _clients.push(data);
+    saveLS('clients', _clients);
     toast('Client added','success');
   } else {
     const { error } = await sb.from('clients').insert(data);
@@ -1147,19 +1267,21 @@ async function saveClient() {
 
 // ─── PROPOSALS ───────────────────────────────────────────────────────────────
 async function loadProposals() {
-  const data = DEMO ? DEMO_PROPOSALS
-    : ((await sb.from('proposals').select('*').order('sent',{ascending:false})).data || []);
-  renderProposals(data);
+  if (!DEMO) {
+    const { data } = await sb.from('proposals').select('*').order('sent',{ascending:false});
+    if (data) { _proposals = data; saveLS('proposals', _proposals); }
+  }
+  renderProposals(_proposals);
 }
 
 function renderProposals(proposals) {
-  const won  = proposals.filter(p => p.status==='Won').length;
-  const lost = proposals.filter(p => p.status==='Lost').length;
-  const closed = won + lost;
-  const rate = closed ? Math.round((won/closed)*100) : 0;
-  const totalVal  = proposals.reduce((s,p) => s+(p.value||0), 0);
-  const wonVal    = proposals.filter(p=>p.status==='Won').reduce((s,p)=>s+(p.value||0),0);
-  const pendingVal= proposals.filter(p=>p.status==='Sent').reduce((s,p)=>s+(p.value||0),0);
+  const won     = proposals.filter(p =>p.status==='Won').length;
+  const lost    = proposals.filter(p =>p.status==='Lost').length;
+  const closed  = won + lost;
+  const rate    = closed ? Math.round((won/closed)*100) : 0;
+  const totalVal   = proposals.reduce((s,p) =>s+(p.value||0), 0);
+  const wonVal     = proposals.filter(p=>p.status==='Won').reduce((s,p)=>s+(p.value||0),0);
+  const pendingVal = proposals.filter(p=>p.status==='Sent').reduce((s,p)=>s+(p.value||0),0);
 
   document.getElementById('win-rate-pct').textContent = rate + '%';
   document.getElementById('win-rate-breakdown').innerHTML =
@@ -1171,7 +1293,7 @@ function renderProposals(proposals) {
      <div>In pipeline: <strong style="color:var(--blue)">₱${num(pendingVal)}</strong></div>`;
   document.getElementById('proposals-summary').textContent = `${proposals.length} proposals`;
   document.getElementById('proposals-tbody').innerHTML = proposals.length
-    ? proposals.map(p => `
+    ? proposals.map(p =>`
         <tr>
           <td><div class="project-name">${p.name}</div><div class="project-client">${p.client}</div></td>
           <td class="project-value">₱${num(p.value)}</td>
@@ -1199,17 +1321,17 @@ function openAddProposal() {
 async function saveProposal() {
   const name = document.getElementById('fp-name').value.trim();
   if (!name) { toast('Proposal name is required','error'); return; }
-  const toDateStr = id => { const v=document.getElementById(id).value; if(!v)return '—'; const d=new Date(v); return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); };
   const data = {
-    id:Date.now(), name,
+    id: Date.now(), name,
     client:   document.getElementById('fp-client').value,
     value:    +document.getElementById('fp-value').value||0,
-    sent:     toDateStr('fp-sent'),
-    followup: toDateStr('fp-followup'),
+    sent:     fmtDate(document.getElementById('fp-sent').value),
+    followup: fmtDate(document.getElementById('fp-followup').value),
     status:   document.getElementById('fp-status').value,
   };
   if (DEMO) {
-    DEMO_PROPOSALS.push(data);
+    _proposals.push(data);
+    saveLS('proposals', _proposals);
     toast('Proposal added','success');
   } else {
     const { error } = await sb.from('proposals').insert(data);
@@ -1221,32 +1343,39 @@ async function saveProposal() {
 
 // ─── FINANCE ─────────────────────────────────────────────────────────────────
 async function loadFinance() {
-  const invoices = DEMO ? _invoices : ((await sb.from('invoices').select('*').order('date',{ascending:false})).data||[]);
-  const bills    = DEMO ? _bills    : ((await sb.from('bills').select('*').order('date',{ascending:false})).data||[]);
-  const payroll  = DEMO ? _payroll  : ((await sb.from('payroll_runs').select('*').order('period',{ascending:false})).data||[]);
-  renderFinanceOverview(invoices, bills);
-  renderAR(invoices);
-  renderAP(bills);
-  renderPayroll(payroll);
+  if (!DEMO) {
+    const [inv, bil, pay] = await Promise.all([
+      sb.from('invoices').select('*').order('date',{ascending:false}),
+      sb.from('bills').select('*').order('date',{ascending:false}),
+      sb.from('payroll_runs').select('*').order('period',{ascending:false}),
+    ]);
+    if (inv.data) { _invoices = inv.data; saveLS('invoices', _invoices); }
+    if (bil.data) { _bills    = bil.data; saveLS('bills',    _bills);    }
+    if (pay.data) { _payroll  = pay.data; saveLS('payroll',  _payroll);  }
+  }
+  renderFinanceOverview(_invoices, _bills);
+  renderAR(_invoices);
+  renderAP(_bills);
+  renderPayroll(_payroll);
   renderBIR();
 }
 
 function showFinanceTab(name, el) {
-  document.querySelectorAll('.ftab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.ftab').forEach(t =>t.classList.remove('active'));
   document.getElementById('ftab-' + name).classList.add('active');
-  document.querySelectorAll('#finance-subtabs .sub-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('#finance-subtabs .sub-tab').forEach(t =>t.classList.remove('active'));
   el.classList.add('active');
 }
 
 function renderFinanceOverview(invoices, bills) {
-  const arOut  = invoices.filter(i=>i.status!=='Paid').reduce((s,i)=>s+i.amount,0);
-  const apOut  = bills.filter(b=>b.status!=='Paid').reduce((s,b)=>s+b.amount,0);
-  const rev    = invoices.filter(i=>i.status==='Paid').reduce((s,i)=>s+i.amount,0);
-  const net    = arOut - apOut;
-  const overdue= invoices.filter(i=>i.status==='Overdue').length;
+  const arOut   = invoices.filter(i=>i.status!=='Paid').reduce((s,i)=>s+i.amount,0);
+  const apOut   = bills.filter(b=>b.status!=='Paid').reduce((s,b)=>s+b.amount,0);
+  const rev     = invoices.filter(i=>i.status==='Paid').reduce((s,i)=>s+i.amount,0);
+  const net     = arOut - apOut;
+  const overdue = invoices.filter(i=>i.status==='Overdue').length;
 
   document.getElementById('finance-stats').innerHTML = `
-    <div class="stat-card"><div class="stat-label">AR Outstanding</div><div class="stat-value" style="font-size:22px">₱${num(arOut)}</div><div class="stat-change${overdue?' color:var(--red)':''}">${overdue} overdue invoice${overdue!==1?'s':''}</div></div>
+    <div class="stat-card"><div class="stat-label">AR Outstanding</div><div class="stat-value" style="font-size:22px">₱${num(arOut)}</div><div class="stat-change">${overdue} overdue invoice${overdue!==1?'s':''}</div></div>
     <div class="stat-card"><div class="stat-label">AP Outstanding</div><div class="stat-value" style="font-size:22px">₱${num(apOut)}</div><div class="stat-change">${bills.filter(b=>b.status!=='Paid').length} pending bills</div></div>
     <div class="stat-card"><div class="stat-label">Revenue Collected</div><div class="stat-value" style="font-size:22px">₱${num(rev)}</div><div class="stat-change up">This quarter</div></div>
     <div class="stat-card"><div class="stat-label">Net Position</div><div class="stat-value" style="font-size:22px${net<0?';color:var(--red)':''}">₱${num(Math.abs(net))}</div><div class="stat-change ${net>=0?'up':''}">${net>=0?'Receivable surplus':'Payable deficit'}</div></div>`;
@@ -1377,9 +1506,15 @@ function openAddInvoice() {
 async function saveInvoice() {
   const or_num = document.getElementById('fi-or').value.trim();
   if (!or_num) { toast('OR number is required','error'); return; }
-  const toStr = id => { const v=document.getElementById(id).value; if(!v)return '—'; return new Date(v).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); };
-  const data = { id:Date.now(), or_num, client:document.getElementById('fi-client').value, amount:+document.getElementById('fi-amount').value||0, status:document.getElementById('fi-status').value, date:toStr('fi-date'), due:toStr('fi-due') };
-  if (DEMO) { _invoices.unshift(data); toast('Invoice added','success'); }
+  const data = {
+    id: Date.now(), or_num,
+    client: document.getElementById('fi-client').value,
+    amount: +document.getElementById('fi-amount').value||0,
+    status: document.getElementById('fi-status').value,
+    date:   fmtDate(document.getElementById('fi-date').value),
+    due:    fmtDate(document.getElementById('fi-due').value),
+  };
+  if (DEMO) { _invoices.unshift(data); saveLS('invoices', _invoices); toast('Invoice added','success'); }
   else { const{error}=await sb.from('invoices').insert(data); if(error){toast(error.message,'error');return;} toast('Invoice added','success'); }
   closeModal(); loadFinance();
 }
@@ -1405,9 +1540,15 @@ function openAddBill() {
 async function saveBill() {
   const payee = document.getElementById('fb-payee').value.trim();
   if (!payee) { toast('Payee is required','error'); return; }
-  const toStr = id => { const v=document.getElementById(id).value; if(!v)return '—'; return new Date(v).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); };
-  const data = { id:Date.now(), payee, amount:+document.getElementById('fb-amount').value||0, category:document.getElementById('fb-category').value, ewt:document.getElementById('fb-ewt').value, date:toStr('fb-date'), status:document.getElementById('fb-status').value };
-  if (DEMO) { _bills.unshift(data); toast('Bill added','success'); }
+  const data = {
+    id: Date.now(), payee,
+    amount:   +document.getElementById('fb-amount').value||0,
+    category: document.getElementById('fb-category').value,
+    ewt:      document.getElementById('fb-ewt').value,
+    date:     fmtDate(document.getElementById('fb-date').value),
+    status:   document.getElementById('fb-status').value,
+  };
+  if (DEMO) { _bills.unshift(data); saveLS('bills', _bills); toast('Bill added','success'); }
   else { const{error}=await sb.from('bills').insert(data); if(error){toast(error.message,'error');return;} toast('Bill added','success'); }
   closeModal(); loadFinance();
 }
@@ -1439,16 +1580,23 @@ async function savePayroll() {
   if (!period) { toast('Period is required','error'); return; }
   const gross = +document.getElementById('pp-gross').value||0;
   const ded   = +document.getElementById('pp-ded').value||0;
-  const data  = { id:Date.now(), period, employees:+document.getElementById('pp-emp').value||0, gross, deductions:ded, net:gross-ded, status:document.getElementById('pp-status').value };
-  if (DEMO) { _payroll.unshift(data); toast('Payroll run saved','success'); }
+  const data  = {
+    id: Date.now(), period,
+    employees: +document.getElementById('pp-emp').value||0,
+    gross, deductions: ded, net: gross - ded,
+    status: document.getElementById('pp-status').value,
+  };
+  if (DEMO) { _payroll.unshift(data); saveLS('payroll', _payroll); toast('Payroll run saved','success'); }
   else { const{error}=await sb.from('payroll_runs').insert(data); if(error){toast(error.message,'error');return;} toast('Payroll run saved','success'); }
   closeModal(); loadFinance();
 }
 
 // ─── PARTNERS ────────────────────────────────────────────────────────────────
 async function loadPartners() {
-  _partners = DEMO ? _partners
-    : ((await sb.from('partners').select('*').order('name')).data || []);
+  if (!DEMO) {
+    const { data } = await sb.from('partners').select('*').order('name');
+    if (data) { _partners = data; saveLS('partners', _partners); }
+  }
   renderPartners(_partners);
 }
 
@@ -1485,8 +1633,13 @@ function openAddPartner() {
 async function savePartner() {
   const name = document.getElementById('fpr-name').value.trim();
   if (!name) { toast('Organization name is required','error'); return; }
-  const data = { id:Date.now(), name, type:document.getElementById('fpr-type').value, contact:document.getElementById('fpr-contact').value, email:document.getElementById('fpr-email').value };
-  if (DEMO) { _partners.push(data); toast('Partner added','success'); }
+  const data = {
+    id: Date.now(), name,
+    type:    document.getElementById('fpr-type').value,
+    contact: document.getElementById('fpr-contact').value,
+    email:   document.getElementById('fpr-email').value,
+  };
+  if (DEMO) { _partners.push(data); saveLS('partners', _partners); toast('Partner added','success'); }
   else { const{error}=await sb.from('partners').insert(data); if(error){toast(error.message,'error');return;} toast('Partner added','success'); }
   closeModal(); loadPartners();
 }
@@ -1495,7 +1648,7 @@ async function savePartner() {
 async function loadDocuments() {
   if (!DEMO) {
     const { data } = await sb.from('documents').select('*').order('created_at',{ascending:false});
-    if (data) _documents = data;
+    if (data) { _documents = data; saveLS('documents', _documents); }
   }
   renderDocuments(_documents);
 }
@@ -1510,7 +1663,7 @@ function renderDocuments(docs) {
             <div class="doc-meta">${d.type} · ${d.size} · ${d.date}</div>
           </div>
           <div class="doc-actions">
-            <button class="doc-btn" onclick="toast('Download ready (connect Supabase Storage to enable)','')">Download</button>
+            <button class="doc-btn" onclick="toast('Connect Supabase Storage to enable real file downloads','')">Download</button>
           </div>
         </div>`).join('')
     : `<div class="empty-state">No documents yet — upload your first file above</div>`;
@@ -1521,8 +1674,15 @@ function handleFileSelect(files) {
   const file = files[0];
   document.getElementById('file-input').value = '';
   if (DEMO) {
-    _documents.unshift({ id:Date.now(), name:file.name, type:guessDocType(file.name), size:formatBytes(file.size), date:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) });
-    toast('File added (demo mode)','success');
+    _documents.unshift({
+      id:   Date.now(),
+      name: file.name,
+      type: guessDocType(file.name),
+      size: formatBytes(file.size),
+      date: new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),
+    });
+    saveLS('documents', _documents);
+    toast('File logged to vault (demo — not uploaded to server)','success');
     renderDocuments(_documents);
     return;
   }
@@ -1535,12 +1695,135 @@ async function uploadToStorage(file) {
   const { error } = await sb.storage.from('documents').upload(path, file);
   if (error) { toast(error.message,'error'); return; }
   const url = sb.storage.from('documents').getPublicUrl(path).data.publicUrl;
-  await sb.from('documents').insert({ name:file.name, type:guessDocType(file.name), size:formatBytes(file.size), date:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}), url, path });
+  await sb.from('documents').insert({
+    name: file.name, type: guessDocType(file.name),
+    size: formatBytes(file.size),
+    date: new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),
+    url, path,
+  });
   toast('File uploaded','success');
   loadDocuments();
 }
 
+// ─── NEW PROJECT FLOW ─────────────────────────────────────────────────────────
+function resetNewProject() {
+  document.getElementById('np-step1').style.display = 'block';
+  document.getElementById('np-step2').style.display = 'none';
+  const set = (id, cls, txt) =>{ const el = document.getElementById(id); el.className = cls; if (txt !== undefined) el.textContent = txt; };
+  set('np-circle-1','step-circle active','1'); set('np-label-1','step-label active');
+  set('np-circle-2','step-circle','2');        set('np-label-2','step-label');
+  set('np-circle-3','step-circle','3');        set('np-label-3','step-label');
+}
+
+function npGoStep2() {
+  const client = document.getElementById('np-client').value.trim();
+  if (!client) { toast('Client name is required','error'); return; }
+
+  const address = document.getElementById('np-address').value.trim() || '[Address]';
+  const purpose = document.getElementById('np-purpose').value.trim() || 'business engagement';
+  const dateVal = document.getElementById('np-date').value;
+  const dateStr = dateVal
+    ? new Date(dateVal + 'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})
+    : new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+
+  document.getElementById('np-nda-content').innerHTML = `
+    <h3>Non-Disclosure Agreement</h3>
+    <p>This Non-Disclosure Agreement is entered into as of <strong>${dateStr}</strong>, between:</p>
+    <p><strong>DestineVents Collective OPC</strong>, a One Person Corporation registered under Philippine law, Baguio City, represented by <strong>Jennifer Castro, Founder</strong>("Disclosing Party");</p>
+    <p>AND <strong>${client}</strong>, ${address} ("Receiving Party").</p>
+    <p><strong>1. PURPOSE.</strong>The parties wish to explore a potential business relationship regarding <strong>${purpose}</strong>. In connection with this purpose, the Disclosing Party may share certain confidential information with the Receiving Party.</p>
+    <p><strong>2. CONFIDENTIAL INFORMATION</strong>means any information disclosed by DestineVents Collective that is designated as confidential or that reasonably should be understood to be confidential given the nature of the information and the circumstances of disclosure, including but not limited to business plans, financial data, client lists, pricing, and proprietary processes.</p>
+    <p><strong>3. OBLIGATIONS.</strong>The Receiving Party shall: (a) hold the Confidential Information in strict confidence; (b) not disclose it to any third party without prior written consent; (c) use it solely for the purpose stated above; and (d) protect it with at least the same degree of care used for its own confidential information.</p>
+    <p><strong>4. EXCLUSIONS.</strong>These obligations do not apply to information that: (a) is or becomes publicly available through no breach of this Agreement; (b) was independently known to the Receiving Party; or (c) is independently developed without use of Confidential Information.</p>
+    <p><strong>5. TERM.</strong>This Agreement shall remain in effect for two (2) years from the date of execution.</p>
+    <p><strong>6. GOVERNING LAW.</strong>This Agreement shall be governed by the laws of the Republic of the Philippines.</p>
+    <p><strong>IN WITNESS WHEREOF</strong>, the parties have executed this Agreement as of the date first written above.</p>`;
+
+  const c1 = document.getElementById('np-circle-1'); c1.className='step-circle done'; c1.textContent='✓';
+  document.getElementById('np-label-1').className = 'step-label';
+  const c2 = document.getElementById('np-circle-2'); c2.className='step-circle active'; c2.textContent='2';
+  document.getElementById('np-label-2').className = 'step-label active';
+  document.getElementById('np-step1').style.display = 'none';
+  document.getElementById('np-step2').style.display = 'block';
+}
+
+function npGoStep1() {
+  document.getElementById('np-step1').style.display = 'block';
+  document.getElementById('np-step2').style.display = 'none';
+  const c1 = document.getElementById('np-circle-1'); c1.className='step-circle active'; c1.textContent='1';
+  document.getElementById('np-label-1').className = 'step-label active';
+  const c2 = document.getElementById('np-circle-2'); c2.className='step-circle'; c2.textContent='2';
+  document.getElementById('np-label-2').className = 'step-label';
+}
+
+function npFinish() {
+  const client  = document.getElementById('np-client').value.trim();
+  const contact = document.getElementById('np-contact').value.trim();
+  const email   = document.getElementById('np-email').value.trim();
+  const brand   = document.getElementById('np-brand').value;
+
+  if (!_clients.find(c =>c.name.toLowerCase() === client.toLowerCase())) {
+    _clients.push({ id:Date.now(), name:client, type:'Corporate', brand, contact, email, total_value:0, status:'NDA Signed' });
+    saveLS('clients', _clients);
+  }
+
+  const c2 = document.getElementById('np-circle-2'); c2.className='step-circle done'; c2.textContent='✓';
+  document.getElementById('np-label-2').className = 'step-label';
+  const c3 = document.getElementById('np-circle-3'); c3.className='step-circle active'; c3.textContent='3';
+  document.getElementById('np-label-3').className = 'step-label active';
+
+  toast(`Project created for ${client}`, 'success');
+  setTimeout(() =>showPage('clients'), 1400);
+}
+
+function downloadNDA() {
+  const client  = document.getElementById('np-client').value.trim() || 'Client';
+  const address = document.getElementById('np-address').value.trim();
+  const purpose = document.getElementById('np-purpose').value.trim() || 'Business Engagement';
+  const dateVal = document.getElementById('np-date').value;
+  const dateStr = dateVal
+    ? new Date(dateVal + 'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})
+    : new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+
+  const w = window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>NDA — ${client}</title>
+  <style>
+    body{font-family:Georgia,serif;font-size:11pt;line-height:1.85;max-width:680px;margin:50px auto;color:#111;padding:0 24px}
+    h3{text-align:center;letter-spacing:.08em;text-transform:uppercase;font-size:12pt;margin-bottom:20px}
+    p{margin-bottom:13px;text-align:justify}
+    .sig{display:flex;justify-content:space-between;margin-top:60px;gap:40px}
+    .sig-col{flex:1}.sig-line{border-top:1px solid #333;margin-bottom:6px}.sig-name{font-size:9pt;color:#444}
+    @media print{body{margin:30px auto}}
+  </style></head><body>
+  <h3>Non-Disclosure Agreement</h3>
+  <p>This Non-Disclosure Agreement ("Agreement") is entered into as of <strong>${dateStr}</strong>, between:</p>
+  <p><strong>DestineVents Collective OPC</strong>, a One Person Corporation registered under Philippine law, Baguio City, represented by <strong>Jennifer Castro, Founder</strong>("Disclosing Party");</p>
+  <p>AND <strong>${client}</strong>${address?', '+address:''} ("Receiving Party").</p>
+  <p><strong>1. PURPOSE.</strong>The parties wish to explore a potential business relationship regarding <strong>${purpose}</strong>. In connection with this purpose, the Disclosing Party may share certain confidential information with the Receiving Party.</p>
+  <p><strong>2. CONFIDENTIAL INFORMATION</strong>means any information disclosed by DestineVents Collective that is designated as confidential or that reasonably should be understood to be confidential given the nature of the information and the circumstances of disclosure, including but not limited to business plans, financial data, client lists, pricing, and proprietary processes.</p>
+  <p><strong>3. OBLIGATIONS.</strong>The Receiving Party shall: (a) hold the Confidential Information in strict confidence; (b) not disclose it to any third party without prior written consent; (c) use it solely for the purpose stated above; and (d) protect it with at least the same degree of care used for its own confidential information.</p>
+  <p><strong>4. EXCLUSIONS.</strong>These obligations do not apply to information that: (a) is or becomes publicly available through no breach of this Agreement; (b) was independently known to the Receiving Party; or (c) is independently developed without use of Confidential Information.</p>
+  <p><strong>5. TERM.</strong>This Agreement shall remain in effect for two (2) years from the date of execution.</p>
+  <p><strong>6. GOVERNING LAW.</strong>This Agreement shall be governed by the laws of the Republic of the Philippines.</p>
+  <p><strong>IN WITNESS WHEREOF</strong>, the parties have executed this Agreement as of the date first written above.</p>
+  <div class="sig">
+    <div class="sig-col"><div class="sig-line"></div><div class="sig-name"><strong>DestineVents Collective OPC</strong><br>Jennifer Castro, Founder</div></div>
+    <div class="sig-col"><div class="sig-line"></div><div class="sig-name"><strong>${client}</strong><br>Authorized Representative</div></div>
+  </div>
+  </body></html>`);
+  w.document.close();
+  setTimeout(() =>{ w.focus(); w.print(); }, 400);
+}
+
 // ─── AI ASSISTANT ─────────────────────────────────────────────────────────────
+function loadAIPage() {
+  const saved = loadLS('anthropic_key','');
+  const k = document.getElementById('ai-api-key');
+  if (k && saved) k.value = saved;
+}
+
+function saveAIKey(val) { saveLS('anthropic_key', val.trim()); }
+
 function selectTemplate(el) {
   document.querySelectorAll('.ai-template').forEach(t=>t.classList.remove('selected'));
   el.classList.add('selected');
@@ -1551,33 +1834,64 @@ function copyAIOutput() {
   navigator.clipboard.writeText(text).then(()=>toast('Copied to clipboard','success'));
 }
 
-const AI_SAMPLE = `Subject: Following Up — DTI CAR MSME Innovation Summit
-
-Dear [Client Name],
-
-I hope this finds you well. I'm following up on our recent discussion regarding the MSME Innovation Summit partnership.
-
-DestineVents Collective is genuinely excited about the opportunity to support DTI CAR in creating a high-impact experience for Baguio and the Cordillera business community. We've successfully executed similar events across the region and are fully prepared to deliver within your timeline and budget.
-
-I'd love to schedule a brief call this week to align on next steps. Would Thursday or Friday afternoon work on your end?
-
-Warmly,
-Jennifer Castro
-Founder | DestineVents Collective OPC
-jenn@destinevents.biz · destinevents.biz`;
+function buildAIPrompt(template, client, project, context) {
+  const base = `You are a professional business writer for DestineVents Collective OPC, an event management and community development company in Baguio City, Philippines. Write in a warm, professional, and confident tone. Be concise and specific.`;
+  const c = client || 'the client', p = project || 'our collaboration', x = context ? '\nContext: ' + context : '';
+  const map = {
+    'Follow-up Email':    `${base}\n\nWrite a professional follow-up email to ${c} regarding "${p}".${x}\nInclude: subject line, greeting, brief re-cap, clear next step, and warm closing from Jennifer Castro, Founder.`,
+    'Proposal Summary':   `${base}\n\nWrite an executive proposal summary for ${c} for the project "${p}".${x}\nInclude: intro, scope overview, key deliverables (3-4 bullets), investment note, and compelling close.`,
+    'Project Brief':      `${base}\n\nWrite a structured project brief for "${p}" with ${c}.${x}\nInclude: overview, objectives (3 points), scope of work, timeline note, and team note.`,
+    'Monthly Report':     `${base}\n\nWrite a monthly business performance report for DestineVents.${x ? x : '\nCurrent month: ' + new Date().toLocaleDateString('en-US',{month:'long',year:'numeric'})}\nInclude: highlights, projects update, financials note, partnerships, next month outlook.`,
+    'Impact Summary':     `${base}\n\nWrite a social impact narrative for "${p}" with ${c}.${x}\nInclude: program overview, key impact figures, beneficiaries, and CSR value statement.`,
+    'Annual Report':      `${base}\n\nWrite an annual report narrative for DestineVents Collective OPC.${x}\nInclude: year in review, key achievements (3-5 points), financial highlights, community impact, partnerships, vision ahead.`,
+  };
+  return map[template] || map['Follow-up Email'];
+}
 
 async function simulateAI() {
+  const apiKey  = loadLS('anthropic_key','');
   const client  = document.getElementById('ai-client').value.trim();
   const project = document.getElementById('ai-project').value.trim();
+  const context = document.getElementById('ai-context').value.trim();
+  const templateName = document.querySelector('.ai-template.selected .ai-template-name')?.textContent || 'Follow-up Email';
   const r = document.getElementById('ai-result');
+
+  if (!apiKey) {
+    r.innerHTML = '<div style="color:var(--red);font-size:12px">Enter your Anthropic API key in the Settings section above to enable real AI generation.</div>';
+    toast('API key required','error');
+    return;
+  }
+
   r.innerHTML = '<div class="ai-generating"><div class="dot-pulse"><span></span><span></span><span></span></div>&nbsp; Generating…</div>';
 
-  // Teammate: replace this block with a real fetch to your /api/generate proxy
-  // which calls the Anthropic API server-side (never expose API key in frontend)
-  // Example: const res = await fetch('/api/generate', { method:'POST', body: JSON.stringify({ client, project, template: selectedTemplate }) });
-  setTimeout(() => {
-    r.innerHTML = `<div style="white-space:pre-line;font-size:12px;line-height:1.85;color:var(--ink-2)">${AI_SAMPLE.replace('[Client Name]', client||'[Client Name]').replace('DTI CAR MSME Innovation Summit', project||'DTI CAR MSME Innovation Summit')}</div>`;
-  }, 1600);
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-allow-browser': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1024,
+        messages: [{ role: 'user', content: buildAIPrompt(templateName, client, project, context) }],
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(()=>({}));
+      throw new Error(err.error?.message || `HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    const text = data.content?.[0]?.text || '(no output)';
+    r.innerHTML = `<div style="white-space:pre-line;font-size:12px;line-height:1.85;color:var(--ink-2)">${text}</div>`;
+  } catch(e) {
+    r.innerHTML = `<div style="color:var(--red);font-size:12px">Error: ${e.message}</div>`;
+    toast(e.message, 'error');
+  }
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
