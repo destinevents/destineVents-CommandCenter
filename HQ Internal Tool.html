@@ -1,0 +1,1600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>DestineVents Command Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&family=Dancing+Script:wght@600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --linen:  #F5F0E8;
+    --linen-2:#EDE8DE;
+    --linen-3:#E2DDD3;
+    --ink:    #1A1410;
+    --ink-2:  #3a3228;
+    --ink-3:  rgba(26,20,16,0.45);
+    --ink-4:  rgba(26,20,16,0.15);
+    --ink-5:  rgba(26,20,16,0.07);
+    --accent: #1A1410;
+    --red:    #C0392B;
+    --green:  #2a7a4b;
+    --blue:   #2563eb;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--linen);
+    color: var(--ink);
+    font-family: 'DM Sans', sans-serif;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+  }
+
+  /* ─── LOGIN ─── */
+  .login-screen {
+    position:fixed; inset:0;
+    background:var(--linen);
+    display:flex; align-items:center; justify-content:center;
+    z-index:1000;
+  }
+  .login-box {
+    width:340px;
+    background:var(--linen-2);
+    border:1px solid var(--ink-4);
+    padding:36px 32px;
+  }
+  .login-logo { margin-bottom:24px; }
+  .login-title {
+    font-family:'Cormorant Garamond',serif;
+    font-size:22px; font-weight:600; color:var(--ink);
+    margin-bottom:3px;
+  }
+  .login-sub { font-size:11px; color:var(--ink-3); letter-spacing:0.05em; margin-bottom:24px; }
+  .login-error { font-size:11px; color:var(--red); margin-bottom:10px; min-height:16px; }
+  .login-demo-note {
+    margin-top:16px; font-size:10px; color:var(--ink-3);
+    text-align:center; letter-spacing:0.05em;
+  }
+
+  /* ─── TOAST ─── */
+  .toast {
+    position:fixed; bottom:20px; right:20px;
+    background:var(--ink); color:var(--linen);
+    padding:10px 16px; font-size:12px; letter-spacing:0.03em;
+    z-index:2000; display:none;
+    border-left:3px solid var(--linen);
+    max-width:300px;
+  }
+  .toast.success { border-left-color:var(--green); }
+  .toast.error   { border-left-color:var(--red); }
+
+  /* ─── MODAL ─── */
+  .modal-overlay {
+    position:fixed; inset:0;
+    background:rgba(26,20,16,0.5);
+    z-index:900; display:none;
+    align-items:center; justify-content:center;
+  }
+  .modal-overlay.open { display:flex; }
+  .modal {
+    background:var(--linen); border:1px solid var(--ink-4);
+    width:560px; max-width:95vw;
+    max-height:85vh; overflow-y:auto;
+  }
+  .modal-header {
+    padding:16px 20px; border-bottom:1px solid var(--ink-4);
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .modal-title { font-size:8.5px; letter-spacing:0.2em; text-transform:uppercase; color:var(--ink-3); }
+  .modal-close { font-size:16px; color:var(--ink-3); cursor:pointer; line-height:1; }
+  .modal-close:hover { color:var(--ink); }
+  .modal-body { padding:20px; }
+  .modal-footer {
+    padding:14px 20px; border-top:1px solid var(--ink-4);
+    display:flex; justify-content:flex-end; gap:8px;
+  }
+
+  /* ─── DEMO BANNER ─── */
+  .demo-banner {
+    background:var(--ink); color:var(--linen);
+    font-size:10px; letter-spacing:0.1em; text-transform:uppercase;
+    text-align:center; padding:5px;
+    display:none;
+  }
+  .demo-banner.visible { display:block; }
+
+  /* ─── SIDEBAR ─── */
+  .sidebar {
+    width:210px; flex-shrink:0;
+    background:var(--linen-2); border-right:1px solid var(--ink-4);
+    display:flex; flex-direction:column; height:100vh;
+  }
+  .sidebar-logo { padding:22px 18px 16px; border-bottom:1px solid var(--ink-4); }
+  .logo-mark { display:flex; align-items:baseline; gap:0; line-height:1; }
+  .logo-script { font-family:'Dancing Script',cursive; font-size:22px; font-weight:700; color:var(--ink); letter-spacing:-0.5px; }
+  .logo-sans { font-family:'DM Sans',sans-serif; font-size:13px; font-weight:600; letter-spacing:0.08em; color:var(--ink); text-transform:lowercase; }
+  .logo-arrow { display:block; margin-top:3px; font-size:10px; letter-spacing:0.3em; color:var(--ink-3); }
+  .logo-tagline { font-size:8.5px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-3); margin-top:5px; }
+  .sidebar-cta { padding:12px; border-bottom:1px solid var(--ink-4); }
+  .btn-new {
+    width:100%; background:var(--ink); color:var(--linen); border:none;
+    padding:9px 12px; font-family:'DM Sans',sans-serif; font-size:11px;
+    font-weight:600; cursor:pointer; display:flex; align-items:center;
+    justify-content:center; gap:6px; letter-spacing:0.08em;
+    text-transform:uppercase; transition:background 0.15s;
+  }
+  .btn-new:hover { background:var(--ink-2); }
+  .nav { flex:1; padding:10px 0; overflow-y:auto; }
+  .nav-section { font-size:8.5px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-3); padding:10px 16px 4px; }
+  .nav-item {
+    display:flex; align-items:center; gap:10px;
+    padding:9px 16px; font-size:12.5px; color:var(--ink-3);
+    cursor:pointer; transition:all 0.12s;
+    border-left:2px solid transparent; letter-spacing:0.01em;
+  }
+  .nav-item:hover { color:var(--ink); background:var(--ink-5); }
+  .nav-item.active { color:var(--ink); background:var(--linen-3); border-left-color:var(--ink); font-weight:500; }
+  .nav-icon { font-size:13px; width:16px; flex-shrink:0; }
+  .nav-backslash { margin-left:auto; font-size:11px; color:var(--ink-3); font-weight:700; }
+  .sidebar-footer { padding:12px 16px; border-top:1px solid var(--ink-4); }
+  .signout { display:flex; align-items:center; gap:8px; font-size:11.5px; color:var(--ink-3); cursor:pointer; transition:color 0.12s; letter-spacing:0.01em; }
+  .signout:hover { color:var(--red); }
+  .footer-brand { font-size:8px; letter-spacing:0.15em; text-transform:uppercase; color:var(--ink-4); margin-top:8px; }
+
+  /* ─── MAIN ─── */
+  .main { flex:1; overflow-y:auto; background:var(--linen); display:flex; flex-direction:column; }
+  .topbar {
+    display:flex; align-items:center; padding:0 24px;
+    border-bottom:1px solid var(--ink-4); background:var(--linen-2);
+    height:44px; justify-content:space-between; flex-shrink:0;
+  }
+  .tabs { display:flex; gap:0; height:100%; }
+  .tab {
+    padding:0 14px; font-size:10.5px; font-weight:500; color:var(--ink-3);
+    cursor:pointer; border-bottom:2px solid transparent;
+    display:flex; align-items:center; letter-spacing:0.1em;
+    transition:all 0.12s; text-transform:uppercase;
+  }
+  .tab:hover { color:var(--ink); }
+  .tab.active { color:var(--ink); border-bottom-color:var(--ink); }
+  .topbar-right { font-size:11px; color:var(--ink-3); letter-spacing:0.03em; }
+
+  /* ─── PAGES ─── */
+  .page { display:none; padding:28px 28px 40px; flex:1; }
+  .page.active { display:block; }
+  .page-eyebrow { font-size:9px; letter-spacing:0.25em; text-transform:uppercase; color:var(--ink-3); margin-bottom:4px; }
+  .page-eyebrow::before { content:'\\ '; font-weight:700; }
+  .page-title { font-family:'Cormorant Garamond',serif; font-size:28px; font-weight:600; color:var(--ink); line-height:1.1; margin-bottom:16px; }
+  .divider { height:1px; background:var(--ink-4); margin:16px 0; }
+
+  /* Stats */
+  .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--ink-4); border:1px solid var(--ink-4); margin-bottom:20px; }
+  .stat-card { background:var(--linen); padding:18px 16px; }
+  .stat-label { font-size:8.5px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px; }
+  .stat-value { font-family:'Cormorant Garamond',serif; font-size:30px; font-weight:600; color:var(--ink); line-height:1; }
+  .stat-change { font-size:10.5px; margin-top:5px; color:var(--ink-3); }
+  .stat-change.up { color:var(--green); }
+
+  .two-col { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+  .three-col { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+
+  .card { background:var(--linen-2); border:1px solid var(--ink-4); padding:16px; }
+  .card-title { font-size:8.5px; letter-spacing:0.2em; text-transform:uppercase; color:var(--ink-3); margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; }
+  .card-title::before { content:'\\ '; font-weight:800; color:var(--ink); }
+  .card-title span { font-size:9px; letter-spacing:0.05em; text-transform:none; color:var(--ink-4); }
+
+  /* Pipeline */
+  .pipeline-bar { margin-bottom:11px; }
+  .pipeline-label { display:flex; justify-content:space-between; font-size:11.5px; margin-bottom:4px; color:var(--ink-2); }
+  .pipeline-label span:last-child { font-weight:600; color:var(--ink); }
+  .pipeline-track { height:3px; background:var(--ink-4); }
+  .pipeline-fill { height:100%; background:var(--ink); transition:width 0.6s ease; }
+
+  /* Activity */
+  .activity-item { display:flex; align-items:flex-start; gap:10px; padding:8px 0; border-bottom:1px solid var(--ink-5); }
+  .activity-item:last-child { border-bottom:none; }
+  .activity-dot { width:5px; height:5px; border-radius:50%; background:var(--ink); margin-top:5px; flex-shrink:0; }
+  .activity-dot.green { background:var(--green); }
+  .activity-dot.blue  { background:var(--blue); }
+  .activity-dot.red   { background:var(--red); }
+  .activity-text { font-size:12px; color:var(--ink-2); line-height:1.5; }
+  .activity-time { font-size:10px; color:var(--ink-3); margin-top:1px; }
+
+  /* Badges */
+  .badge { display:inline-block; padding:2px 8px; font-size:9.5px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; border:1px solid currentColor; }
+  .badge-active    { color:var(--green); }
+  .badge-proposal  { color:var(--blue); }
+  .badge-nda       { color:#92400e; }
+  .badge-lead      { color:var(--ink-3); }
+  .badge-completed { background:var(--ink); color:var(--linen); border-color:var(--ink); }
+  .badge-paid      { color:var(--green); }
+  .badge-unpaid    { color:var(--blue); }
+  .badge-overdue   { color:var(--red); }
+  .badge-won       { color:var(--green); }
+  .badge-lost      { color:var(--red); }
+  .badge-sent      { color:var(--blue); }
+  .badge-expired   { color:var(--ink-3); }
+  .badge-released  { color:var(--green); }
+  .badge-pending   { color:#92400e; }
+  .badge-draft     { color:var(--ink-3); }
+
+  /* Tables */
+  .project-table { width:100%; border-collapse:collapse; }
+  .project-table th { font-size:8.5px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-3); padding:10px 12px; text-align:left; border-bottom:1px solid var(--ink-4); font-weight:500; background:var(--linen-2); }
+  .project-table td { padding:11px 12px; font-size:12.5px; border-bottom:1px solid var(--ink-5); vertical-align:middle; color:var(--ink-2); }
+  .project-table tr:hover td { background:var(--linen-3); cursor:pointer; }
+  .project-name { font-weight:500; color:var(--ink); font-size:13px; }
+  .project-client { font-size:10.5px; color:var(--ink-3); margin-top:2px; }
+  .project-value { font-weight:600; color:var(--ink); font-family:'Cormorant Garamond',serif; font-size:15px; }
+
+  /* Ledger table (finance) */
+  .ledger-table { width:100%; border-collapse:collapse; }
+  .ledger-table th { font-size:8.5px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-3); padding:10px 12px; text-align:left; border-bottom:1px solid var(--ink-4); font-weight:500; background:var(--linen-2); }
+  .ledger-table td { padding:10px 12px; font-size:12px; border-bottom:1px solid var(--ink-5); color:var(--ink-2); vertical-align:middle; }
+  .ledger-table tr:hover td { background:var(--linen-3); }
+  .amount-cell { font-family:'Cormorant Garamond',serif; font-size:14px; font-weight:600; color:var(--ink); }
+
+  /* Forms */
+  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px; }
+  .form-group { display:flex; flex-direction:column; gap:4px; }
+  .form-group.full { grid-column:1 / -1; }
+  .form-label { font-size:8.5px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-3); }
+  .form-input { background:var(--linen); border:1px solid var(--ink-4); border-radius:0; padding:8px 10px; font-size:12.5px; color:var(--ink); font-family:'DM Sans',sans-serif; outline:none; transition:border-color 0.12s; width:100%; }
+  .form-input:focus { border-color:var(--ink); }
+  .form-input::placeholder { color:var(--ink-3); }
+  select.form-input { cursor:pointer; }
+
+  /* Stepper */
+  .stepper { display:flex; align-items:center; margin-bottom:24px; }
+  .step-item { display:flex; align-items:center; gap:8px; }
+  .step-circle { width:26px; height:26px; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; border:1.5px solid var(--ink-4); color:var(--ink-3); flex-shrink:0; }
+  .step-circle.done   { background:var(--ink); color:var(--linen); border-color:var(--ink); }
+  .step-circle.active { border-color:var(--ink); color:var(--ink); }
+  .step-label { font-size:10.5px; color:var(--ink-3); letter-spacing:0.05em; text-transform:uppercase; }
+  .step-label.active { color:var(--ink); font-weight:600; }
+  .step-line { flex:1; height:1px; background:var(--ink-4); margin:0 14px; }
+
+  /* AI */
+  .ai-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:16px; }
+  .ai-template { background:var(--linen-2); border:1px solid var(--ink-4); padding:12px 14px; cursor:pointer; transition:all 0.12s; }
+  .ai-template:hover,.ai-template.selected { background:var(--linen-3); border-color:var(--ink); }
+  .ai-template-icon { font-size:16px; margin-bottom:5px; }
+  .ai-template-name { font-size:11.5px; font-weight:600; color:var(--ink); margin-bottom:1px; }
+  .ai-template-desc { font-size:10px; color:var(--ink-3); }
+  .ai-output { background:var(--linen-2); border:1px solid var(--ink-4); padding:16px; min-height:140px; font-size:12.5px; line-height:1.8; color:var(--ink-2); }
+  .ai-output-label { font-size:8.5px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-3); margin-bottom:10px; }
+  .ai-output-label::before { content:'\\ '; font-weight:800; color:var(--ink); }
+  .ai-generating { display:flex; align-items:center; gap:8px; color:var(--ink-3); font-size:12px; }
+  .dot-pulse span { display:inline-block; width:4px; height:4px; border-radius:50%; background:var(--ink); animation:pulse 1.2s infinite; margin:0 1px; }
+  .dot-pulse span:nth-child(2){animation-delay:.2s} .dot-pulse span:nth-child(3){animation-delay:.4s}
+  @keyframes pulse{0%,80%,100%{opacity:0.15}40%{opacity:1}}
+
+  /* Impact */
+  .impact-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--ink-4); border:1px solid var(--ink-4); margin-bottom:20px; }
+  .impact-card { background:var(--linen); padding:18px 14px; text-align:center; }
+  .impact-icon { font-size:18px; margin-bottom:6px; }
+  .impact-num { font-family:'Cormorant Garamond',serif; font-size:32px; font-weight:600; color:var(--ink); }
+  .impact-lbl { font-size:9.5px; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink-3); margin-top:2px; }
+
+  /* Mini chart */
+  .mini-chart { display:flex; align-items:flex-end; gap:4px; height:48px; }
+  .bar { flex:1; background:var(--linen-3); position:relative; }
+  .bar-fill { position:absolute; bottom:0; left:0; right:0; background:var(--ink); }
+
+  /* Buttons */
+  .btn { padding:9px 20px; font-size:10.5px; font-weight:600; cursor:pointer; border:none; font-family:'DM Sans',sans-serif; letter-spacing:0.1em; text-transform:uppercase; transition:all 0.12s; }
+  .btn-primary { background:var(--ink); color:var(--linen); }
+  .btn-primary:hover { background:var(--ink-2); }
+  .btn-ghost { background:transparent; color:var(--ink); border:1px solid var(--ink-4); }
+  .btn-ghost:hover { border-color:var(--ink); }
+  .btn-sm { padding:6px 12px; font-size:9.5px; }
+
+  /* NDA */
+  .nda-preview { background:#fff; color:#1a1a1a; border:1px solid #ddd; padding:20px 24px; font-size:11px; line-height:1.75; max-height:200px; overflow-y:auto; font-family:'Georgia',serif; }
+  .nda-preview h3 { font-size:12px; text-align:center; margin-bottom:8px; letter-spacing:0.1em; text-transform:uppercase; }
+  .nda-preview p { margin-bottom:7px; color:#333; }
+  .nda-preview strong { color:#111; }
+
+  /* Sub-tabs (Finance) */
+  .sub-tabs { display:flex; gap:0; border-bottom:1px solid var(--ink-4); margin-bottom:20px; }
+  .sub-tab { padding:8px 16px; font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-3); cursor:pointer; border-bottom:2px solid transparent; transition:all 0.12s; }
+  .sub-tab:hover { color:var(--ink); }
+  .sub-tab.active { color:var(--ink); border-bottom-color:var(--ink); }
+  .ftab { display:none; }
+  .ftab.active { display:block; }
+
+  /* Finance */
+  .finance-stat-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--ink-4); border:1px solid var(--ink-4); margin-bottom:20px; }
+  .bir-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .bir-card { background:var(--linen-2); border:1px solid var(--ink-4); padding:16px; }
+  .bir-form-name { font-family:'Cormorant Garamond',serif; font-size:24px; font-weight:600; color:var(--ink); }
+  .bir-form-desc { font-size:11px; color:var(--ink-3); margin:4px 0 12px; line-height:1.6; }
+  .bir-deadline { font-size:10.5px; color:var(--ink-3); }
+
+  /* Partners */
+  .partner-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  .partner-card { background:var(--linen-2); border:1px solid var(--ink-4); padding:14px 16px; }
+  .partner-type-tag { font-size:8.5px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px; }
+  .partner-name { font-size:13px; font-weight:500; color:var(--ink); margin-bottom:2px; }
+  .partner-contact { font-size:11px; color:var(--ink-3); line-height:1.6; }
+  .partner-filter-btn { padding:5px 12px; font-size:9.5px; letter-spacing:0.1em; text-transform:uppercase; border:1px solid var(--ink-4); background:transparent; color:var(--ink-3); cursor:pointer; font-family:'DM Sans',sans-serif; transition:all 0.12s; }
+  .partner-filter-btn:hover { border-color:var(--ink); color:var(--ink); }
+  .partner-filter-btn.active { background:var(--ink); color:var(--linen); border-color:var(--ink); }
+
+  /* Document Vault */
+  .drop-zone { border:1.5px dashed var(--ink-4); padding:28px; text-align:center; cursor:pointer; transition:all 0.12s; margin-bottom:16px; }
+  .drop-zone:hover,.drop-zone.dragover { border-color:var(--ink); background:var(--linen-2); }
+  .drop-zone-icon { font-size:22px; margin-bottom:8px; }
+  .drop-zone-text { font-size:11.5px; color:var(--ink-3); line-height:1.8; }
+  .doc-list { display:flex; flex-direction:column; gap:1px; }
+  .doc-item { display:flex; align-items:center; gap:12px; padding:10px 14px; background:var(--linen-2); border:1px solid var(--ink-4); margin-bottom:1px; }
+  .doc-icon { font-size:14px; flex-shrink:0; }
+  .doc-name { font-size:12.5px; color:var(--ink); flex:1; }
+  .doc-meta { font-size:10.5px; color:var(--ink-3); white-space:nowrap; }
+  .doc-actions { display:flex; gap:10px; }
+  .doc-btn { font-size:9.5px; color:var(--ink-3); cursor:pointer; letter-spacing:0.05em; text-transform:uppercase; background:none; border:none; font-family:'DM Sans',sans-serif; }
+  .doc-btn:hover { color:var(--ink); }
+
+  /* Proposals win rate */
+  .win-summary { display:grid; grid-template-columns:auto 1fr; gap:20px; align-items:center; margin-bottom:20px; }
+  .win-rate-big { font-family:'Cormorant Garamond',serif; font-size:48px; font-weight:600; color:var(--ink); line-height:1; }
+  .win-rate-label { font-size:9px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-3); margin-top:4px; }
+
+  /* Empty state */
+  .empty-state { text-align:center; padding:40px 20px; color:var(--ink-3); font-size:12px; }
+
+  /* Utilities */
+  .flex-between { display:flex; align-items:center; justify-content:space-between; }
+  .flex-gap { display:flex; align-items:center; gap:8px; }
+  .page-actions { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+  .search-row { display:flex; align-items:center; gap:8px; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width:4px; }
+  ::-webkit-scrollbar-track { background:var(--linen-2); }
+  ::-webkit-scrollbar-thumb { background:var(--ink-4); }
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div class="login-screen" id="login-screen" style="display:none">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="logo-mark">
+        <span class="logo-script">destine</span>
+        <span class="logo-sans">vents</span>
+      </div>
+      <div class="logo-tagline">Command Center</div>
+    </div>
+    <div class="login-title">Sign in</div>
+    <div class="login-sub">DestineVents Collective OPC · Baguio</div>
+    <div class="login-error" id="login-error"></div>
+    <div class="form-group" style="margin-bottom:10px">
+      <div class="form-label">Email</div>
+      <input class="form-input" id="login-email" type="email" placeholder="jenn@destinevents.biz" autocomplete="email"/>
+    </div>
+    <div class="form-group" style="margin-bottom:18px">
+      <div class="form-label">Password</div>
+      <input class="form-input" id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')handleSignIn()"/>
+    </div>
+    <button class="btn btn-primary" style="width:100%" onclick="handleSignIn()">\ Sign In</button>
+    <div class="login-demo-note" id="login-demo-note" style="display:none">No Supabase configured — running in demo mode</div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title"></div>
+      <span class="modal-close" onclick="closeModal()">✕</span>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" id="modal-save-btn" onclick="saveModal()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- DEMO BANNER -->
+<div class="demo-banner" id="demo-banner">Demo Mode — data is not saved · Add Supabase config to go live</div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">
+      <span class="logo-script">destine</span>
+      <span class="logo-sans">vents</span>
+    </div>
+    <span class="logo-arrow">→ ——————</span>
+    <div class="logo-tagline">Command Center</div>
+  </div>
+
+  <div class="sidebar-cta">
+    <button class="btn-new" onclick="showPage('new-project')">
+      Start New Project
+    </button>
+  </div>
+
+  <nav class="nav">
+    <div class="nav-section">Workspace</div>
+    <div class="nav-item active" data-page="dashboard" onclick="showPage('dashboard')">
+      <span class="nav-icon">▪</span> Dashboard
+      <span class="nav-backslash">\</span>
+    </div>
+    <div class="nav-item" data-page="clients" onclick="showPage('clients')">
+      <span class="nav-icon">◦</span> Clients
+    </div>
+    <div class="nav-item" data-page="projects" onclick="showPage('projects')">
+      <span class="nav-icon">◦</span> Projects
+    </div>
+    <div class="nav-item" data-page="proposals" onclick="showPage('proposals')">
+      <span class="nav-icon">◦</span> Proposals
+    </div>
+    <div class="nav-section">Operations</div>
+    <div class="nav-item" data-page="finance" onclick="showPage('finance')">
+      <span class="nav-icon">◦</span> Finance & BIR
+    </div>
+    <div class="nav-item" data-page="partners" onclick="showPage('partners')">
+      <span class="nav-icon">◦</span> Partners
+    </div>
+    <div class="nav-item" data-page="documents" onclick="showPage('documents')">
+      <span class="nav-icon">◦</span> Document Vault
+    </div>
+    <div class="nav-item" data-page="impact" onclick="showPage('impact')">
+      <span class="nav-icon">◦</span> Impact Tracker
+    </div>
+    <div class="nav-item" data-page="ai" onclick="showPage('ai')">
+      <span class="nav-icon">◦</span> AI Assistant
+    </div>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="signout" onclick="handleSignOut()">↩ &nbsp;Sign Out</div>
+    <div class="footer-brand">DestineVents Collective OPC · Baguio</div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="tabs">
+      <div class="tab active" data-page="dashboard" onclick="showPage('dashboard')">Dashboard</div>
+      <div class="tab" data-page="new-project" onclick="showPage('new-project')">New Project</div>
+      <div class="tab" data-page="projects" onclick="showPage('projects')">Projects</div>
+      <div class="tab" data-page="finance" onclick="showPage('finance')">Finance</div>
+      <div class="tab" data-page="ai" onclick="showPage('ai')">AI Assistant</div>
+      <div class="tab" data-page="impact" onclick="showPage('impact')">Impact</div>
+    </div>
+    <div class="topbar-right" id="topbar-user">jenn@destinevents.biz</div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="page active" id="page-dashboard">
+    <div class="page-eyebrow">overview</div>
+    <div class="page-title" id="greeting-title">Good morning</div>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Active Projects</div>
+        <div class="stat-value">12</div>
+        <div class="stat-change up">↑ 3 this month</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Pipeline Value</div>
+        <div class="stat-value" style="font-size:24px">₱148K</div>
+        <div class="stat-change up">↑ ₱32K vs last mo.</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">NDAs Signed</div>
+        <div class="stat-value">7</div>
+        <div class="stat-change">2 pending signature</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Clients</div>
+        <div class="stat-value">24</div>
+        <div class="stat-change up">↑ 4 new this quarter</div>
+      </div>
+    </div>
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Pipeline by Stage <span>Last 30 days</span></div>
+        <div class="pipeline-bar">
+          <div class="pipeline-label"><span>Lead / Discovery</span><span>4</span></div>
+          <div class="pipeline-track"><div class="pipeline-fill" style="width:75%"></div></div>
+        </div>
+        <div class="pipeline-bar">
+          <div class="pipeline-label"><span>Proposal Sent</span><span>3</span></div>
+          <div class="pipeline-track"><div class="pipeline-fill" style="width:55%"></div></div>
+        </div>
+        <div class="pipeline-bar">
+          <div class="pipeline-label"><span>NDA Signed / Active</span><span>3</span></div>
+          <div class="pipeline-track"><div class="pipeline-fill" style="width:40%"></div></div>
+        </div>
+        <div class="pipeline-bar">
+          <div class="pipeline-label"><span>Completed</span><span>2</span></div>
+          <div class="pipeline-track"><div class="pipeline-fill" style="width:25%"></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Recent Activity <span>Today</span></div>
+        <div class="activity-item">
+          <div class="activity-dot green"></div>
+          <div><div class="activity-text">NDA signed — <strong>SM City Baguio Partnership</strong></div><div class="activity-time">2 hours ago</div></div>
+        </div>
+        <div class="activity-item">
+          <div class="activity-dot blue"></div>
+          <div><div class="activity-text">New client — <strong>BCU Training Program</strong></div><div class="activity-time">4 hours ago</div></div>
+        </div>
+        <div class="activity-item">
+          <div class="activity-dot"></div>
+          <div><div class="activity-text">AI generated: Monthly Report, May 2026</div><div class="activity-time">Yesterday</div></div>
+        </div>
+        <div class="activity-item">
+          <div class="activity-dot"></div>
+          <div><div class="activity-text">Proposal submitted — <strong>DTI CAR MSME Summit</strong></div><div class="activity-time">2 days ago</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="three-col">
+      <div class="card">
+        <div class="card-title">Monthly Revenue</div>
+        <div class="mini-chart">
+          <div class="bar"><div class="bar-fill" style="height:45%"></div></div>
+          <div class="bar"><div class="bar-fill" style="height:60%"></div></div>
+          <div class="bar"><div class="bar-fill" style="height:35%"></div></div>
+          <div class="bar"><div class="bar-fill" style="height:80%"></div></div>
+          <div class="bar"><div class="bar-fill" style="height:55%"></div></div>
+          <div class="bar"><div class="bar-fill" style="height:90%"></div></div>
+        </div>
+        <div style="font-size:9.5px;color:var(--ink-3);margin-top:7px;letter-spacing:0.05em">Jan — Jun 2026</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Follow-ups Due</div>
+        <div style="font-size:12px;color:var(--ink-2);line-height:2.1">
+          <div>Jun 4 — <strong>Monica Fernandez</strong></div>
+          <div>Jun 5 — <strong>SIGLAT Youth Hub</strong></div>
+          <div>Jun 7 — <strong>DTI CAR Contact</strong></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Quick Stats</div>
+        <div style="font-size:12px;color:var(--ink-2);line-height:2.1">
+          <div>5 proposals this month</div>
+          <div>Win rate: <strong>68%</strong></div>
+          <div>11 active partners</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NEW PROJECT -->
+  <div class="page" id="page-new-project">
+    <div class="page-eyebrow">intake</div>
+    <div class="page-title">Start New Project</div>
+    <div class="stepper">
+      <div class="step-item">
+        <div class="step-circle done">✓</div>
+        <div class="step-label done">Client Info</div>
+      </div>
+      <div class="step-line"></div>
+      <div class="step-item">
+        <div class="step-circle active">2</div>
+        <div class="step-label active">NDA Preview</div>
+      </div>
+      <div class="step-line"></div>
+      <div class="step-item">
+        <div class="step-circle">3</div>
+        <div class="step-label">Send & Done</div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-title">NDA Preview — Auto-Generated</div>
+      <div class="nda-preview">
+        <h3>Non-Disclosure Agreement</h3>
+        <p>This Non-Disclosure Agreement is entered into as of <strong>June 3, 2026</strong>, between:</p>
+        <p><strong>DestineVents Collective OPC</strong>, a One Person Corporation registered under Philippine law, Baguio City, represented by <strong>Jennifer Castro, Founder</strong> ("Disclosing Party");</p>
+        <p>AND <strong>SM City Baguio — Events Team</strong>, Session Road, Baguio City ("Receiving Party").</p>
+        <p><strong>1. PURPOSE.</strong> The parties wish to explore a potential business relationship regarding <strong>Corporate Events Partnership 2026</strong>. In connection with this purpose, the Disclosing Party may share certain confidential information with the Receiving Party.</p>
+        <p><strong>2. CONFIDENTIAL INFORMATION</strong> means any information disclosed by DestineVents Collective that is designated as confidential or that reasonably should be understood to be confidential given the nature of the information and the circumstances of disclosure…</p>
+        <p><strong>IN WITNESS WHEREOF</strong>, the parties have executed this Agreement as of the date first written above.</p>
+      </div>
+    </div>
+    <div class="flex-between">
+      <button class="btn btn-ghost" onclick="showPage('dashboard')">← Back</button>
+      <div class="flex-gap">
+        <button class="btn btn-ghost">Download PDF</button>
+        <button class="btn btn-primary">Send via Dropbox Sign →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROJECTS -->
+  <div class="page" id="page-projects">
+    <div class="page-eyebrow">pipeline</div>
+    <div class="page-title" style="margin-bottom:8px">Projects</div>
+    <div class="flex-between" style="margin-bottom:16px">
+      <div style="font-size:11px;color:var(--ink-3)">6 projects · ₱148,500 total value</div>
+      <div class="flex-gap">
+        <input class="form-input" placeholder="Search…" style="width:180px;padding:6px 10px;font-size:12px" oninput="filterTable(this,'projects-tbody')"/>
+        <button class="btn btn-primary" onclick="showPage('new-project')">\ New</button>
+      </div>
+    </div>
+    <div style="border:1px solid var(--ink-4);overflow:hidden">
+      <table class="project-table">
+        <thead><tr><th>Project</th><th>Status</th><th>Category</th><th>Value</th><th>Updated</th></tr></thead>
+        <tbody id="projects-tbody">
+          <tr><td><div class="project-name">DTI CAR MSME Innovation Summit</div><div class="project-client">DTI CAR / Government</div></td><td><span class="badge badge-active">Active</span></td><td style="font-size:11.5px;color:var(--ink-3)">Events</td><td class="project-value">₱85,000</td><td style="font-size:10.5px;color:var(--ink-3)">Today</td></tr>
+          <tr><td><div class="project-name">BCU Digital Confidence Training</div><div class="project-client">Baguio Central University</div></td><td><span class="badge badge-proposal">Proposal</span></td><td style="font-size:11.5px;color:var(--ink-3)">Training</td><td class="project-value">₱24,000</td><td style="font-size:10.5px;color:var(--ink-3)">Jun 1</td></tr>
+          <tr><td><div class="project-name">SM City Baguio Partnership</div><div class="project-client">SM Events Team</div></td><td><span class="badge badge-nda">NDA Signed</span></td><td style="font-size:11.5px;color:var(--ink-3)">Corporate</td><td class="project-value">₱18,500</td><td style="font-size:10.5px;color:var(--ink-3)">Jun 2</td></tr>
+          <tr><td><div class="project-name">As You Are Baguio Community Event</div><div class="project-client">As You Are Baguio</div></td><td><span class="badge badge-active">Active</span></td><td style="font-size:11.5px;color:var(--ink-3)">Community</td><td class="project-value">₱12,000</td><td style="font-size:10.5px;color:var(--ink-3)">May 30</td></tr>
+          <tr><td><div class="project-name">AgriPulse System Prototype</div><div class="project-client">Baguio City LGU</div></td><td><span class="badge badge-completed">Completed</span></td><td style="font-size:11.5px;color:var(--ink-3)">Digital</td><td class="project-value">₱5,000</td><td style="font-size:10.5px;color:var(--ink-3)">May 15</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CLIENTS -->
+  <div class="page" id="page-clients">
+    <div class="page-eyebrow">crm</div>
+    <div class="page-title" style="margin-bottom:8px">Clients</div>
+    <div class="page-actions">
+      <div id="clients-summary" style="font-size:11px;color:var(--ink-3)"></div>
+      <div class="flex-gap">
+        <input class="form-input" placeholder="Search…" style="width:180px;padding:6px 10px;font-size:12px" oninput="filterTable(this,'clients-tbody')"/>
+        <button class="btn btn-primary" onclick="openAddClient()">\ Add Client</button>
+      </div>
+    </div>
+    <div style="border:1px solid var(--ink-4);overflow:hidden">
+      <table class="project-table">
+        <thead><tr><th>Client</th><th>Status</th><th>Brand</th><th>Contact</th><th>Email</th><th>Total Value</th></tr></thead>
+        <tbody id="clients-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PROPOSALS -->
+  <div class="page" id="page-proposals">
+    <div class="page-eyebrow">sales</div>
+    <div class="page-title" style="margin-bottom:16px">Proposals</div>
+    <div class="two-col" style="margin-bottom:16px">
+      <div class="card">
+        <div class="card-title">Win Rate</div>
+        <div class="win-summary">
+          <div>
+            <div class="win-rate-big" id="win-rate-pct">—</div>
+            <div class="win-rate-label">Win rate</div>
+          </div>
+          <div style="font-size:12px;color:var(--ink-2);line-height:2.2" id="win-rate-breakdown"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Pipeline Value <span>All proposals</span></div>
+        <div id="proposals-value-summary" style="font-size:12px;color:var(--ink-2);line-height:2.2"></div>
+      </div>
+    </div>
+    <div class="page-actions">
+      <div id="proposals-summary" style="font-size:11px;color:var(--ink-3)"></div>
+      <button class="btn btn-primary" onclick="openAddProposal()">\ New Proposal</button>
+    </div>
+    <div style="border:1px solid var(--ink-4);overflow:hidden">
+      <table class="project-table">
+        <thead><tr><th>Proposal</th><th>Value</th><th>Sent</th><th>Follow-up</th><th>Status</th></tr></thead>
+        <tbody id="proposals-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- FINANCE & BIR -->
+  <div class="page" id="page-finance">
+    <div class="page-eyebrow">bookkeeping & bir</div>
+    <div class="page-title">Finance</div>
+    <div class="sub-tabs" id="finance-subtabs">
+      <div class="sub-tab active" onclick="showFinanceTab('overview',this)">Overview</div>
+      <div class="sub-tab" onclick="showFinanceTab('receivables',this)">Receivables</div>
+      <div class="sub-tab" onclick="showFinanceTab('payables',this)">Payables</div>
+      <div class="sub-tab" onclick="showFinanceTab('payroll',this)">Payroll</div>
+      <div class="sub-tab" onclick="showFinanceTab('bir',this)">BIR Reports</div>
+    </div>
+
+    <!-- Overview -->
+    <div class="ftab active" id="ftab-overview">
+      <div class="finance-stat-grid" id="finance-stats"></div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title">Recent Receivables</div>
+          <div id="finance-recent-ar"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Recent Payables</div>
+          <div id="finance-recent-ap"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Receivables (AR) -->
+    <div class="ftab" id="ftab-receivables">
+      <div class="page-actions">
+        <div id="ar-summary" style="font-size:11px;color:var(--ink-3)"></div>
+        <button class="btn btn-primary" onclick="openAddInvoice()">\ New Invoice</button>
+      </div>
+      <div style="border:1px solid var(--ink-4);overflow:hidden">
+        <table class="ledger-table">
+          <thead><tr><th>OR #</th><th>Client</th><th>Amount</th><th>Date</th><th>Due Date</th><th>Status</th></tr></thead>
+          <tbody id="ar-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Payables (AP) -->
+    <div class="ftab" id="ftab-payables">
+      <div class="page-actions">
+        <div id="ap-summary" style="font-size:11px;color:var(--ink-3)"></div>
+        <button class="btn btn-primary" onclick="openAddBill()">\ New Bill</button>
+      </div>
+      <div style="border:1px solid var(--ink-4);overflow:hidden">
+        <table class="ledger-table">
+          <thead><tr><th>Payee</th><th>Amount</th><th>Date</th><th>Category</th><th>EWT Rate</th><th>Status</th></tr></thead>
+          <tbody id="ap-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Payroll -->
+    <div class="ftab" id="ftab-payroll">
+      <div class="page-actions">
+        <div style="font-size:11px;color:var(--ink-3)">SSS / PhilHealth / Pag-IBIG deductions auto-computed</div>
+        <button class="btn btn-primary" onclick="openAddPayroll()">\ New Payroll Run</button>
+      </div>
+      <div style="border:1px solid var(--ink-4);overflow:hidden">
+        <table class="ledger-table">
+          <thead><tr><th>Period</th><th>Employees</th><th>Gross Pay</th><th>Deductions</th><th>Net Pay</th><th>Status</th></tr></thead>
+          <tbody id="payroll-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- BIR Reports -->
+    <div class="ftab" id="ftab-bir">
+      <div class="bir-grid" id="bir-cards"></div>
+    </div>
+  </div>
+
+  <!-- PARTNERS -->
+  <div class="page" id="page-partners">
+    <div class="page-eyebrow">network</div>
+    <div class="page-title" style="margin-bottom:12px">Partners</div>
+    <div class="page-actions" style="margin-bottom:12px">
+      <div class="flex-gap" style="flex-wrap:wrap">
+        <button class="partner-filter-btn active" onclick="filterPartners('all',this)">All</button>
+        <button class="partner-filter-btn" onclick="filterPartners('School',this)">Schools</button>
+        <button class="partner-filter-btn" onclick="filterPartners('LGU',this)">LGUs</button>
+        <button class="partner-filter-btn" onclick="filterPartners('NGO',this)">NGOs</button>
+        <button class="partner-filter-btn" onclick="filterPartners('Sponsor',this)">Sponsors</button>
+        <button class="partner-filter-btn" onclick="filterPartners('Media',this)">Media</button>
+      </div>
+      <button class="btn btn-primary" onclick="openAddPartner()">\ Add Partner</button>
+    </div>
+    <div class="partner-grid" id="partners-grid"></div>
+  </div>
+
+  <!-- DOCUMENT VAULT -->
+  <div class="page" id="page-documents">
+    <div class="page-eyebrow">vault</div>
+    <div class="page-title" style="margin-bottom:16px">Document Vault</div>
+    <input type="file" id="file-input" style="display:none" accept=".pdf,.doc,.docx,.png,.jpg" onchange="handleFileSelect(this.files)"/>
+    <div class="drop-zone" id="drop-zone"
+         onclick="document.getElementById('file-input').click()"
+         ondragover="event.preventDefault();this.classList.add('dragover')"
+         ondragleave="this.classList.remove('dragover')"
+         ondrop="event.preventDefault();this.classList.remove('dragover');handleFileSelect(event.dataTransfer.files)">
+      <div class="drop-zone-icon">⤒</div>
+      <div class="drop-zone-text">Drop files here or click to upload<br><span style="font-size:10px;opacity:0.6">PDF, DOC, DOCX, PNG accepted</span></div>
+    </div>
+    <div id="doc-list" class="doc-list"></div>
+  </div>
+
+  <!-- IMPACT -->
+  <div class="page" id="page-impact">
+    <div class="page-eyebrow">social impact</div>
+    <div class="page-title">Impact Tracker</div>
+    <div class="impact-grid">
+      <div class="impact-card"><div class="impact-icon">🎓</div><div class="impact-num">1,240</div><div class="impact-lbl">Students Reached</div></div>
+      <div class="impact-card"><div class="impact-icon">👩‍🏫</div><div class="impact-num">87</div><div class="impact-lbl">Teachers Trained</div></div>
+      <div class="impact-card"><div class="impact-icon">🏪</div><div class="impact-num">312</div><div class="impact-lbl">SMEs Supported</div></div>
+      <div class="impact-card"><div class="impact-icon">🏛</div><div class="impact-num">8</div><div class="impact-lbl">LGUs Engaged</div></div>
+    </div>
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Log New Entry</div>
+        <div class="form-grid">
+          <div class="form-group"><div class="form-label">Period</div><input class="form-input" value="May 2026"/></div>
+          <div class="form-group"><div class="form-label">Program</div><input class="form-input" placeholder="e.g. Digital Brew"/></div>
+          <div class="form-group"><div class="form-label">Students Reached</div><input class="form-input" placeholder="0"/></div>
+          <div class="form-group"><div class="form-label">Teachers Trained</div><input class="form-input" placeholder="0"/></div>
+          <div class="form-group"><div class="form-label">SMEs Supported</div><input class="form-input" placeholder="0"/></div>
+          <div class="form-group"><div class="form-label">LGUs</div><input class="form-input" placeholder="0"/></div>
+        </div>
+        <button class="btn btn-primary" onclick="toast('Entry saved (demo mode)','success')">Save Entry</button>
+      </div>
+      <div class="card">
+        <div class="card-title">All Metrics</div>
+        <div style="font-size:12px;color:var(--ink-2);line-height:2.3">
+          <div class="flex-between"><span>Workshops Conducted</span><strong>34</strong></div>
+          <div class="flex-between"><span>CSR Projects</span><strong>12</strong></div>
+          <div class="flex-between"><span>Communities Reached</span><strong>6</strong></div>
+          <div class="flex-between"><span>Youth Programs</span><strong>9</strong></div>
+          <div class="flex-between"><span>Corporate Partners</span><strong>11</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI ASSISTANT -->
+  <div class="page" id="page-ai">
+    <div class="page-eyebrow">generate</div>
+    <div class="page-title">AI Assistant</div>
+    <div class="ai-grid">
+      <div class="ai-template selected" onclick="selectTemplate(this)"><div class="ai-template-icon">📧</div><div class="ai-template-name">Follow-up Email</div><div class="ai-template-desc">Professional client follow-ups</div></div>
+      <div class="ai-template" onclick="selectTemplate(this)"><div class="ai-template-icon">📋</div><div class="ai-template-name">Proposal Summary</div><div class="ai-template-desc">Executive summaries that win</div></div>
+      <div class="ai-template" onclick="selectTemplate(this)"><div class="ai-template-icon">🗒</div><div class="ai-template-name">Project Brief</div><div class="ai-template-desc">Structured scope + objectives</div></div>
+      <div class="ai-template" onclick="selectTemplate(this)"><div class="ai-template-icon">📅</div><div class="ai-template-name">Monthly Report</div><div class="ai-template-desc">Business performance report</div></div>
+      <div class="ai-template" onclick="selectTemplate(this)"><div class="ai-template-icon">🌟</div><div class="ai-template-name">Impact Summary</div><div class="ai-template-desc">CSR & grant narratives</div></div>
+      <div class="ai-template" onclick="selectTemplate(this)"><div class="ai-template-icon">📈</div><div class="ai-template-name">Annual Report</div><div class="ai-template-desc">Full year accomplishment</div></div>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <div class="form-grid">
+        <div class="form-group"><div class="form-label">Client Name</div><input class="form-input" id="ai-client" placeholder="e.g. DTI CAR"/></div>
+        <div class="form-group"><div class="form-label">Project Name</div><input class="form-input" id="ai-project" placeholder="e.g. MSME Innovation Summit"/></div>
+        <div class="form-group full"><div class="form-label">Context / Purpose</div><input class="form-input" id="ai-context" placeholder="Brief context for the document…"/></div>
+      </div>
+      <div class="flex-gap">
+        <button class="btn btn-primary" onclick="simulateAI()">\ &nbsp;Generate</button>
+        <button class="btn btn-ghost" onclick="copyAIOutput()">Copy Output</button>
+      </div>
+    </div>
+    <div class="ai-output">
+      <div class="ai-output-label">Output</div>
+      <div id="ai-result"><div class="ai-generating"><div class="dot-pulse"><span></span><span></span><span></span></div>&nbsp; Waiting for input…</div></div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ─── SUPABASE CONFIG ──────────────────────────────────────────────────────────
+// Teammate: fill these in after Supabase project is created
+// Settings → API → Project URL / anon public key
+const SUPABASE_URL      = '';
+const SUPABASE_ANON_KEY = '';
+// ─────────────────────────────────────────────────────────────────────────────
+
+const DEMO = !SUPABASE_URL || !SUPABASE_ANON_KEY;
+const sb   = DEMO ? null : window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ─── DEMO DATA ───────────────────────────────────────────────────────────────
+const DEMO_CLIENTS = [
+  { id:1, name:'DTI CAR',               type:'Government', brand:'DestineVents', contact:'Maria Santos',   email:'msantos@dti.gov.ph',           total_value:85000, status:'Active'    },
+  { id:2, name:'Baguio Central University', type:'Education', brand:'DDC',       contact:'Dr. Reyes',      email:'dreyes@bcu.edu.ph',            total_value:24000, status:'Active'    },
+  { id:3, name:'SM City Baguio',        type:'Corporate',  brand:'DestineVents', contact:'Events Team',    email:'events@smcitybaguio.com.ph',   total_value:18500, status:'NDA Signed'},
+  { id:4, name:'As You Are Baguio',     type:'Community',  brand:'AYA',          contact:'AYA Collective', email:'aya@ayabaguio.com',            total_value:12000, status:'Active'    },
+  { id:5, name:'Baguio City LGU',       type:'Government', brand:'DDC',          contact:'City Planning',  email:'planning@baguio.gov.ph',       total_value:5000,  status:'Completed' },
+  { id:6, name:'SIGLAT Youth Hub',      type:'NGO',        brand:'DestineVents', contact:'Youth Coord.',   email:'siglat@gmail.com',             total_value:8000,  status:'Lead'      },
+];
+
+const DEMO_PROPOSALS = [
+  { id:1, name:'DTI CAR MSME Innovation Summit',      client:'DTI CAR',     value:85000, sent:'May 20, 2026', followup:'Jun 7, 2026',  status:'Won'  },
+  { id:2, name:'BCU Digital Confidence Training',     client:'BCU',         value:24000, sent:'May 28, 2026', followup:'Jun 5, 2026',  status:'Sent' },
+  { id:3, name:'SIGLAT Youth Leadership Camp',        client:'SIGLAT',      value:15000, sent:'May 10, 2026', followup:'May 24, 2026', status:'Lost' },
+  { id:4, name:'SM City Baguio Events Partnership',   client:'SM Baguio',   value:18500, sent:'May 15, 2026', followup:'Jun 2, 2026',  status:'Won'  },
+  { id:5, name:'Cordillera Agri Forum 2026',          client:'Baguio LGU',  value:30000, sent:'Jun 1, 2026',  followup:'Jun 15, 2026', status:'Sent' },
+];
+
+let _partners = [
+  { id:1, name:'Baguio Central University', type:'School',  contact:'Dr. Reyes',       email:'dreyes@bcu.edu.ph'             },
+  { id:2, name:'SLU School of Business',    type:'School',  contact:'Dean Villanueva', email:'business@slu.edu.ph'           },
+  { id:3, name:'DTI CAR',                   type:'LGU',     contact:'Maria Santos',    email:'msantos@dti.gov.ph'            },
+  { id:4, name:'Baguio City LGU',           type:'LGU',     contact:'City Planning',   email:'planning@baguio.gov.ph'        },
+  { id:5, name:'BLISTT Consortium',         type:'LGU',     contact:'Exec. Director',  email:'blistt@gov.ph'                 },
+  { id:6, name:'SIGLAT Youth Hub',          type:'NGO',     contact:'Youth Coord.',    email:'siglat@gmail.com'              },
+  { id:7, name:'As You Are Baguio',         type:'NGO',     contact:'AYA Collective',  email:'aya@ayabaguio.com'             },
+  { id:8, name:'SM City Baguio',            type:'Sponsor', contact:'Events Team',     email:'events@smcitybaguio.com.ph'    },
+  { id:9, name:'Baguio Midland Courier',    type:'Media',   contact:'Editor in Chief', email:'editor@midlandcourier.com'     },
+  { id:10,name:'Cordillera Today',          type:'Media',   contact:'News Desk',       email:'news@cordilleratoday.com'      },
+];
+
+let _documents = [
+  { id:1, name:'SM City Baguio — NDA Signed.pdf',  type:'NDA',      size:'142 KB', date:'Jun 2, 2026'  },
+  { id:2, name:'DTI CAR — Event Agreement.pdf',    type:'Contract', size:'287 KB', date:'May 20, 2026' },
+  { id:3, name:'BCU Training — Proposal.pdf',      type:'Proposal', size:'94 KB',  date:'May 28, 2026' },
+  { id:4, name:'AYA Baguio — MOU 2026.pdf',        type:'Agreement',size:'201 KB', date:'Apr 15, 2026' },
+];
+
+let _invoices = [
+  { id:1, or_num:'OR-2026-001', client:'DTI CAR',   amount:42500, date:'May 20, 2026', due:'Jun 20, 2026', status:'Paid'    },
+  { id:2, or_num:'OR-2026-002', client:'SM Baguio', amount:9250,  date:'Jun 2, 2026',  due:'Jul 2, 2026',  status:'Unpaid'  },
+  { id:3, or_num:'OR-2026-003', client:'BCU',       amount:12000, date:'Jun 1, 2026',  due:'Jul 1, 2026',  status:'Unpaid'  },
+  { id:4, or_num:'OR-2026-004', client:'AYA Baguio',amount:6000,  date:'Apr 15, 2026', due:'May 15, 2026', status:'Overdue' },
+];
+
+let _bills = [
+  { id:1, payee:'Venue — Camp John Hay',    amount:15000, date:'May 15, 2026', category:'Venue',     ewt:'0%',  status:'Paid'   },
+  { id:2, payee:'Catering — Tradisyon',     amount:8500,  date:'May 20, 2026', category:'Catering',  ewt:'2%',  status:'Paid'   },
+  { id:3, payee:'AV Equipment Rental',      amount:5000,  date:'Jun 1, 2026',  category:'Equipment', ewt:'2%',  status:'Unpaid' },
+  { id:4, payee:'Graphic Design — Freelance',amount:3500, date:'Jun 2, 2026',  category:'Services',  ewt:'10%', status:'Unpaid' },
+];
+
+let _payroll = [
+  { id:1, period:'May 2026', employees:3, gross:45000, deductions:6750, net:38250, status:'Released' },
+  { id:2, period:'Apr 2026', employees:3, gross:45000, deductions:6750, net:38250, status:'Released' },
+  { id:3, period:'Mar 2026', employees:2, gross:30000, deductions:4500, net:25500, status:'Released' },
+];
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+const num = n => (+(n)||0).toLocaleString('en-PH');
+
+function statusClass(s='') {
+  return ({
+    'Active':'active','Completed':'completed','NDA Signed':'nda','Lead':'lead','Proposal':'proposal',
+    'Paid':'paid','Unpaid':'unpaid','Overdue':'overdue',
+    'Won':'won','Lost':'lost','Sent':'sent','Expired':'expired',
+    'Released':'released','Pending':'pending','Draft':'draft',
+  })[s] || 'lead';
+}
+
+function docTypeIcon(t) {
+  return {'NDA':'📋','Contract':'📄','Proposal':'📝','Agreement':'🤝','Document':'📁'}[t]||'📁';
+}
+
+function guessDocType(name) {
+  const n = name.toLowerCase();
+  if (n.includes('nda'))                       return 'NDA';
+  if (n.includes('contract'))                  return 'Contract';
+  if (n.includes('proposal'))                  return 'Proposal';
+  if (n.includes('agreement')||n.includes('mou')) return 'Agreement';
+  return 'Document';
+}
+
+function formatBytes(b) {
+  if (b < 1024)       return b + ' B';
+  if (b < 1024*1024)  return Math.round(b/1024) + ' KB';
+  return (b/1024/1024).toFixed(1) + ' MB';
+}
+
+// ─── TOAST ───────────────────────────────────────────────────────────────────
+function toast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast' + (type ? ' '+type : '');
+  t.style.display = 'block';
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.style.display='none', 3000);
+}
+
+// ─── MODAL ───────────────────────────────────────────────────────────────────
+let _onSave = null;
+function openModal(title, bodyHTML, onSave) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = bodyHTML;
+  document.getElementById('modal-overlay').classList.add('open');
+  _onSave = onSave;
+}
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  _onSave = null;
+}
+function saveModal() { if (_onSave) _onSave(); }
+
+// ─── AUTH ─────────────────────────────────────────────────────────────────────
+async function init() {
+  if (DEMO) {
+    // document.getElementById('demo-banner').classList.add('visible');
+    enterApp();
+    return;
+  }
+  const { data:{ session } } = await sb.auth.getSession();
+  if (session) {
+    enterApp(session.user.email);
+  } else {
+    document.getElementById('login-screen').style.display = 'flex';
+  }
+}
+
+function enterApp(email) {
+  document.getElementById('login-screen').style.display = 'none';
+  updateUserIdentity(email);
+  showPage('dashboard');
+}
+
+function getGreetingName(emailOrUser) {
+  const email = typeof emailOrUser === 'string' ? emailOrUser : emailOrUser?.email || '';
+  const rawName = typeof emailOrUser === 'object'
+    ? (emailOrUser?.user_metadata?.full_name || emailOrUser?.user_metadata?.name || emailOrUser?.user_metadata?.display_name || '')
+    : '';
+  const baseName = rawName.split(/\s+/)[0] || email.split('@')[0] || 'there';
+  return baseName
+    .replace(/[._-]+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, char => char.toUpperCase());
+}
+
+function updateUserIdentity(emailOrUser) {
+  const email = typeof emailOrUser === 'string' ? emailOrUser : emailOrUser?.email || '';
+  const greetingName = getGreetingName(emailOrUser);
+  if (email) document.getElementById('topbar-user').textContent = email;
+  document.getElementById('greeting-title').textContent = emailOrUser ? `Good morning, ${greetingName}.` : 'Good morning';
+}
+
+async function handleSignIn() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('login-error');
+  errEl.textContent = '';
+  if (!email || !pass) { errEl.textContent = 'Email and password required.'; return; }
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if (error) { errEl.textContent = error.message; return; }
+  enterApp(data.user);
+}
+
+async function handleSignOut() {
+  if (DEMO) { toast('Running in demo mode'); return; }
+  await sb.auth.signOut();
+  location.reload();
+}
+
+// ─── NAVIGATION ──────────────────────────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const page = document.getElementById('page-' + name);
+  if (page) { page.classList.add('active'); loadPage(name); }
+
+  document.querySelectorAll('.nav-item').forEach(n => {
+    n.classList.remove('active');
+    const ch = n.querySelector('.nav-backslash');
+    if (ch) ch.remove();
+  });
+  const activeNav = document.querySelector(`.nav-item[data-page="${name}"]`);
+  if (activeNav) {
+    activeNav.classList.add('active');
+    const s = document.createElement('span');
+    s.className = 'nav-backslash'; s.textContent = '\\';
+    activeNav.appendChild(s);
+  }
+
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  const activeTab = document.querySelector(`.tab[data-page="${name}"]`);
+  if (activeTab) activeTab.classList.add('active');
+}
+
+function loadPage(name) {
+  switch(name) {
+    case 'clients':   loadClients();   break;
+    case 'proposals': loadProposals(); break;
+    case 'partners':  loadPartners();  break;
+    case 'documents': loadDocuments(); break;
+    case 'finance':   loadFinance();   break;
+  }
+}
+
+// ─── FILTER (table search) ────────────────────────────────────────────────────
+function filterTable(input, tbodyId) {
+  const q = input.value.toLowerCase();
+  document.querySelectorAll('#' + tbodyId + ' tr').forEach(tr => {
+    tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+// ─── CLIENTS ─────────────────────────────────────────────────────────────────
+async function loadClients() {
+  const data = DEMO ? DEMO_CLIENTS
+    : ((await sb.from('clients').select('*').order('name')).data || []);
+  renderClients(data);
+}
+
+function renderClients(clients) {
+  const total = clients.reduce((s,c) => s + (c.total_value||0), 0);
+  document.getElementById('clients-summary').textContent =
+    `${clients.length} clients · ₱${num(total)} total value`;
+  document.getElementById('clients-tbody').innerHTML = clients.length
+    ? clients.map(c => `
+        <tr>
+          <td><div class="project-name">${c.name}</div><div class="project-client">${c.type}</div></td>
+          <td><span class="badge badge-${statusClass(c.status)}">${c.status}</span></td>
+          <td style="font-size:11px;color:var(--ink-3)">${c.brand||'—'}</td>
+          <td style="font-size:12px">${c.contact||'—'}</td>
+          <td style="font-size:11px;color:var(--ink-3)">${c.email||'—'}</td>
+          <td class="project-value">₱${num(c.total_value)}</td>
+        </tr>`).join('')
+    : `<tr><td colspan="6"><div class="empty-state">No clients yet — add your first one</div></td></tr>`;
+}
+
+function openAddClient() {
+  openModal('Add Client', `
+    <div class="form-grid">
+      <div class="form-group"><div class="form-label">Client Name</div><input class="form-input" id="fc-name" placeholder="e.g. DTI CAR"/></div>
+      <div class="form-group"><div class="form-label">Type</div>
+        <select class="form-input" id="fc-type"><option>Government</option><option>Corporate</option><option>Education</option><option>NGO</option><option>Community</option><option>Startup</option></select>
+      </div>
+      <div class="form-group"><div class="form-label">Brand</div>
+        <select class="form-input" id="fc-brand"><option>DestineVents</option><option>DDC</option><option>AYA</option></select>
+      </div>
+      <div class="form-group"><div class="form-label">Status</div>
+        <select class="form-input" id="fc-status"><option>Lead</option><option>Active</option><option>NDA Signed</option><option>Completed</option></select>
+      </div>
+      <div class="form-group"><div class="form-label">Contact Person</div><input class="form-input" id="fc-contact" placeholder="Full name"/></div>
+      <div class="form-group"><div class="form-label">Email</div><input class="form-input" id="fc-email" type="email" placeholder="email@org.ph"/></div>
+    </div>`, saveClient);
+}
+
+async function saveClient() {
+  const name = document.getElementById('fc-name').value.trim();
+  if (!name) { toast('Client name is required','error'); return; }
+  const data = {
+    id: Date.now(), name,
+    type:    document.getElementById('fc-type').value,
+    brand:   document.getElementById('fc-brand').value,
+    status:  document.getElementById('fc-status').value,
+    contact: document.getElementById('fc-contact').value,
+    email:   document.getElementById('fc-email').value,
+    total_value: 0,
+  };
+  if (DEMO) {
+    DEMO_CLIENTS.push(data);
+    toast('Client added','success');
+  } else {
+    const { error } = await sb.from('clients').insert(data);
+    if (error) { toast(error.message,'error'); return; }
+    toast('Client added','success');
+  }
+  closeModal(); loadClients();
+}
+
+// ─── PROPOSALS ───────────────────────────────────────────────────────────────
+async function loadProposals() {
+  const data = DEMO ? DEMO_PROPOSALS
+    : ((await sb.from('proposals').select('*').order('sent',{ascending:false})).data || []);
+  renderProposals(data);
+}
+
+function renderProposals(proposals) {
+  const won  = proposals.filter(p => p.status==='Won').length;
+  const lost = proposals.filter(p => p.status==='Lost').length;
+  const closed = won + lost;
+  const rate = closed ? Math.round((won/closed)*100) : 0;
+  const totalVal  = proposals.reduce((s,p) => s+(p.value||0), 0);
+  const wonVal    = proposals.filter(p=>p.status==='Won').reduce((s,p)=>s+(p.value||0),0);
+  const pendingVal= proposals.filter(p=>p.status==='Sent').reduce((s,p)=>s+(p.value||0),0);
+
+  document.getElementById('win-rate-pct').textContent = rate + '%';
+  document.getElementById('win-rate-breakdown').innerHTML =
+    `<div>${won} won · ${lost} lost · ${proposals.filter(p=>p.status==='Sent').length} open</div>
+     <div>Closed: <strong>${closed} of ${proposals.length}</strong></div>`;
+  document.getElementById('proposals-value-summary').innerHTML =
+    `<div>Total: <strong>₱${num(totalVal)}</strong></div>
+     <div>Won: <strong style="color:var(--green)">₱${num(wonVal)}</strong></div>
+     <div>In pipeline: <strong style="color:var(--blue)">₱${num(pendingVal)}</strong></div>`;
+  document.getElementById('proposals-summary').textContent = `${proposals.length} proposals`;
+  document.getElementById('proposals-tbody').innerHTML = proposals.length
+    ? proposals.map(p => `
+        <tr>
+          <td><div class="project-name">${p.name}</div><div class="project-client">${p.client}</div></td>
+          <td class="project-value">₱${num(p.value)}</td>
+          <td style="font-size:11px;color:var(--ink-3)">${p.sent}</td>
+          <td style="font-size:11px;color:var(--ink-3)">${p.followup}</td>
+          <td><span class="badge badge-${statusClass(p.status)}">${p.status}</span></td>
+        </tr>`).join('')
+    : `<tr><td colspan="5"><div class="empty-state">No proposals yet</div></td></tr>`;
+}
+
+function openAddProposal() {
+  openModal('New Proposal', `
+    <div class="form-grid">
+      <div class="form-group full"><div class="form-label">Proposal Name</div><input class="form-input" id="fp-name" placeholder="e.g. DTI CAR MSME Summit"/></div>
+      <div class="form-group"><div class="form-label">Client</div><input class="form-input" id="fp-client" placeholder="Client name"/></div>
+      <div class="form-group"><div class="form-label">Value (₱)</div><input class="form-input" id="fp-value" type="number" placeholder="0"/></div>
+      <div class="form-group"><div class="form-label">Date Sent</div><input class="form-input" id="fp-sent" type="date"/></div>
+      <div class="form-group"><div class="form-label">Follow-up Date</div><input class="form-input" id="fp-followup" type="date"/></div>
+      <div class="form-group"><div class="form-label">Status</div>
+        <select class="form-input" id="fp-status"><option>Sent</option><option>Won</option><option>Lost</option><option>Expired</option></select>
+      </div>
+    </div>`, saveProposal);
+}
+
+async function saveProposal() {
+  const name = document.getElementById('fp-name').value.trim();
+  if (!name) { toast('Proposal name is required','error'); return; }
+  const toDateStr = id => { const v=document.getElementById(id).value; if(!v)return '—'; const d=new Date(v); return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); };
+  const data = {
+    id:Date.now(), name,
+    client:   document.getElementById('fp-client').value,
+    value:    +document.getElementById('fp-value').value||0,
+    sent:     toDateStr('fp-sent'),
+    followup: toDateStr('fp-followup'),
+    status:   document.getElementById('fp-status').value,
+  };
+  if (DEMO) {
+    DEMO_PROPOSALS.push(data);
+    toast('Proposal added','success');
+  } else {
+    const { error } = await sb.from('proposals').insert(data);
+    if (error) { toast(error.message,'error'); return; }
+    toast('Proposal added','success');
+  }
+  closeModal(); loadProposals();
+}
+
+// ─── FINANCE ─────────────────────────────────────────────────────────────────
+async function loadFinance() {
+  const invoices = DEMO ? _invoices : ((await sb.from('invoices').select('*').order('date',{ascending:false})).data||[]);
+  const bills    = DEMO ? _bills    : ((await sb.from('bills').select('*').order('date',{ascending:false})).data||[]);
+  const payroll  = DEMO ? _payroll  : ((await sb.from('payroll_runs').select('*').order('period',{ascending:false})).data||[]);
+  renderFinanceOverview(invoices, bills);
+  renderAR(invoices);
+  renderAP(bills);
+  renderPayroll(payroll);
+  renderBIR();
+}
+
+function showFinanceTab(name, el) {
+  document.querySelectorAll('.ftab').forEach(t => t.classList.remove('active'));
+  document.getElementById('ftab-' + name).classList.add('active');
+  document.querySelectorAll('#finance-subtabs .sub-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function renderFinanceOverview(invoices, bills) {
+  const arOut  = invoices.filter(i=>i.status!=='Paid').reduce((s,i)=>s+i.amount,0);
+  const apOut  = bills.filter(b=>b.status!=='Paid').reduce((s,b)=>s+b.amount,0);
+  const rev    = invoices.filter(i=>i.status==='Paid').reduce((s,i)=>s+i.amount,0);
+  const net    = arOut - apOut;
+  const overdue= invoices.filter(i=>i.status==='Overdue').length;
+
+  document.getElementById('finance-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-label">AR Outstanding</div><div class="stat-value" style="font-size:22px">₱${num(arOut)}</div><div class="stat-change${overdue?' color:var(--red)':''}">${overdue} overdue invoice${overdue!==1?'s':''}</div></div>
+    <div class="stat-card"><div class="stat-label">AP Outstanding</div><div class="stat-value" style="font-size:22px">₱${num(apOut)}</div><div class="stat-change">${bills.filter(b=>b.status!=='Paid').length} pending bills</div></div>
+    <div class="stat-card"><div class="stat-label">Revenue Collected</div><div class="stat-value" style="font-size:22px">₱${num(rev)}</div><div class="stat-change up">This quarter</div></div>
+    <div class="stat-card"><div class="stat-label">Net Position</div><div class="stat-value" style="font-size:22px${net<0?';color:var(--red)':''}">₱${num(Math.abs(net))}</div><div class="stat-change ${net>=0?'up':''}">${net>=0?'Receivable surplus':'Payable deficit'}</div></div>`;
+
+  document.getElementById('finance-recent-ar').innerHTML = invoices.slice(0,4).map(i=>`
+    <div class="activity-item">
+      <div class="activity-dot ${i.status==='Paid'?'green':i.status==='Overdue'?'red':'blue'}"></div>
+      <div style="flex:1"><div class="activity-text">${i.client} — ${i.or_num}</div><div class="activity-time">${i.date}</div></div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-family:'Cormorant Garamond',serif;font-size:14px;font-weight:600">₱${num(i.amount)}</span>
+        <span class="badge badge-${statusClass(i.status)}">${i.status}</span>
+      </div>
+    </div>`).join('');
+
+  document.getElementById('finance-recent-ap').innerHTML = bills.slice(0,4).map(b=>`
+    <div class="activity-item">
+      <div class="activity-dot ${b.status==='Paid'?'green':'blue'}"></div>
+      <div style="flex:1"><div class="activity-text">${b.payee}</div><div class="activity-time">${b.date} · EWT ${b.ewt}</div></div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-family:'Cormorant Garamond',serif;font-size:14px;font-weight:600">₱${num(b.amount)}</span>
+        <span class="badge badge-${statusClass(b.status)}">${b.status}</span>
+      </div>
+    </div>`).join('');
+}
+
+function renderAR(invoices) {
+  const total = invoices.reduce((s,i)=>s+i.amount,0);
+  const out   = invoices.filter(i=>i.status!=='Paid').reduce((s,i)=>s+i.amount,0);
+  document.getElementById('ar-summary').textContent = `${invoices.length} invoices · ₱${num(total)} total · ₱${num(out)} outstanding`;
+  document.getElementById('ar-tbody').innerHTML = invoices.length
+    ? invoices.map(i=>`
+        <tr>
+          <td style="font-size:11px;color:var(--ink-3)">${i.or_num}</td>
+          <td style="font-weight:500;color:var(--ink)">${i.client}</td>
+          <td class="amount-cell">₱${num(i.amount)}</td>
+          <td style="font-size:11px;color:var(--ink-3)">${i.date}</td>
+          <td style="font-size:11px;color:var(--ink-3)">${i.due}</td>
+          <td><span class="badge badge-${statusClass(i.status)}">${i.status}</span></td>
+        </tr>`).join('')
+    : `<tr><td colspan="6"><div class="empty-state">No invoices yet</div></td></tr>`;
+}
+
+function renderAP(bills) {
+  const total = bills.reduce((s,b)=>s+b.amount,0);
+  const out   = bills.filter(b=>b.status!=='Paid').reduce((s,b)=>s+b.amount,0);
+  document.getElementById('ap-summary').textContent = `${bills.length} bills · ₱${num(total)} total · ₱${num(out)} outstanding`;
+  document.getElementById('ap-tbody').innerHTML = bills.length
+    ? bills.map(b=>`
+        <tr>
+          <td style="font-weight:500;color:var(--ink)">${b.payee}</td>
+          <td class="amount-cell">₱${num(b.amount)}</td>
+          <td style="font-size:11px;color:var(--ink-3)">${b.date}</td>
+          <td style="font-size:11px;color:var(--ink-3)">${b.category}</td>
+          <td style="font-size:11px;color:var(--ink-3)">${b.ewt}</td>
+          <td><span class="badge badge-${statusClass(b.status)}">${b.status}</span></td>
+        </tr>`).join('')
+    : `<tr><td colspan="6"><div class="empty-state">No bills yet</div></td></tr>`;
+}
+
+function renderPayroll(runs) {
+  document.getElementById('payroll-tbody').innerHTML = runs.length
+    ? runs.map(r=>`
+        <tr>
+          <td style="font-weight:500;color:var(--ink)">${r.period}</td>
+          <td style="font-size:11.5px;color:var(--ink-3)">${r.employees}</td>
+          <td class="amount-cell">₱${num(r.gross)}</td>
+          <td style="font-size:12px;color:var(--ink-3)">₱${num(r.deductions)}</td>
+          <td class="amount-cell">₱${num(r.net)}</td>
+          <td><span class="badge badge-${statusClass(r.status)}">${r.status}</span></td>
+        </tr>`).join('')
+    : `<tr><td colspan="6"><div class="empty-state">No payroll runs yet</div></td></tr>`;
+}
+
+function renderBIR() {
+  document.getElementById('bir-cards').innerHTML = `
+    <div class="bir-card">
+      <div class="bir-form-name">2551Q</div>
+      <div class="bir-form-desc">Quarterly Percentage Tax Return<br>For non-VAT registered businesses</div>
+      <div class="flex-between">
+        <div class="bir-deadline">Q2 2026 deadline: <strong>Jul 25, 2026</strong></div>
+        <span class="badge badge-unpaid">Due</span>
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:var(--ink-3)">Q1 2026 — <span style="color:var(--green);font-weight:600">Filed ✓</span></div>
+    </div>
+    <div class="bir-card">
+      <div class="bir-form-name">1701Q</div>
+      <div class="bir-form-desc">Quarterly Income Tax Return<br>For self-employed / OPC founders</div>
+      <div class="flex-between">
+        <div class="bir-deadline">Q2 2026 deadline: <strong>Aug 15, 2026</strong></div>
+        <span class="badge badge-unpaid">Due</span>
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:var(--ink-3)">Q1 2026 — <span style="color:var(--green);font-weight:600">Filed ✓</span></div>
+    </div>
+    <div class="bir-card">
+      <div class="bir-form-name">1604C</div>
+      <div class="bir-form-desc">Annual Information Return — Income Taxes Withheld on Compensation</div>
+      <div class="flex-between">
+        <div class="bir-deadline">Next deadline: <strong>Jan 31, 2027</strong></div>
+        <span class="badge badge-paid">Filed</span>
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:var(--ink-3)">FY 2025 — <span style="color:var(--green);font-weight:600">Filed ✓</span></div>
+    </div>
+    <div class="bir-card">
+      <div class="bir-form-name">2307</div>
+      <div class="bir-form-desc">Certificate of Creditable Tax Withheld at Source — issue to clients per transaction</div>
+      <div class="flex-between">
+        <div class="bir-deadline">Issue per transaction</div>
+        <span class="badge badge-lead">Ongoing</span>
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:var(--ink-3)">Last issued: <span style="color:var(--ink);font-weight:600">Jun 2, 2026</span></div>
+    </div>`;
+}
+
+function openAddInvoice() {
+  openModal('New Invoice (AR)', `
+    <div class="form-grid">
+      <div class="form-group"><div class="form-label">OR Number</div><input class="form-input" id="fi-or" placeholder="OR-2026-005"/></div>
+      <div class="form-group"><div class="form-label">Client</div><input class="form-input" id="fi-client" placeholder="Client name"/></div>
+      <div class="form-group"><div class="form-label">Amount (₱)</div><input class="form-input" id="fi-amount" type="number" placeholder="0"/></div>
+      <div class="form-group"><div class="form-label">Status</div>
+        <select class="form-input" id="fi-status"><option>Unpaid</option><option>Paid</option><option>Overdue</option></select>
+      </div>
+      <div class="form-group"><div class="form-label">Date Issued</div><input class="form-input" id="fi-date" type="date"/></div>
+      <div class="form-group"><div class="form-label">Due Date</div><input class="form-input" id="fi-due" type="date"/></div>
+    </div>`, saveInvoice);
+}
+
+async function saveInvoice() {
+  const or_num = document.getElementById('fi-or').value.trim();
+  if (!or_num) { toast('OR number is required','error'); return; }
+  const toStr = id => { const v=document.getElementById(id).value; if(!v)return '—'; return new Date(v).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); };
+  const data = { id:Date.now(), or_num, client:document.getElementById('fi-client').value, amount:+document.getElementById('fi-amount').value||0, status:document.getElementById('fi-status').value, date:toStr('fi-date'), due:toStr('fi-due') };
+  if (DEMO) { _invoices.unshift(data); toast('Invoice added','success'); }
+  else { const{error}=await sb.from('invoices').insert(data); if(error){toast(error.message,'error');return;} toast('Invoice added','success'); }
+  closeModal(); loadFinance();
+}
+
+function openAddBill() {
+  openModal('New Bill (AP)', `
+    <div class="form-grid">
+      <div class="form-group full"><div class="form-label">Payee</div><input class="form-input" id="fb-payee" placeholder="Supplier / vendor name"/></div>
+      <div class="form-group"><div class="form-label">Amount (₱)</div><input class="form-input" id="fb-amount" type="number" placeholder="0"/></div>
+      <div class="form-group"><div class="form-label">Category</div>
+        <select class="form-input" id="fb-category"><option>Venue</option><option>Catering</option><option>Equipment</option><option>Services</option><option>Transport</option><option>Supplies</option><option>Other</option></select>
+      </div>
+      <div class="form-group"><div class="form-label">EWT Rate</div>
+        <select class="form-input" id="fb-ewt"><option>0%</option><option>2%</option><option>5%</option><option>10%</option><option>15%</option></select>
+      </div>
+      <div class="form-group"><div class="form-label">Date</div><input class="form-input" id="fb-date" type="date"/></div>
+      <div class="form-group"><div class="form-label">Status</div>
+        <select class="form-input" id="fb-status"><option>Unpaid</option><option>Paid</option></select>
+      </div>
+    </div>`, saveBill);
+}
+
+async function saveBill() {
+  const payee = document.getElementById('fb-payee').value.trim();
+  if (!payee) { toast('Payee is required','error'); return; }
+  const toStr = id => { const v=document.getElementById(id).value; if(!v)return '—'; return new Date(v).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); };
+  const data = { id:Date.now(), payee, amount:+document.getElementById('fb-amount').value||0, category:document.getElementById('fb-category').value, ewt:document.getElementById('fb-ewt').value, date:toStr('fb-date'), status:document.getElementById('fb-status').value };
+  if (DEMO) { _bills.unshift(data); toast('Bill added','success'); }
+  else { const{error}=await sb.from('bills').insert(data); if(error){toast(error.message,'error');return;} toast('Bill added','success'); }
+  closeModal(); loadFinance();
+}
+
+function openAddPayroll() {
+  openModal('New Payroll Run', `
+    <div class="form-grid">
+      <div class="form-group"><div class="form-label">Period</div><input class="form-input" id="pp-period" placeholder="e.g. Jun 2026"/></div>
+      <div class="form-group"><div class="form-label">No. of Employees</div><input class="form-input" id="pp-emp" type="number" placeholder="0"/></div>
+      <div class="form-group"><div class="form-label">Gross Pay (₱)</div><input class="form-input" id="pp-gross" type="number" placeholder="0" oninput="estimateDeductions()"/></div>
+      <div class="form-group"><div class="form-label">Est. Deductions (₱)</div><input class="form-input" id="pp-ded" type="number" placeholder="0"/></div>
+      <div class="form-group"><div class="form-label">Net Pay (₱)</div><input class="form-input" id="pp-net" type="number" placeholder="0"/></div>
+      <div class="form-group"><div class="form-label">Status</div>
+        <select class="form-input" id="pp-status"><option>Pending</option><option>Released</option></select>
+      </div>
+    </div>
+    <div style="font-size:10px;color:var(--ink-3);margin-top:-8px">SSS ≈ 4.5% · PhilHealth ≈ 2.5% · Pag-IBIG ≈ 2% of gross</div>`, savePayroll);
+}
+
+function estimateDeductions() {
+  const gross = +document.getElementById('pp-gross').value||0;
+  const ded = Math.round(gross * 0.15);
+  document.getElementById('pp-ded').value = ded;
+  document.getElementById('pp-net').value = gross - ded;
+}
+
+async function savePayroll() {
+  const period = document.getElementById('pp-period').value.trim();
+  if (!period) { toast('Period is required','error'); return; }
+  const gross = +document.getElementById('pp-gross').value||0;
+  const ded   = +document.getElementById('pp-ded').value||0;
+  const data  = { id:Date.now(), period, employees:+document.getElementById('pp-emp').value||0, gross, deductions:ded, net:gross-ded, status:document.getElementById('pp-status').value };
+  if (DEMO) { _payroll.unshift(data); toast('Payroll run saved','success'); }
+  else { const{error}=await sb.from('payroll_runs').insert(data); if(error){toast(error.message,'error');return;} toast('Payroll run saved','success'); }
+  closeModal(); loadFinance();
+}
+
+// ─── PARTNERS ────────────────────────────────────────────────────────────────
+async function loadPartners() {
+  _partners = DEMO ? _partners
+    : ((await sb.from('partners').select('*').order('name')).data || []);
+  renderPartners(_partners);
+}
+
+function renderPartners(list) {
+  const grid = document.getElementById('partners-grid');
+  grid.innerHTML = list.length
+    ? list.map(p=>`
+        <div class="partner-card">
+          <div class="partner-type-tag">${p.type}</div>
+          <div class="partner-name">${p.name}</div>
+          <div class="partner-contact">${p.contact||''}<br>${p.email||''}</div>
+        </div>`).join('')
+    : `<div style="grid-column:1/-1"><div class="empty-state">No partners in this category</div></div>`;
+}
+
+function filterPartners(type, el) {
+  document.querySelectorAll('.partner-filter-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  renderPartners(type==='all' ? _partners : _partners.filter(p=>p.type===type));
+}
+
+function openAddPartner() {
+  openModal('Add Partner', `
+    <div class="form-grid">
+      <div class="form-group full"><div class="form-label">Organization Name</div><input class="form-input" id="fpr-name" placeholder="e.g. BLISTT Consortium"/></div>
+      <div class="form-group"><div class="form-label">Type</div>
+        <select class="form-input" id="fpr-type"><option>School</option><option>LGU</option><option>NGO</option><option>Sponsor</option><option>Media</option><option>Startup</option></select>
+      </div>
+      <div class="form-group"><div class="form-label">Contact Person</div><input class="form-input" id="fpr-contact" placeholder="Full name"/></div>
+      <div class="form-group full"><div class="form-label">Email</div><input class="form-input" id="fpr-email" type="email" placeholder="email@org.ph"/></div>
+    </div>`, savePartner);
+}
+
+async function savePartner() {
+  const name = document.getElementById('fpr-name').value.trim();
+  if (!name) { toast('Organization name is required','error'); return; }
+  const data = { id:Date.now(), name, type:document.getElementById('fpr-type').value, contact:document.getElementById('fpr-contact').value, email:document.getElementById('fpr-email').value };
+  if (DEMO) { _partners.push(data); toast('Partner added','success'); }
+  else { const{error}=await sb.from('partners').insert(data); if(error){toast(error.message,'error');return;} toast('Partner added','success'); }
+  closeModal(); loadPartners();
+}
+
+// ─── DOCUMENTS ───────────────────────────────────────────────────────────────
+async function loadDocuments() {
+  if (!DEMO) {
+    const { data } = await sb.from('documents').select('*').order('created_at',{ascending:false});
+    if (data) _documents = data;
+  }
+  renderDocuments(_documents);
+}
+
+function renderDocuments(docs) {
+  document.getElementById('doc-list').innerHTML = docs.length
+    ? docs.map(d=>`
+        <div class="doc-item">
+          <div class="doc-icon">${docTypeIcon(d.type)}</div>
+          <div>
+            <div class="doc-name">${d.name}</div>
+            <div class="doc-meta">${d.type} · ${d.size} · ${d.date}</div>
+          </div>
+          <div class="doc-actions">
+            <button class="doc-btn" onclick="toast('Download ready (connect Supabase Storage to enable)','')">Download</button>
+          </div>
+        </div>`).join('')
+    : `<div class="empty-state">No documents yet — upload your first file above</div>`;
+}
+
+function handleFileSelect(files) {
+  if (!files||!files.length) return;
+  const file = files[0];
+  document.getElementById('file-input').value = '';
+  if (DEMO) {
+    _documents.unshift({ id:Date.now(), name:file.name, type:guessDocType(file.name), size:formatBytes(file.size), date:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) });
+    toast('File added (demo mode)','success');
+    renderDocuments(_documents);
+    return;
+  }
+  uploadToStorage(file);
+}
+
+async function uploadToStorage(file) {
+  toast('Uploading…');
+  const path = `${Date.now()}-${file.name}`;
+  const { error } = await sb.storage.from('documents').upload(path, file);
+  if (error) { toast(error.message,'error'); return; }
+  const url = sb.storage.from('documents').getPublicUrl(path).data.publicUrl;
+  await sb.from('documents').insert({ name:file.name, type:guessDocType(file.name), size:formatBytes(file.size), date:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}), url, path });
+  toast('File uploaded','success');
+  loadDocuments();
+}
+
+// ─── AI ASSISTANT ─────────────────────────────────────────────────────────────
+function selectTemplate(el) {
+  document.querySelectorAll('.ai-template').forEach(t=>t.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function copyAIOutput() {
+  const text = document.getElementById('ai-result').innerText;
+  navigator.clipboard.writeText(text).then(()=>toast('Copied to clipboard','success'));
+}
+
+const AI_SAMPLE = `Subject: Following Up — DTI CAR MSME Innovation Summit
+
+Dear [Client Name],
+
+I hope this finds you well. I'm following up on our recent discussion regarding the MSME Innovation Summit partnership.
+
+DestineVents Collective is genuinely excited about the opportunity to support DTI CAR in creating a high-impact experience for Baguio and the Cordillera business community. We've successfully executed similar events across the region and are fully prepared to deliver within your timeline and budget.
+
+I'd love to schedule a brief call this week to align on next steps. Would Thursday or Friday afternoon work on your end?
+
+Warmly,
+Jennifer Castro
+Founder | DestineVents Collective OPC
+jenn@destinevents.biz · destinevents.biz`;
+
+async function simulateAI() {
+  const client  = document.getElementById('ai-client').value.trim();
+  const project = document.getElementById('ai-project').value.trim();
+  const r = document.getElementById('ai-result');
+  r.innerHTML = '<div class="ai-generating"><div class="dot-pulse"><span></span><span></span><span></span></div>&nbsp; Generating…</div>';
+
+  // Teammate: replace this block with a real fetch to your /api/generate proxy
+  // which calls the Anthropic API server-side (never expose API key in frontend)
+  // Example: const res = await fetch('/api/generate', { method:'POST', body: JSON.stringify({ client, project, template: selectedTemplate }) });
+  setTimeout(() => {
+    r.innerHTML = `<div style="white-space:pre-line;font-size:12px;line-height:1.85;color:var(--ink-2)">${AI_SAMPLE.replace('[Client Name]', client||'[Client Name]').replace('DTI CAR MSME Innovation Summit', project||'DTI CAR MSME Innovation Summit')}</div>`;
+  }, 1600);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
