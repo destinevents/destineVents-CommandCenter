@@ -420,7 +420,7 @@
 
   <div class="sidebar-cta">
     <button class="btn-new" onclick="showPage('new-project')">
-      Start New Project
+      &nbsp;Start New Project
     </button>
   </div>
 
@@ -482,7 +482,7 @@
   <!-- DASHBOARD -->
   <div class="page active" id="page-dashboard">
     <div class="page-eyebrow">overview</div>
-    <div class="page-title" id="greeting-title">Good morning</div>
+    <div class="page-title" id="dashboard-greeting">Good morning.</div>
     <div class="stats-grid">
       <div class="stat-card">
         <div class="stat-label">Active Projects</div>
@@ -998,40 +998,26 @@ function saveModal() { if (_onSave) _onSave(); }
 async function init() {
   if (DEMO) {
     // document.getElementById('demo-banner').classList.add('visible');
-    enterApp();
+    enterApp('demo@destinevents.biz');
     return;
   }
   const { data:{ session } } = await sb.auth.getSession();
   if (session) {
-    enterApp(session.user.email);
+    const name = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
+    enterApp(session.user.email, name);
   } else {
     document.getElementById('login-screen').style.display = 'flex';
   }
 }
 
-function enterApp(email) {
+function enterApp(email, name) {
   document.getElementById('login-screen').style.display = 'none';
-  updateUserIdentity(email);
-  showPage('dashboard');
-}
-
-function getGreetingName(emailOrUser) {
-  const email = typeof emailOrUser === 'string' ? emailOrUser : emailOrUser?.email || '';
-  const rawName = typeof emailOrUser === 'object'
-    ? (emailOrUser?.user_metadata?.full_name || emailOrUser?.user_metadata?.name || emailOrUser?.user_metadata?.display_name || '')
-    : '';
-  const baseName = rawName.split(/\s+/)[0] || email.split('@')[0] || 'there';
-  return baseName
-    .replace(/[._-]+/g, ' ')
-    .trim()
-    .replace(/\b\w/g, char => char.toUpperCase());
-}
-
-function updateUserIdentity(emailOrUser) {
-  const email = typeof emailOrUser === 'string' ? emailOrUser : emailOrUser?.email || '';
-  const greetingName = getGreetingName(emailOrUser);
   if (email) document.getElementById('topbar-user').textContent = email;
-  document.getElementById('greeting-title').textContent = emailOrUser ? `Good morning, ${greetingName}.` : 'Good morning';
+  const hour = new Date().getHours();
+  const timeOfDay = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  const greeting = name ? `${timeOfDay}, ${name}.` : `${timeOfDay}.`;
+  document.getElementById('dashboard-greeting').textContent = greeting;
+  showPage('dashboard');
 }
 
 async function handleSignIn() {
@@ -1042,7 +1028,8 @@ async function handleSignIn() {
   if (!email || !pass) { errEl.textContent = 'Email and password required.'; return; }
   const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
   if (error) { errEl.textContent = error.message; return; }
-  enterApp(data.user);
+  const name = data.user.user_metadata?.full_name || data.user.user_metadata?.name || '';
+  enterApp(data.user.email, name);
 }
 
 async function handleSignOut() {
