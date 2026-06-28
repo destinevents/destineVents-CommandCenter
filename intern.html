@@ -605,35 +605,17 @@
 
 <!-- ════════════════════════════ SCRIPT ══════════════════════════════════ -->
 <script>
-// ─── DATA ───────────────────────────────────────────────────────────────────
+// ─── CONSTANTS ───────────────────────────────────────────────────────────────
 const SKILL_LIST = [
   "Web Development","Backend Development","Database Design","Automation",
   "Debugging","Graphic Design","Video Editing","Content Creation",
   "Communication","Problem Solving"
 ];
 
-// ─── SUPABASE CONFIG ──────────────────────────────────────────────────────────
+// ─── CONFIG ──────────────────────────────────────────────────────────────────
 const SUPABASE_URL = 'https://mgyucjvsjaaraeawblwt.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1neXVjanZzamFhcmFlYXdibHd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4NjMwMTIsImV4cCI6MjA5NzQzOTAxMn0.kOjFQ5P8pWfZX3anq7soVoFC5ltILN554rrMazEbWno';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// ─── SUPABASE DB RULE (run once in Supabase SQL Editor) ──────────────────────
-// This prevents any update to a task that is already in 'reviewed' status:
-//
-// CREATE OR REPLACE FUNCTION lock_reviewed_tasks()
-// RETURNS TRIGGER AS $$
-// BEGIN
-//   IF OLD.status = 'reviewed' THEN
-//     RAISE EXCEPTION 'Task is locked — reviewed tasks cannot be modified.';
-//   END IF;
-//   RETURN NEW;
-// END;
-// $$ LANGUAGE plpgsql;
-//
-// CREATE TRIGGER enforce_reviewed_lock
-// BEFORE UPDATE ON intern_tasks
-// FOR EACH ROW EXECUTE FUNCTION lock_reviewed_tasks();
-// ─────────────────────────────────────────────────────────────────────────────
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
 let currentUser = {};
@@ -671,7 +653,7 @@ function myTasks(){ return liveTasks; }
 function mySheets(){ return liveTimesheets; }
 function pendingApprovals(){ return liveTimesheets.filter(t=>t.status==='pending'); }
 
-// ─── LIVE DATA LOADERS ───────────────────────────────────────────────────────
+// ─── DATA LOADERS ────────────────────────────────────────────────────────────
 async function loadLiveUsers() {
   const { data, error } = await sb.from('intern_users').select('*');
   if (!error && data) liveUsers = data;
@@ -703,7 +685,7 @@ async function logAudit(action, targetType, targetId, metadata = {}) {
   });
 }
 
-// ─── ROLE VISIBILITY ─────────────────────────────────────────────────────────
+// ─── UI HELPERS ──────────────────────────────────────────────────────────────
 function applyRoleVisibility(){
   const isAdmin = currentUser.role==='admin';
   const isSup   = currentUser.role==='supervisor'||isAdmin;
@@ -737,15 +719,15 @@ document.getElementById('sidebar-nav').addEventListener('click', e=>{
   if(btn && btn.dataset.page) goPage(btn.dataset.page);
 });
 
-// ─── SIDEBAR ─────────────────────────────────────────────────────────────────
+// Sidebar
 function toggleSidebar(){
   sidebarOpen = !sidebarOpen;
-  const sb = document.getElementById('sidebar');
-  sb.classList.toggle('collapsed', !sidebarOpen);
+  const sidebarEl = document.getElementById('sidebar');
+  sidebarEl.classList.toggle('collapsed', !sidebarOpen);
   document.querySelector('.sb-collapse').textContent = sidebarOpen ? '◀' : '▶';
 }
 
-// ─── BADGES ──────────────────────────────────────────────────────────────────
+// Badges
 async function updateBadges(){
   await loadLiveTimesheets();
   const count = pendingApprovals().length;
@@ -756,14 +738,14 @@ async function updateBadges(){
   document.getElementById('notif-count').textContent = count;
 }
 
-// ─── MODALS ───────────────────────────────────────────────────────────────────
+// Modals
 function openModal(id){ document.getElementById(id).classList.add('open'); }
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 document.querySelectorAll('.modal-overlay').forEach(m=>{
   m.addEventListener('click', e=>{ if(e.target===m) m.classList.remove('open'); });
 });
 
-// ─── RENDER DISPATCHER ───────────────────────────────────────────────────────
+// Render dispatcher
 async function renderPage(page){
   const map = {
     dashboard: renderDashboard,
@@ -783,9 +765,6 @@ async function renderPage(page){
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
 async function renderDashboard(){
-  await loadLiveUsers();
-  await loadLiveTasks();
-  await loadLiveTimesheets();
   const first = currentUser.name.split(' ')[0];
   document.getElementById('dash-greeting').textContent = `Good day, ${first} 👋`;
   document.getElementById('dash-date').textContent = new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
@@ -851,8 +830,6 @@ async function renderDashboard(){
 
 // ─── TASKS ────────────────────────────────────────────────────────────────────
 async function renderTasks(){
-  await loadLiveUsers();
-  await loadLiveTasks();
   const tasks = myTasks();
   document.getElementById('task-count-label').textContent = `${tasks.length} total tasks`;
 
@@ -1021,9 +998,6 @@ async function createTask(){
 
 // ─── TIMESHEETS ───────────────────────────────────────────────────────────────
 async function renderTimesheets(){
-  await loadLiveUsers();
-  await loadLiveTasks();
-  await loadLiveTimesheets();
   const sheets = mySheets();
   const isAdmin = currentUser.role==='admin';
 
@@ -1160,8 +1134,6 @@ async function logHours(){
 
 // ─── OUTPUTS ─────────────────────────────────────────────────────────────────
 async function renderOutputs(){
-  await loadLiveUsers();
-  await loadLiveTasks();
   const tasks = myTasks().filter(t=>t.output_type);
   document.getElementById('outputs-grid').innerHTML = tasks.map(t=>{
     const intern = user(t.assigned_to);
@@ -1188,9 +1160,6 @@ async function renderOutputs(){
 
 // ─── APPROVALS ────────────────────────────────────────────────────────────────
 async function renderApprovals(){
-  await loadLiveUsers();
-  await loadLiveTasks();
-  await loadLiveTimesheets();
   const pending = pendingApprovals();
   document.getElementById('appr-sub').textContent = `${pending.length} entr${pending.length===1?'y':'ies'} awaiting review`;
   if(!pending.length){
@@ -1227,9 +1196,6 @@ async function renderApprovals(){
 
 // ─── INTERNS ─────────────────────────────────────────────────────────────────
 async function renderInterns(){
-  await loadLiveUsers();
-  await loadLiveTasks();
-  await loadLiveTimesheets();
   const interns = liveUsers.filter(u=>u.role==='intern');
   document.getElementById('interns-grid').innerHTML = interns.map(intern=>{
     const iSheets  = liveTimesheets.filter(t=>t.intern_id===intern.id);
@@ -1261,9 +1227,6 @@ async function renderInterns(){
 
 // ─── REPORTS ─────────────────────────────────────────────────────────────────
 async function renderReports(){
-  await loadLiveUsers();
-  await loadLiveTasks();
-  await loadLiveTimesheets();
   const interns = liveUsers.filter(u=>u.role==='intern');
   const totalApprH = liveTimesheets.filter(t=>t.status==='approved').reduce((s,t)=>s+t.hours,0);
   const pending    = pendingApprovals().length;
@@ -1395,7 +1358,7 @@ function setupRealtime() {
     .subscribe();
 }
 
-// ─── AUTH HELPERS ──────────────────────────────────────────────────────────────
+// ─── AUTH ────────────────────────────────────────────────────────────────────
 async function handleSignOut() {
   await sb.auth.signOut();
   window.location.href = 'login.html';
