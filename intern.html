@@ -588,37 +588,10 @@
 <!-- ════════════════════════════ SCRIPT ══════════════════════════════════ -->
 <script>
 // ─── DATA ───────────────────────────────────────────────────────────────────
-const USERS = [
-  { id:"u1", name:"Jenn Castro",     email:"jenn@disenyodigitals.com", role:"admin",      avatar:"JC" },
-  { id:"u2", name:"Alex Reyes",      email:"alex@intern.com",          role:"intern",     avatar:"AR", program:"IT",  school:"BSU" },
-  { id:"u3", name:"Sam Dela Cruz",   email:"sam@intern.com",           role:"intern",     avatar:"SD", program:"CS",  school:"UB"  },
-  { id:"u4", name:"Mia Torres",      email:"mia@intern.com",           role:"intern",     avatar:"MT", program:"IT",  school:"BCU" },
-  { id:"u5", name:"Josh Lim",        email:"josh@disenyodigitals.com", role:"supervisor", avatar:"JL" },
-];
-
 const SKILL_LIST = [
   "Web Development","Backend Development","Database Design","Automation",
   "Debugging","Graphic Design","Video Editing","Content Creation",
   "Communication","Problem Solving"
-];
-
-let TASKS = [
-  { id:"t1", title:"Build SME Landing Page",          description:"Create a responsive landing page for the SME AI Growth System using HTML/CSS.", assigned_to:"u2", assigned_by:"u1", priority:"high",   status:"completed",   due_date:"2026-06-15", industry_category:"Technology", skills:["Web Development","Graphic Design"],      output_type:"landing_page", output_link:"https://github.com/sample/landing" },
-  { id:"t2", title:"Design Social Media Kit",         description:"Create branded templates for Instagram and Facebook posts (Canva or Figma).",    assigned_to:"u3", assigned_by:"u1", priority:"medium", status:"in_progress", due_date:"2026-06-18", industry_category:"Design",     skills:["Graphic Design","Content Creation"],     output_type:"design",       output_link:"" },
-  { id:"t3", title:"Setup n8n Email Automation",      description:"Configure post-payment email automation workflow in n8n for Sip & Scale event.", assigned_to:"u2", assigned_by:"u5", priority:"high",   status:"acknowledged",due_date:"2026-06-20", industry_category:"Technology", skills:["Automation","Backend Development"],      output_type:"automation",   output_link:"" },
-  { id:"t4", title:"Document API Integration Guide",  description:"Write technical documentation for the Claude API integration in SME tools.",     assigned_to:"u4", assigned_by:"u1", priority:"low",    status:"assigned",    due_date:"2026-06-25", industry_category:"Technology", skills:["Communication"],                         output_type:"document",     output_link:"" },
-  { id:"t5", title:"Video Walkthrough — Bayanihan",   description:"Record a 3-5 min product demo video for Bayanihan Builder toolkit.",             assigned_to:"u3", assigned_by:"u1", priority:"medium", status:"reviewed",    due_date:"2026-06-12", industry_category:"Marketing",  skills:["Video Editing","Content Creation","Communication"], output_type:"video", output_link:"https://drive.google.com/sample" },
-];
-
-let TIMESHEETS = [
-  { id:"ts1", intern_id:"u2", date:"2026-06-02", hours:8,   task_id:"t1", activity_description:"Built hero section and navigation for landing page",          industry_category:"Technology", status:"approved", skills:["Web Development"] },
-  { id:"ts2", intern_id:"u2", date:"2026-06-03", hours:7,   task_id:"t1", activity_description:"Completed mobile responsive layout and form integration",      industry_category:"Technology", status:"approved", skills:["Web Development","Debugging"] },
-  { id:"ts3", intern_id:"u2", date:"2026-06-04", hours:6,   task_id:"t3", activity_description:"Set up n8n instance and configured webhook triggers",           industry_category:"Technology", status:"pending",  skills:["Automation"] },
-  { id:"ts4", intern_id:"u3", date:"2026-06-02", hours:8,   task_id:"t2", activity_description:"Drafted 10 Instagram post templates in Canva",                  industry_category:"Design",     status:"approved", skills:["Graphic Design"] },
-  { id:"ts5", intern_id:"u3", date:"2026-06-03", hours:7.5, task_id:"t5", activity_description:"Recorded and edited product demo video, first cut",             industry_category:"Marketing",  status:"approved", skills:["Video Editing"] },
-  { id:"ts6", intern_id:"u3", date:"2026-06-04", hours:5,   task_id:"t5", activity_description:"Final edits and export for Bayanihan Builder demo",             industry_category:"Marketing",  status:"pending",  skills:["Video Editing","Content Creation"] },
-  { id:"ts7", intern_id:"u4", date:"2026-06-02", hours:6,   task_id:"t4", activity_description:"Outlined API integration guide structure and drafted intro",    industry_category:"Technology", status:"rejected", skills:["Communication"] },
-  { id:"ts8", intern_id:"u4", date:"2026-06-03", hours:7,   task_id:"t4", activity_description:"Revised documentation per supervisor feedback",                 industry_category:"Technology", status:"pending",  skills:["Communication","Problem Solving"] },
 ];
 
 // ─── SUPABASE CONFIG ──────────────────────────────────────────────────────────
@@ -627,7 +600,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
-let currentUser = USERS[0];
+let currentUser = {};
 let activePage = "dashboard";
 let taskFilter = "all";
 let sheetFilter = "all";
@@ -735,19 +708,6 @@ function toggleSidebar(){
   document.querySelector('.sb-collapse').textContent = sidebarOpen ? '◀' : '▶';
 }
 
-// ─── USER SWITCH ─────────────────────────────────────────────────────────────
-function switchUser(uid){
-  currentUser = USERS.find(u=>u.id===uid);
-  document.querySelectorAll('.role-btn').forEach(b=>b.classList.toggle('active', b.dataset.uid===uid));
-  document.getElementById('topbar-name').textContent = currentUser.name;
-  document.getElementById('topbar-role').textContent = currentUser.role;
-  document.getElementById('topbar-avatar').textContent = currentUser.avatar;
-  applyRoleVisibility();
-  updateBadges();
-  goPage('dashboard');
-  toast('Switched to '+currentUser.name+' ('+currentUser.role+')');
-}
-
 // ─── BADGES ──────────────────────────────────────────────────────────────────
 async function updateBadges(){
   await loadLiveTimesheets();
@@ -777,6 +737,9 @@ async function renderPage(page){
     interns:   renderInterns,
     reports:   renderReports,
   };
+  await loadLiveTasks();
+  await loadLiveTimesheets();
+  await loadLiveUsers();
   const fn = map[page];
   if (fn) await fn();
 }
@@ -1316,6 +1279,32 @@ function exportPDF(uid){
   toast('PDF report opened for printing!');
 }
 
+// ─── REALTIME ─────────────────────────────────────────────────────────────────
+function setupRealtime() {
+  sb.channel('intern-realtime')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'intern_tasks' }, async () => {
+      await loadLiveTasks();
+      await updateBadges();
+      if (activePage === 'tasks' || activePage === 'dashboard' || activePage === 'outputs') {
+        await renderPage(activePage);
+      }
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'intern_timesheets' }, async () => {
+      await loadLiveTimesheets();
+      await updateBadges();
+      if (activePage === 'timesheets' || activePage === 'dashboard' || activePage === 'approvals') {
+        await renderPage(activePage);
+      }
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'intern_users' }, async () => {
+      await loadLiveUsers();
+      if (activePage === 'interns' || activePage === 'reports') {
+        await renderPage(activePage);
+      }
+    })
+    .subscribe();
+}
+
 // ─── AUTH HELPERS ──────────────────────────────────────────────────────────────
 async function handleSignOut() {
   await sb.auth.signOut();
@@ -1349,9 +1338,13 @@ async function init() {
   });
 
   applyRoleVisibility();
+  await loadLiveUsers();
+  await loadLiveTasks();
+  await loadLiveTimesheets();
   await populateAddTaskModal();
   await updateBadges();
   await renderPage('dashboard');
+  setupRealtime();
 }
 
 init();
