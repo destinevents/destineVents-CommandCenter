@@ -203,6 +203,7 @@ async function handleSignOut() {
 }
 
 async function init() {
+  await sb.auth.refreshSession();
   const { data: { session } } = await sb.auth.getSession();
   if (session) {
     const role = session.user.user_metadata?.role || 'intern';

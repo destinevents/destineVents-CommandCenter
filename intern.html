@@ -591,7 +591,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn-ghost" onclick="closeModal('modal-log-hours')">Cancel</button>
-      <button class="btn-primary" onclick="logHours()">Save Entry</button>
+      <button class="btn-primary" id="log-hours-btn" onclick="logHours()">Save Entry</button>
     </div>
   </div>
 </div>
@@ -1118,6 +1118,9 @@ async function logHours(){
   const activity = document.getElementById('lh-activity').value.trim();
   if(!date||!hours||!activity){ toast('Please fill in required fields'); return; }
 
+  const logBtn = document.getElementById('log-hours-btn');
+  if (logBtn) { logBtn.disabled = true; logBtn.textContent = 'Saving…'; }
+
   const skillsEl = document.getElementById('lh-skills');
   const skills   = [...skillsEl.selectedOptions].map(o=>o.value);
   const taskId   = document.getElementById('lh-task').value || null;
@@ -1133,9 +1136,14 @@ async function logHours(){
     status:               'pending'
   });
 
-  if (error) { toast('Error logging hours: ' + error.message); return; }
+  if (error) {
+    if (logBtn) { logBtn.disabled = false; logBtn.textContent = 'Save Entry'; }
+    toast('Error logging hours: ' + error.message);
+    return;
+  }
 
   closeModal('modal-log-hours');
+  if (logBtn) { logBtn.disabled = false; logBtn.textContent = 'Save Entry'; }
   toast('Hours logged! Pending approval.');
   ['lh-date','lh-hours','lh-activity'].forEach(id => document.getElementById(id).value = '');
   await updateBadges();
@@ -1292,6 +1300,7 @@ function exportExcel(uid){
 
 function exportPDF(uid){
   const intern = liveUsers.find(u=>u.id===uid);
+  const supervisor = liveUsers.find(u => u.role === 'supervisor') || { name: 'Supervisor' };
   const sheets = liveTimesheets.filter(t=>t.intern_id===uid&&t.status==='approved');
   const totalH = sheets.reduce((s,t)=>s+t.hours,0);
   const skillMap={}; sheets.forEach(ts=>(ts.skills||[]).forEach(s=>{skillMap[s]=(skillMap[s]||0)+1;}));
@@ -1335,7 +1344,7 @@ function exportPDF(uid){
     <tbody>${rows}</tbody></table>
     <div class="sig-section">
       <div class="sig-box"><strong>Intern Signature</strong><br/>${intern.name}<br/><br/><br/>___________________</div>
-      <div class="sig-box"><strong>Supervisor Signature</strong><br/>Josh Lim<br/><br/><br/>___________________</div>
+      <div class="sig-box"><strong>Supervisor Signature</strong><br/>${supervisor.name}<br/><br/><br/>___________________</div>
       <div class="sig-box"><strong>Company Seal</strong><br/>Disenyo Digitals<br/>Collective OPC<br/><br/>___________________</div>
     </div>
   </body></html>`;
