@@ -190,7 +190,9 @@ async function handleSignIn() {
   const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
   setLoading(false);
   if (error) { errEl.textContent = error.message; return; }
-  const role = data.user.user_metadata?.role || 'intern';
+  await sb.auth.refreshSession();
+  const { data: { session: freshSession } } = await sb.auth.getSession();
+  const role = freshSession?.user?.user_metadata?.role || 'intern';
   routeByRole(role);
 }
 
@@ -202,6 +204,7 @@ async function handleSignOut() {
 }
 
 async function init() {
+  await sb.auth.refreshSession();
   const { data: { session } } = await sb.auth.getSession();
   if (session) {
     const role = session.user.user_metadata?.role || 'intern';
