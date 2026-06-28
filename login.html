@@ -6,6 +6,7 @@
 <title>Sign In — DestineVents</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&family=Dancing+Script:wght@600;700&display=swap" rel="stylesheet"/>
+<script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
@@ -148,8 +149,6 @@
 </div>
 
 <script>
-const SUPABASE_URL = 'https://mgyucjvsjaaraeawblwt.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1neXVjanZzamFhcmFlYXdibHd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4NjMwMTIsImV4cCI6MjA5NzQzOTAxMn0.kOjFQ5P8pWfZX3anq7soVoFC5ltILN554rrMazEbWno';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 function setLoading(loading) {
