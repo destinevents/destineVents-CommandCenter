@@ -326,8 +326,20 @@
   </nav>
 
   <div class="sb-bottom">
+    <div class="role-btn active" style="pointer-events:none">
+      <div class="avatar" id="sb-avatar"
+           style="width:26px;height:26px;font-size:9px;background:#C9A84C">??</div>
+      <div>
+        <div class="rname" id="sb-name">Loading…</div>
+        <div class="rrole" id="sb-role">—</div>
+      </div>
+    </div>
+    <button class="role-btn" onclick="handleSignOut()"
+            style="border:none;cursor:pointer;color:rgba(245,236,215,0.35)">
+      <div style="width:26px;text-align:center">↩</div>
+      <div class="rname">Sign Out</div>
+    </button>
   </div>
-  <button class="sb-collapse" style="color:rgba(245,236,215,0.4);font-size:12px;" onclick="handleSignOut()">Sign Out</button>
   <button class="sb-collapse" onclick="toggleSidebar()">◀</button>
 </div>
 
@@ -1389,6 +1401,10 @@ async function init() {
   document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('en-PH', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
   });
+
+  document.getElementById('sb-avatar').textContent = currentUser.avatar;
+  document.getElementById('sb-name').textContent   = currentUser.name;
+  document.getElementById('sb-role').textContent   = currentUser.role;
 
   applyRoleVisibility();
   await loadLiveUsers();
