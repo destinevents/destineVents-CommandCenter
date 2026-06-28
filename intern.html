@@ -633,13 +633,18 @@ let taskFilter = "all";
 let sheetFilter = "all";
 let sidebarOpen = true;
 
+// Live data — loaded from Supabase on each page render
+let liveUsers = [];
+let liveTasks = [];
+let liveTimesheets = [];
+
 const STATUS_LABELS = { assigned:"Assigned", acknowledged:"Acknowledged", in_progress:"In Progress", completed:"Completed", reviewed:"Reviewed", pending:"Pending", approved:"Approved", rejected:"Rejected" };
 const STATUS_COLORS = { assigned:"#6366f1", acknowledged:"#f59e0b", in_progress:"#3b82f6", completed:"#10b981", reviewed:"#8b5cf6", pending:"#f59e0b", approved:"#10b981", rejected:"#ef4444" };
 const OUTPUT_ICONS  = { code:"💻", design:"🎨", video:"🎬", document:"📄", automation:"⚙️", landing_page:"🌐" };
 const KANBAN_COLS   = ["assigned","acknowledged","in_progress","completed","reviewed"];
 
 // ─── UTILS ───────────────────────────────────────────────────────────────────
-function user(id){ return USERS.find(u=>u.id===id)||{}; }
+function user(id){ return liveUsers.find(u=>u.id===id)||{}; }
 function badge(val){ return `<span class="badge badge-${val}">${STATUS_LABELS[val]||val}</span>`; }
 function pBadge(val){ return `<span class="badge badge-${val}">${val.charAt(0).toUpperCase()+val.slice(1)}</span>`; }
 function avatarEl(initials, size=32, color="#252f27"){
@@ -652,9 +657,41 @@ function toast(msg){
   t.textContent = msg; t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'), 2400);
 }
-function myTasks(){ return currentUser.role==='intern' ? TASKS.filter(t=>t.assigned_to===currentUser.id) : TASKS; }
-function mySheets(){ return currentUser.role==='intern' ? TIMESHEETS.filter(t=>t.intern_id===currentUser.id) : TIMESHEETS; }
-function pendingApprovals(){ return TIMESHEETS.filter(t=>t.status==='pending'); }
+function myTasks(){ return liveTasks; }
+function mySheets(){ return liveTimesheets; }
+function pendingApprovals(){ return liveTimesheets.filter(t=>t.status==='pending'); }
+
+// ─── LIVE DATA LOADERS ───────────────────────────────────────────────────────
+async function loadLiveUsers() {
+  const { data, error } = await sb.from('intern_users').select('*');
+  if (!error && data) liveUsers = data;
+}
+
+async function loadLiveTasks() {
+  const role = currentUser.role;
+  let query = sb.from('intern_tasks').select('*').order('created_at', { ascending: false });
+  if (role === 'intern') query = query.eq('assigned_to', currentUser.id);
+  const { data, error } = await query;
+  if (!error && data) liveTasks = data;
+}
+
+async function loadLiveTimesheets() {
+  const role = currentUser.role;
+  let query = sb.from('intern_timesheets').select('*').order('date', { ascending: false });
+  if (role === 'intern') query = query.eq('intern_id', currentUser.id);
+  const { data, error } = await query;
+  if (!error && data) liveTimesheets = data;
+}
+
+async function logAudit(action, targetType, targetId, metadata = {}) {
+  await sb.from('intern_audit_logs').insert({
+    action,
+    performed_by: currentUser.id,
+    target_type: targetType,
+    target_id: targetId,
+    metadata
+  });
+}
 
 // ─── ROLE VISIBILITY ─────────────────────────────────────────────────────────
 function applyRoleVisibility(){
@@ -667,7 +704,7 @@ function applyRoleVisibility(){
 }
 
 // ─── NAVIGATION ──────────────────────────────────────────────────────────────
-function goPage(page){
+async function goPage(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+page)?.classList.add('active');
   document.querySelectorAll('.nav-btn').forEach(b=>{
@@ -682,7 +719,7 @@ function goPage(page){
   activePage = page;
   const titles = {dashboard:"Dashboard",tasks:"Tasks",timesheets:"Timesheets",outputs:"Output Portfolio",approvals:"Approvals",interns:"Interns",reports:"Reports"};
   document.getElementById('topbar-title').textContent = titles[page]||page;
-  renderPage(page);
+  await renderPage(page);
 }
 
 document.getElementById('sidebar-nav').addEventListener('click', e=>{
@@ -712,7 +749,8 @@ function switchUser(uid){
 }
 
 // ─── BADGES ──────────────────────────────────────────────────────────────────
-function updateBadges(){
+async function updateBadges(){
+  await loadLiveTimesheets();
   const count = pendingApprovals().length;
   document.getElementById('approval-badge').textContent = count;
   document.getElementById('approval-badge').style.display = count>0?'inline':'none';
@@ -729,7 +767,7 @@ document.querySelectorAll('.modal-overlay').forEach(m=>{
 });
 
 // ─── RENDER DISPATCHER ───────────────────────────────────────────────────────
-function renderPage(page){
+async function renderPage(page){
   const map = {
     dashboard: renderDashboard,
     tasks:     renderTasks,
@@ -739,11 +777,15 @@ function renderPage(page){
     interns:   renderInterns,
     reports:   renderReports,
   };
-  (map[page]||(() => {}))();
+  const fn = map[page];
+  if (fn) await fn();
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
-function renderDashboard(){
+async function renderDashboard(){
+  await loadLiveUsers();
+  await loadLiveTasks();
+  await loadLiveTimesheets();
   const first = currentUser.name.split(' ')[0];
   document.getElementById('dash-greeting').textContent = `Good day, ${first} 👋`;
   document.getElementById('dash-date').textContent = new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
@@ -796,7 +838,7 @@ function renderDashboard(){
   // Recent sheets
   const recentSheets = sheets.slice(-5).reverse();
   document.getElementById('dash-sheets-body').innerHTML = recentSheets.map(ts=>{
-    const task = TASKS.find(t=>t.id===ts.task_id);
+    const task = liveTasks.find(t=>t.id===ts.task_id);
     return `<tr>
       <td style="color:#374151;white-space:nowrap">${ts.date}</td>
       <td style="color:#1a1a1a;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${ts.activity_description}</td>
@@ -808,7 +850,9 @@ function renderDashboard(){
 }
 
 // ─── TASKS ────────────────────────────────────────────────────────────────────
-function renderTasks(){
+async function renderTasks(){
+  await loadLiveUsers();
+  await loadLiveTasks();
   const tasks = myTasks();
   document.getElementById('task-count-label').textContent = `${tasks.length} total tasks`;
 
@@ -838,10 +882,10 @@ function renderTasks(){
   }).join('');
 }
 
-function setTaskFilter(f){ taskFilter=f; renderTasks(); }
+async function setTaskFilter(f){ taskFilter=f; await renderTasks(); }
 
 function openTaskDetail(id){
-  const t = TASKS.find(x=>x.id===id);
+  const t = liveTasks.find(x=>x.id===id);
   if(!t) return;
   const intern = user(t.assigned_to);
   const isMyTask = t.assigned_to===currentUser.id;
@@ -873,51 +917,72 @@ function openTaskDetail(id){
   openModal('modal-view-task');
 }
 
-function taskAction(id, action){
-  const map = {acknowledge:'acknowledged', start:'in_progress', complete:'completed', review:'reviewed'};
-  TASKS = TASKS.map(t=>t.id===id ? {...t,status:map[action]||t.status} : t);
+async function taskAction(id, action){
+  const statusMap = {acknowledge:'acknowledged', start:'in_progress', complete:'completed', review:'reviewed'};
+  const newStatus = statusMap[action];
+  if (!newStatus) return;
+
+  const { error } = await sb.from('intern_tasks')
+    .update({ status: newStatus, updated_at: new Date().toISOString() })
+    .eq('id', id);
+
+  if (error) { toast('Error updating task: ' + error.message); return; }
+
+  await logAudit('task_status_changed', 'task', id, { new_status: newStatus, action });
+
   closeModal('modal-view-task');
   toast('Task updated!');
-  renderTasks();
-  renderDashboard();
+  await renderTasks();
+  await renderDashboard();
 }
 
 // Populate add task modal selects
-function populateAddTaskModal(){
+async function populateAddTaskModal(){
+  if (liveUsers.length === 0) await loadLiveUsers();
   const intern_select = document.getElementById('nt-assignee');
   intern_select.innerHTML = '<option value="">Select intern…</option>' +
-    USERS.filter(u=>u.role==='intern').map(u=>`<option value="${u.id}">${u.name}</option>`).join('');
+    liveUsers.filter(u=>u.role==='intern').map(u=>`<option value="${u.id}">${u.name}</option>`).join('');
   const skills_select = document.getElementById('nt-skills');
   skills_select.innerHTML = SKILL_LIST.map(s=>`<option value="${s}">${s}</option>`).join('');
 }
 
-function createTask(){
-  const title = document.getElementById('nt-title').value.trim();
+async function createTask(){
+  const title    = document.getElementById('nt-title').value.trim();
   const assignee = document.getElementById('nt-assignee').value;
   if(!title || !assignee){ toast('Please fill in required fields'); return; }
+
   const skillsEl = document.getElementById('nt-skills');
-  const skills = [...skillsEl.selectedOptions].map(o=>o.value);
-  TASKS.push({
-    id:'t'+Date.now(), title,
-    description: document.getElementById('nt-desc').value,
-    assigned_to: assignee, assigned_by: currentUser.id,
-    priority: document.getElementById('nt-priority').value,
-    status: 'assigned',
-    due_date: document.getElementById('nt-due').value,
+  const skills   = [...skillsEl.selectedOptions].map(o=>o.value);
+
+  const newTask = {
+    title,
+    description:       document.getElementById('nt-desc').value,
+    assigned_to:       assignee,
+    assigned_by:       currentUser.id,
+    priority:          document.getElementById('nt-priority').value,
+    status:            'assigned',
+    due_date:          document.getElementById('nt-due').value || null,
     industry_category: document.getElementById('nt-cat').value,
-    output_type: document.getElementById('nt-outtype').value,
-    skills, output_link: '',
-  });
+    output_type:       document.getElementById('nt-outtype').value || null,
+    skills,
+    output_link:       ''
+  };
+
+  const { error } = await sb.from('intern_tasks').insert(newTask);
+  if (error) { toast('Error creating task: ' + error.message); return; }
+
   closeModal('modal-add-task');
   toast('Task created!');
-  renderTasks();
-  renderDashboard();
-  // Reset
-  ['nt-title','nt-desc','nt-due'].forEach(id=>document.getElementById(id).value='');
+  ['nt-title','nt-desc','nt-due'].forEach(id => document.getElementById(id).value = '');
+  await renderTasks();
+  await renderDashboard();
 }
 
 // ─── TIMESHEETS ───────────────────────────────────────────────────────────────
-function renderTimesheets(){
+async function renderTimesheets(){
+  await loadLiveUsers();
+  await loadLiveTasks();
+  await loadLiveTimesheets();
   const sheets = mySheets();
   const isAdmin = currentUser.role==='admin';
 
@@ -943,8 +1008,8 @@ function renderTimesheets(){
 
   // Rows
   document.getElementById('sheet-tbody').innerHTML = filtered.map(ts=>{
-    const task = TASKS.find(t=>t.id===ts.task_id);
-    const intern = USERS.find(u=>u.id===ts.intern_id);
+    const task = liveTasks.find(t=>t.id===ts.task_id);
+    const intern = liveUsers.find(u=>u.id===ts.intern_id);
     const approveBtn = ts.status==='pending' ? `<div style="display:flex;gap:5px"><button class="btn-sm-approve" onclick="approveSheet('${ts.id}')">✓ Approve</button><button class="btn-sm-reject" onclick="rejectSheet('${ts.id}')">✕ Reject</button></div>` : '';
     const skillHtml = (ts.skills||[]).slice(0,2).map(skillPillGreen).join(' ')+((ts.skills||[]).length>2?`<span style="font-size:10px;color:var(--faint)">+${ts.skills.length-2}</span>`:'');
     return `<tr>
@@ -969,41 +1034,81 @@ function renderTimesheets(){
   document.getElementById('lh-skills').innerHTML = SKILL_LIST.map(s=>`<option value="${s}">${s}</option>`).join('');
 }
 
-function setSheetFilter(f){ sheetFilter=f; renderTimesheets(); }
+async function setSheetFilter(f){ sheetFilter=f; await renderTimesheets(); }
 
-function approveSheet(id){
-  TIMESHEETS = TIMESHEETS.map(ts=>ts.id===id?{...ts,status:'approved'}:ts);
-  updateBadges(); renderTimesheets(); renderDashboard(); toast('Entry approved ✓');
+async function approveSheet(id){
+  const { error } = await sb.from('intern_timesheets')
+    .update({
+      status:      'approved',
+      approved_by: currentUser.id,
+      approved_at: new Date().toISOString()
+    })
+    .eq('id', id);
+
+  if (error) { toast('Error approving entry: ' + error.message); return; }
+
+  await logAudit('approved_timesheet', 'timesheet', id, { approved_by: currentUser.id });
+
+  toast('Entry approved ✓');
+  await updateBadges();
+  await renderTimesheets();
+  await renderDashboard();
 }
-function rejectSheet(id){
-  TIMESHEETS = TIMESHEETS.map(ts=>ts.id===id?{...ts,status:'rejected'}:ts);
-  updateBadges(); renderTimesheets(); renderDashboard(); toast('Entry rejected');
+async function rejectSheet(id){
+  const reason = prompt('Rejection reason (optional):') || '';
+
+  const { error } = await sb.from('intern_timesheets')
+    .update({
+      status:           'rejected',
+      rejection_reason: reason
+    })
+    .eq('id', id);
+
+  if (error) { toast('Error rejecting entry: ' + error.message); return; }
+
+  await logAudit('rejected_timesheet', 'timesheet', id, { rejection_reason: reason });
+
+  toast('Entry rejected');
+  await updateBadges();
+  await renderTimesheets();
+  await renderDashboard();
 }
 
-function logHours(){
-  const date = document.getElementById('lh-date').value;
-  const hours = parseFloat(document.getElementById('lh-hours').value);
+async function logHours(){
+  const date     = document.getElementById('lh-date').value;
+  const hours    = parseFloat(document.getElementById('lh-hours').value);
   const activity = document.getElementById('lh-activity').value.trim();
   if(!date||!hours||!activity){ toast('Please fill in required fields'); return; }
+
   const skillsEl = document.getElementById('lh-skills');
-  const skills = [...skillsEl.selectedOptions].map(o=>o.value);
-  TIMESHEETS.push({
-    id:'ts'+Date.now(),
-    intern_id: currentUser.id,
-    date, hours,
-    task_id: document.getElementById('lh-task').value,
+  const skills   = [...skillsEl.selectedOptions].map(o=>o.value);
+  const taskId   = document.getElementById('lh-task').value || null;
+
+  const { error } = await sb.from('intern_timesheets').insert({
+    intern_id:            currentUser.id,
+    date,
+    hours,
+    task_id:              taskId,
     activity_description: activity,
-    industry_category: document.getElementById('lh-cat').value,
-    status: 'pending', skills,
+    industry_category:    document.getElementById('lh-cat').value,
+    skills,
+    status:               'pending'
   });
+
+  if (error) { toast('Error logging hours: ' + error.message); return; }
+
   closeModal('modal-log-hours');
   toast('Hours logged! Pending approval.');
-  updateBadges(); renderTimesheets(); renderDashboard();
-  ['lh-date','lh-hours','lh-activity'].forEach(id=>document.getElementById(id).value='');
+  ['lh-date','lh-hours','lh-activity'].forEach(id => document.getElementById(id).value = '');
+  await updateBadges();
+  await renderTimesheets();
+  await renderDashboard();
 }
 
 // ─── OUTPUTS ─────────────────────────────────────────────────────────────────
-function renderOutputs(){
+async function renderOutputs(){
+  await loadLiveUsers();
+  await loadLiveTasks();
   const tasks = myTasks().filter(t=>t.output_type);
   document.getElementById('outputs-grid').innerHTML = tasks.map(t=>{
     const intern = user(t.assigned_to);
@@ -1029,7 +1134,10 @@ function renderOutputs(){
 }
 
 // ─── APPROVALS ────────────────────────────────────────────────────────────────
-function renderApprovals(){
+async function renderApprovals(){
+  await loadLiveUsers();
+  await loadLiveTasks();
+  await loadLiveTimesheets();
   const pending = pendingApprovals();
   document.getElementById('appr-sub').textContent = `${pending.length} entr${pending.length===1?'y':'ies'} awaiting review`;
   if(!pending.length){
@@ -1037,8 +1145,8 @@ function renderApprovals(){
     return;
   }
   document.getElementById('appr-list').innerHTML = pending.map(ts=>{
-    const task = TASKS.find(t=>t.id===ts.task_id);
-    const intern = USERS.find(u=>u.id===ts.intern_id);
+    const task = liveTasks.find(t=>t.id===ts.task_id);
+    const intern = liveUsers.find(u=>u.id===ts.intern_id);
     return `<div class="appr-card" style="margin-bottom:12px">
       <div class="appr-layout">
         <div style="display:flex;gap:14px;align-items:flex-start">
@@ -1065,13 +1173,16 @@ function renderApprovals(){
 }
 
 // ─── INTERNS ─────────────────────────────────────────────────────────────────
-function renderInterns(){
-  const interns = USERS.filter(u=>u.role==='intern');
+async function renderInterns(){
+  await loadLiveUsers();
+  await loadLiveTasks();
+  await loadLiveTimesheets();
+  const interns = liveUsers.filter(u=>u.role==='intern');
   document.getElementById('interns-grid').innerHTML = interns.map(intern=>{
-    const iSheets  = TIMESHEETS.filter(t=>t.intern_id===intern.id);
+    const iSheets  = liveTimesheets.filter(t=>t.intern_id===intern.id);
     const approved = iSheets.filter(t=>t.status==='approved').reduce((s,t)=>s+t.hours,0);
     const pending  = iSheets.filter(t=>t.status==='pending').length;
-    const done     = TASKS.filter(t=>t.assigned_to===intern.id&&['completed','reviewed'].includes(t.status)).length;
+    const done     = liveTasks.filter(t=>t.assigned_to===intern.id&&['completed','reviewed'].includes(t.status)).length;
     const skillMap = {};
     iSheets.filter(t=>t.status==='approved').forEach(ts=>(ts.skills||[]).forEach(s=>{skillMap[s]=(skillMap[s]||0)+1;}));
     const topSkills = Object.entries(skillMap).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([s])=>s);
@@ -1096,9 +1207,12 @@ function renderInterns(){
 }
 
 // ─── REPORTS ─────────────────────────────────────────────────────────────────
-function renderReports(){
-  const interns = USERS.filter(u=>u.role==='intern');
-  const totalApprH = TIMESHEETS.filter(t=>t.status==='approved').reduce((s,t)=>s+t.hours,0);
+async function renderReports(){
+  await loadLiveUsers();
+  await loadLiveTasks();
+  await loadLiveTimesheets();
+  const interns = liveUsers.filter(u=>u.role==='intern');
+  const totalApprH = liveTimesheets.filter(t=>t.status==='approved').reduce((s,t)=>s+t.hours,0);
   const pending    = pendingApprovals().length;
 
   document.getElementById('report-overview').innerHTML = `
@@ -1107,7 +1221,7 @@ function renderReports(){
       <h3 style="margin:0;font-size:15px;font-weight:700;color:#252f27">System Overview</h3>
     </div>
     <div class="grid4">
-      ${[['Total Interns',interns.length],['Total Tasks',TASKS.length],['Approved Hours',totalApprH+'h'],['Pending Approvals',pending]].map(([k,v])=>`
+      ${[['Total Interns',interns.length],['Total Tasks',liveTasks.length],['Approved Hours',totalApprH+'h'],['Pending Approvals',pending]].map(([k,v])=>`
         <div style="background:#f9fafb;border-radius:8px;padding:12px 14px">
           <div style="font-size:22px;font-weight:800;color:#252f27">${v}</div>
           <div style="font-size:11px;color:var(--muted);margin-top:2px">${k}</div>
@@ -1115,9 +1229,9 @@ function renderReports(){
     </div>`;
 
   document.getElementById('reports-tbody').innerHTML = interns.map(intern=>{
-    const iSheets  = TIMESHEETS.filter(t=>t.intern_id===intern.id&&t.status==='approved');
+    const iSheets  = liveTimesheets.filter(t=>t.intern_id===intern.id&&t.status==='approved');
     const iHours   = iSheets.reduce((s,t)=>s+t.hours,0);
-    const iDone    = TASKS.filter(t=>t.assigned_to===intern.id&&['completed','reviewed'].includes(t.status)).length;
+    const iDone    = liveTasks.filter(t=>t.assigned_to===intern.id&&['completed','reviewed'].includes(t.status)).length;
     const skillSet = new Set(); iSheets.forEach(ts=>(ts.skills||[]).forEach(s=>skillSet.add(s)));
     const skillArr = [...skillSet];
     return `<tr>
@@ -1136,11 +1250,11 @@ function renderReports(){
 }
 
 function exportExcel(uid){
-  const intern = USERS.find(u=>u.id===uid);
-  const sheets = TIMESHEETS.filter(t=>t.intern_id===uid&&t.status==='approved');
+  const intern = liveUsers.find(u=>u.id===uid);
+  const sheets = liveTimesheets.filter(t=>t.intern_id===uid&&t.status==='approved');
   let csv = 'Date,Task,Activity,Hours,Category,Skills,Status\n';
   sheets.forEach(ts=>{
-    const task = TASKS.find(t=>t.id===ts.task_id);
+    const task = liveTasks.find(t=>t.id===ts.task_id);
     csv += `"${ts.date}","${task?.title||'—'}","${ts.activity_description}",${ts.hours},"${ts.industry_category}","${(ts.skills||[]).join('; ')}","${ts.status}"\n`;
   });
   const blob = new Blob([csv],{type:'text/csv'});
@@ -1150,13 +1264,13 @@ function exportExcel(uid){
 }
 
 function exportPDF(uid){
-  const intern = USERS.find(u=>u.id===uid);
-  const sheets = TIMESHEETS.filter(t=>t.intern_id===uid&&t.status==='approved');
+  const intern = liveUsers.find(u=>u.id===uid);
+  const sheets = liveTimesheets.filter(t=>t.intern_id===uid&&t.status==='approved');
   const totalH = sheets.reduce((s,t)=>s+t.hours,0);
   const skillMap={}; sheets.forEach(ts=>(ts.skills||[]).forEach(s=>{skillMap[s]=(skillMap[s]||0)+1;}));
   const topSkills=Object.entries(skillMap).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([s])=>s);
   const rows = sheets.map(ts=>{
-    const task=TASKS.find(t=>t.id===ts.task_id);
+    const task=liveTasks.find(t=>t.id===ts.task_id);
     return `<tr><td>${ts.date}</td><td>${task?.title||'—'}</td><td>${ts.activity_description}</td><td>${ts.hours}h</td><td>${ts.industry_category}</td></tr>`;
   }).join('');
   const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
@@ -1235,9 +1349,9 @@ async function init() {
   });
 
   applyRoleVisibility();
-  updateBadges();
-  populateAddTaskModal();
-  renderPage('dashboard');
+  await populateAddTaskModal();
+  await updateBadges();
+  await renderPage('dashboard');
 }
 
 init();
