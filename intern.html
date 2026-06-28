@@ -583,6 +583,24 @@
   </div>
 </div>
 
+<!-- Rejection Reason Modal -->
+<div class="modal-overlay" id="modal-reject-reason">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title">Reason for Rejection</span>
+      <button class="modal-close" onclick="closeModal('modal-reject-reason')">×</button>
+    </div>
+    <div class="form-group" style="margin-bottom:16px">
+      <label class="form-label">Tell the intern what needs to be fixed <span class="req">*</span></label>
+      <textarea class="form-input" id="reject-reason-input" rows="4" placeholder="e.g. Activity description is too vague. Please be more specific about what you worked on and how many hours per task."></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal('modal-reject-reason')">Cancel</button>
+      <button class="btn-primary" style="background:#ef4444" onclick="confirmReject()">Confirm Rejection</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <!-- ════════════════════════════ SCRIPT ══════════════════════════════════ -->
@@ -599,12 +617,31 @@ const SUPABASE_URL = 'https://mgyucjvsjaaraeawblwt.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1neXVjanZzamFhcmFlYXdibHd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4NjMwMTIsImV4cCI6MjA5NzQzOTAxMn0.kOjFQ5P8pWfZX3anq7soVoFC5ltILN554rrMazEbWno';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// ─── SUPABASE DB RULE (run once in Supabase SQL Editor) ──────────────────────
+// This prevents any update to a task that is already in 'reviewed' status:
+//
+// CREATE OR REPLACE FUNCTION lock_reviewed_tasks()
+// RETURNS TRIGGER AS $$
+// BEGIN
+//   IF OLD.status = 'reviewed' THEN
+//     RAISE EXCEPTION 'Task is locked — reviewed tasks cannot be modified.';
+//   END IF;
+//   RETURN NEW;
+// END;
+// $$ LANGUAGE plpgsql;
+//
+// CREATE TRIGGER enforce_reviewed_lock
+// BEFORE UPDATE ON intern_tasks
+// FOR EACH ROW EXECUTE FUNCTION lock_reviewed_tasks();
+// ─────────────────────────────────────────────────────────────────────────────
+
 // ─── STATE ───────────────────────────────────────────────────────────────────
 let currentUser = {};
 let activePage = "dashboard";
 let taskFilter = "all";
 let sheetFilter = "all";
 let sidebarOpen = true;
+let pendingRejectId = null;
 
 // Live data — loaded from Supabase on each page render
 let liveUsers = [];
@@ -864,6 +901,9 @@ function openTaskDetail(id){
   if(isSup && t.status==='completed'){
     actions += `<button class="btn-action" style="background:#f5f3ff;color:#8b5cf6;margin-left:8px" onclick="taskAction('${id}','review')">Mark Reviewed</button>`;
   }
+  if(t.status === 'reviewed'){
+    actions = '<div style="font-size:12px;color:var(--faint);padding:8px 0">✓ This task has been reviewed and is now locked.</div>';
+  }
 
   document.getElementById('modal-task-body').innerHTML = `
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">${badge(t.status)} ${pBadge(t.priority)}</div>
@@ -874,13 +914,47 @@ function openTaskDetail(id){
         <div><div style="font-size:11px;color:var(--faint);font-weight:600;margin-bottom:2px">${k}</div><div style="font-size:13px;font-weight:600;color:#1a1a1a">${v}</div></div>`).join('')}
     </div>
     ${(t.skills||[]).length ? `<div style="margin-bottom:12px"><div style="font-size:11px;color:var(--faint);font-weight:600;margin-bottom:6px">SKILLS TAGGED</div><div style="display:flex;gap:5px;flex-wrap:wrap">${t.skills.map(skillPill).join('')}</div></div>` : ''}
-    ${t.output_link ? `<div style="margin-bottom:12px"><div style="font-size:11px;color:var(--faint);font-weight:600;margin-bottom:4px">OUTPUT LINK</div><a href="${t.output_link}" target="_blank" style="color:#C9A84C;font-size:13px;font-weight:600">${t.output_link}</a></div>` : ''}
+    ${(currentUser.role === 'intern' && t.assigned_to === currentUser.id && ['in_progress'].includes(t.status)) ? `
+  <div style="margin-bottom:12px">
+    <div style="font-size:11px;color:var(--faint);font-weight:600;margin-bottom:4px">
+      OUTPUT LINK ${['code','design','video','landing_page'].includes(t.output_type) ? '<span style="color:#ef4444">*required</span>' : '(optional)'}
+    </div>
+    <input class="form-input" id="task-output-link" placeholder="Paste Google Drive, GitHub, or Figma URL…" value="${t.output_link||''}" style="width:100%;padding:8px 10px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:12px;font-family:inherit"/>
+  </div>` : 
+  t.output_link ? `<div style="margin-bottom:12px"><div style="font-size:11px;color:var(--faint);font-weight:600;margin-bottom:4px">OUTPUT LINK</div><a href="${t.output_link}" target="_blank" style="color:#C9A84C;font-size:13px;font-weight:600">${t.output_link}</a></div>` : ''}
     ${actions ? `<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">${actions}</div>` : ''}
   `;
   openModal('modal-view-task');
 }
 
 async function taskAction(id, action){
+  const task = liveTasks.find(t => t.id === id);
+
+  // Block any action on reviewed tasks
+  if (task?.status === 'reviewed') {
+    toast('This task is locked — reviewed tasks cannot be changed.');
+    return;
+  }
+
+  // Validate output link required for specific task types
+  if (action === 'complete') {
+    const requiresLink = ['code', 'design', 'video', 'landing_page'].includes(task?.output_type);
+    const hasLink = task?.output_link && task.output_link.trim() !== '';
+    if (requiresLink && !hasLink) {
+      toast('Please paste an output link before marking this task complete.');
+      return;
+    }
+  }
+
+  // Save output link if provided
+  if (action === 'complete') {
+    const linkInput = document.getElementById('task-output-link');
+    const outputLink = linkInput ? linkInput.value.trim() : '';
+    if (outputLink) {
+      await sb.from('intern_tasks').update({ output_link: outputLink }).eq('id', id);
+    }
+  }
+
   const statusMap = {acknowledge:'acknowledged', start:'in_progress', complete:'completed', review:'reviewed'};
   const newStatus = statusMap[action];
   if (!newStatus) return;
@@ -983,7 +1057,7 @@ async function renderTimesheets(){
       <td style="font-weight:800;color:#252f27;text-align:center">${ts.hours}h</td>
       <td style="color:var(--muted)">${ts.industry_category}</td>
       <td>${skillHtml}</td>
-      <td>${badge(ts.status)}</td>
+      <td>${badge(ts.status)}${ts.status === 'rejected' && ts.rejection_reason ? `<div style="font-size:10px;color:#ef4444;margin-top:3px;max-width:180px;line-height:1.3">${ts.rejection_reason}</div>` : ''}</td>
       ${isAdmin?`<td>${approveBtn}</td>`:''}
     </tr>`;
   }).join('');
@@ -1017,24 +1091,36 @@ async function approveSheet(id){
   await renderTimesheets();
   await renderDashboard();
 }
-async function rejectSheet(id){
-  const reason = prompt('Rejection reason (optional):') || '';
+function rejectSheet(id) {
+  pendingRejectId = id;
+  document.getElementById('reject-reason-input').value = '';
+  openModal('modal-reject-reason');
+}
 
+async function confirmReject() {
+  const reason = document.getElementById('reject-reason-input').value.trim();
+  if (!reason) {
+    document.getElementById('reject-reason-input').style.borderColor = '#ef4444';
+    return;
+  }
+  document.getElementById('reject-reason-input').style.borderColor = '';
   const { error } = await sb.from('intern_timesheets')
     .update({
-      status:           'rejected',
+      status: 'rejected',
       rejection_reason: reason
     })
-    .eq('id', id);
-
-  if (error) { toast('Error rejecting entry: ' + error.message); return; }
-
-  await logAudit('rejected_timesheet', 'timesheet', id, { rejection_reason: reason });
-
-  toast('Entry rejected');
-  await updateBadges();
-  await renderTimesheets();
-  await renderDashboard();
+    .eq('id', pendingRejectId);
+  if (!error) {
+    await logAudit('rejected_timesheet', 'timesheet', pendingRejectId, { reason });
+    closeModal('modal-reject-reason');
+    pendingRejectId = null;
+    await updateBadges();
+    await loadLiveTimesheets();
+    await renderPage(activePage);
+    toast('Entry rejected — intern will see the reason.');
+  } else {
+    toast('Error rejecting entry. Please try again.');
+  }
 }
 
 async function logHours(){
