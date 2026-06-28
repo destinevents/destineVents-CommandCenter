@@ -946,12 +946,14 @@ async function taskAction(id, action){
     }
   }
 
-  // Save output link if provided
   if (action === 'complete') {
-    const linkInput = document.getElementById('task-output-link');
-    const outputLink = linkInput ? linkInput.value.trim() : '';
-    if (outputLink) {
-      await sb.from('intern_tasks').update({ output_link: outputLink }).eq('id', id);
+  const requiresLink = ['code', 'design', 'video', 'landing_page'].includes(task?.output_type);
+  const linkInput = document.getElementById('task-output-link');
+  const inputValue = linkInput ? linkInput.value.trim() : '';
+  const hasLink = (task?.output_link && task.output_link.trim() !== '') || inputValue !== '';
+    if (requiresLink && !hasLink) {
+      toast('⚠️ Please paste an output link before marking this task complete.');
+      return;
     }
   }
 
