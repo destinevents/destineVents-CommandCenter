@@ -1112,6 +1112,11 @@ async function init() {
   }
   const { data:{ session } } = await sb.auth.getSession();
   if (session) {
+    const role = session.user.user_metadata?.role || 'intern';
+    if (role !== 'admin') {
+      window.location.href = 'intern.html';
+      return;
+    }
     const name = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
     enterApp(session.user.email, name);
   } else {

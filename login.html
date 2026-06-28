@@ -204,7 +204,11 @@ async function handleSignOut() {
 }
 
 async function init() {
-  await sb.auth.signOut();
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    const role = session.user.user_metadata?.role || 'intern';
+    routeByRole(role);
+  }
 }
 
 init();

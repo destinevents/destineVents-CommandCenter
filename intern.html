@@ -1011,7 +1011,7 @@ async function createTask(){
 // ─── TIMESHEETS ───────────────────────────────────────────────────────────────
 async function renderTimesheets(){
   const sheets = mySheets();
-  const isAdmin = currentUser.role==='admin';
+  const isAdmin = currentUser.role!=='intern';
 
   // Stats
   const approvedH = sheets.filter(t=>t.status==='approved').reduce((s,t)=>s+t.hours,0);
