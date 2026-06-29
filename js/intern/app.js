@@ -18,9 +18,7 @@ function mySheets() { return liveTimesheets; }
 function pendingApprovals() { return liveTimesheets.filter(t=>t.status==='pending'); }
 
 function toast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 2400);
+  showToast(msg, '', 2400);
 }
 
 function handleError(context, error) {

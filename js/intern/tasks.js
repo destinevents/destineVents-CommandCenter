@@ -2,9 +2,9 @@ async function renderTasks() {
   const tasks = myTasks();
   document.getElementById('task-count-label').textContent = `${tasks.length} total tasks`;
 
-  const filters = ['all', ...KANBAN_COLS];
-  document.getElementById('task-filters').innerHTML = filters.map(f=>`
-    <button class="filter-tab${taskFilter===f?' active':''}" data-action="set-task-filter" data-filter="${f}">${f==='all'?'All':(STATUS_LABELS[f]||f)}</button>`).join('');
+  const labelMap = { all:'All' };
+  KANBAN_COLS.forEach(c => { labelMap[c] = STATUS_LABELS[c] || c; });
+  renderFilterTabs('task-filters', ['all', ...KANBAN_COLS], taskFilter, 'set-task-filter', 'filter', labelMap);
 
   const filtered = taskFilter==='all' ? tasks : tasks.filter(t=>t.status===taskFilter);
   document.getElementById('kanban-board').innerHTML = KANBAN_COLS.map(col=>{

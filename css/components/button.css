@@ -1,0 +1,61 @@
+/* ─── BUTTONS ─── */
+.btn {
+  padding:var(--btn-padding, 10px 22px); font-size:var(--btn-font-size, 10.5px);
+  font-weight:var(--btn-font-weight, 700); cursor:pointer; border:none;
+  font-family:'DM Sans',sans-serif; letter-spacing:0.1em; text-transform:uppercase;
+  transition:all 0.15s var(--ease); display:inline-flex; align-items:center; gap:6px;
+  justify-content:center;
+}
+.btn:active { transform:scale(0.975); }
+.btn:disabled { opacity:0.45; cursor:not-allowed; pointer-events:none; }
+
+.btn-primary {
+  background:var(--btn-primary-bg, var(--ink)); color:var(--btn-primary-color, var(--linen));
+  border-radius:var(--btn-radius, 0);
+}
+.btn-primary:hover {
+  background:var(--btn-primary-hover, var(--ink-2));
+  box-shadow:0 4px 14px rgba(26,20,16,0.22); transform:translateY(-1px);
+}
+.btn-primary:active { transform:scale(0.975) translateY(0); box-shadow:none; }
+
+.btn-ghost {
+  background:transparent; color:var(--ink);
+  border:var(--btn-ghost-border, 1px solid var(--ink-4));
+  border-radius:var(--btn-radius, 0);
+}
+.btn-ghost:hover {
+  border-color:var(--ink); background:var(--btn-ghost-hover-bg, var(--linen-3));
+}
+
+.btn-sm {
+  padding:var(--btn-sm-padding, 6px 14px); font-size:var(--btn-sm-font-size, 9.5px);
+}
+
+.btn-loading { position:relative; color:transparent !important; pointer-events:none; }
+.btn-loading::after {
+  content:''; position:absolute; width:14px; height:14px;
+  border:2px solid var(--btn-spinner-track, rgba(245,240,232,0.3));
+  border-top-color:var(--btn-spinner, var(--linen)); border-radius:50%;
+  animation:spin-btn 0.7s linear infinite; top:50%; left:50%;
+  transform:translate(-50%,-50%);
+}
+@keyframes spin-btn { to{transform:translate(-50%,-50%) rotate(360deg)} }
+
+.btn-new {
+  width:100%; background:var(--ink); color:var(--linen); border:none;
+  padding:10px 12px; font-family:'DM Sans',sans-serif; font-size:10.5px;
+  font-weight:700; cursor:pointer; display:flex; align-items:center;
+  justify-content:center; gap:7px; letter-spacing:0.1em;
+  text-transform:uppercase; transition:all 0.18s var(--ease);
+  border-radius:var(--btn-radius, 0);
+}
+.btn-new:hover { background:var(--ink-2); box-shadow:0 4px 14px rgba(26,20,16,0.22); transform:translateY(-1px); }
+.btn-new:active { transform:translateY(0); box-shadow:none; }
+
+.btn-sm-approve { background:#ecfdf5; color:#10b981; border:none; border-radius:6px; padding:4px 10px; font-size:11px; font-weight:600; cursor:pointer; font-family:inherit; }
+.btn-sm-reject  { background:#fef2f2; color:#ef4444; border:none; border-radius:6px; padding:4px 10px; font-size:11px; font-weight:600; cursor:pointer; font-family:inherit; }
+.btn-action {
+  border:none; border-radius:8px; padding:8px 16px; font-size:12px; font-weight:600;
+  cursor:pointer; font-family:inherit;
+}

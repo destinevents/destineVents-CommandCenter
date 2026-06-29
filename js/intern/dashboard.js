@@ -11,17 +11,12 @@ async function renderDashboard() {
   const pending       = pendingApprovals().length;
 
   const statsData = [
-    {icon:'⏰', label:'Approved Hours',   value:approvedHours+'h', sub:'Total',      color:'#252f27'},
-    {icon:'📋', label:'Active Tasks',     value:activeTasks,       sub:'In progress',color:'#C9A84C'},
-    {icon:'✅', label:'Tasks Completed',  value:doneTasks,         sub:'Done',       color:'#10b981'},
-    ...(currentUser.role!=='intern'?[{icon:'🔔', label:'Pending Approvals', value:pending, sub:'Queue', color:'#f59e0b'}]:[]),
+    {icon:'⏰', label:'Approved Hours',   value:approvedHours+'h', sub:'Total',      valColor:'#252f27'},
+    {icon:'📋', label:'Active Tasks',     value:activeTasks,       sub:'In progress',valColor:'#C9A84C'},
+    {icon:'✅', label:'Tasks Completed',  value:doneTasks,         sub:'Done',       valColor:'#10b981'},
+    ...(currentUser.role!=='intern'?[{icon:'🔔', label:'Pending Approvals', value:pending, sub:'Queue', valColor:'#f59e0b'}]:[]),
   ];
-  document.getElementById('dash-stats').innerHTML = statsData.map(s=>`
-    <div class="stat-card">
-      <div class="sc-top"><span class="sc-icon">${s.icon}</span><span class="sc-sub">${s.sub}</span></div>
-      <div class="sc-val" style="color:${s.color}">${s.value}</div>
-      <div class="sc-label">${s.label}</div>
-    </div>`).join('');
+  renderStatCards('dash-stats', statsData);
 
   const recentTasks = tasks.slice(0,4);
   document.getElementById('dash-tasks-list').innerHTML = recentTasks.map(t=>`

@@ -8,14 +8,8 @@ let _payroll   = [];
 
 let _onSave = null;
 
-function toast(msg, type='') {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'toast' + (type ? ' '+type : '');
-  void t.offsetWidth;
-  t.classList.add('visible');
-  clearTimeout(t._t);
-  t._t = setTimeout(() => t.classList.remove('visible'), 3200);
+function toast(msg, type) {
+  showToast(msg, type, 3200);
 }
 
 function openModal(title, bodyHTML, onSave) {

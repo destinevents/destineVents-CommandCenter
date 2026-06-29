@@ -1,0 +1,37 @@
+/* ─── BADGES ─── */
+.badge {
+  display:inline-flex; align-items:center;
+  padding:var(--badge-padding, 3px 9px);
+  font-size:var(--badge-font-size, 9px);
+  font-weight:var(--badge-font-weight, 700);
+  letter-spacing:0.1em;
+  text-transform:var(--badge-transform, uppercase);
+  border:1px solid currentColor;
+  border-radius:var(--badge-radius, 0);
+}
+.badge-active    { color:var(--green); }
+.badge-proposal  { color:var(--blue); }
+.badge-nda       { color:var(--amber); }
+.badge-lead      { color:var(--ink-3); }
+.badge-completed { background:var(--ink); color:var(--linen); border-color:var(--ink); }
+.badge-paid      { color:var(--green); }
+.badge-unpaid    { color:var(--blue); }
+.badge-overdue   { color:var(--red); }
+.badge-won       { color:var(--green); }
+.badge-lost      { color:var(--red); }
+.badge-sent      { color:var(--blue); }
+.badge-expired   { color:var(--ink-3); }
+.badge-released  { color:var(--green); }
+.badge-pending   { color:var(--amber); }
+.badge-draft     { color:var(--ink-3); }
+
+/* Intern status badges */
+.badge-assigned    { color:#6366f1; background:#eef2ff; }
+.badge-acknowledged{ color:#f59e0b; background:#fffbeb; }
+.badge-in_progress { color:#3b82f6; background:#eff6ff; }
+.badge-reviewed    { color:#8b5cf6; background:#f5f3ff; }
+.badge-approved    { color:#10b981; background:#ecfdf5; }
+.badge-rejected    { color:#ef4444; background:#fef2f2; }
+.badge-high        { color:#ef4444; background:#fef2f2; }
+.badge-medium      { color:#f59e0b; background:#fffbeb; }
+.badge-low         { color:#10b981; background:#ecfdf5; }

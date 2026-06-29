@@ -4,14 +4,13 @@ async function renderTimesheets() {
 
   const approvedH = sheets.filter(t=>t.status==='approved').reduce((s,t)=>s+t.hours,0);
   const pendingH  = sheets.filter(t=>t.status==='pending').reduce((s,t)=>s+t.hours,0);
-  document.getElementById('sheet-stats').innerHTML = [
-    {icon:'✅',label:'Approved Hours',value:approvedH+'h',color:'#10b981'},
-    {icon:'⏳',label:'Pending Hours', value:pendingH+'h',color:'#f59e0b'},
-    {icon:'📅',label:'Total Entries', value:sheets.length, color:'#252f27'},
-  ].map(s=>`<div class="stat-card"><div class="sc-top"><span class="sc-icon">${s.icon}</span></div><div class="sc-val" style="color:${s.color}">${s.value}</div><div class="sc-label">${s.label}</div></div>`).join('');
+  renderStatCards('sheet-stats', [
+    {icon:'✅',label:'Approved Hours',value:approvedH+'h',valColor:'#10b981'},
+    {icon:'⏳',label:'Pending Hours', value:pendingH+'h',valColor:'#f59e0b'},
+    {icon:'📅',label:'Total Entries', value:sheets.length,valColor:'#252f27'},
+  ]);
 
-  document.getElementById('sheet-filters').innerHTML = ['all','pending','approved','rejected'].map(f=>`
-    <button class="filter-tab${sheetFilter===f?' active':''}" data-action="set-sheet-filter" data-filter="${f}">${f.charAt(0).toUpperCase()+f.slice(1)}</button>`).join('');
+  renderFilterTabs('sheet-filters', ['all','pending','approved','rejected'], sheetFilter, 'set-sheet-filter', 'filter');
 
   const filtered = sheetFilter==='all' ? sheets : sheets.filter(t=>t.status===sheetFilter);
 

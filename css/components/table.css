@@ -1,0 +1,47 @@
+/* ─── TABLES ─── */
+.table-wrap {
+  border:var(--table-wrap-border, 1px solid var(--ink-4));
+  overflow:hidden;
+  border-radius:var(--table-radius, 0);
+}
+
+.project-table,.ledger-table,.tbl {
+  width:100%; border-collapse:collapse;
+}
+.project-table th,.ledger-table th,.tbl th {
+  font-size:var(--table-th-size, 8.5px);
+  letter-spacing:0.18em; text-transform:uppercase;
+  color:var(--ink-3); padding:11px 14px; text-align:left;
+  border-bottom:var(--table-th-border, 1px solid var(--ink-4));
+  font-weight:600; background:var(--table-header-bg, var(--linen-2));
+  white-space:nowrap;
+}
+.project-table td,.ledger-table td,.tbl td {
+  padding:12px 14px; font-size:12.5px;
+  border-bottom:1px solid var(--ink-5);
+  vertical-align:middle; color:var(--ink-2);
+}
+.project-table tbody tr,.ledger-table tbody tr,.tbl tbody tr {
+  transition:background 0.1s;
+}
+.project-table tbody tr:hover td,.ledger-table tbody tr:hover td,.tbl tbody tr:hover td {
+  background:var(--linen-3); cursor:pointer;
+}
+.tbl tr:last-child td { border-bottom:none; }
+
+.project-name { font-weight:500; color:var(--ink); font-size:13px; }
+.project-client { font-size:10.5px; color:var(--ink-3); margin-top:2px; }
+.project-value,.amount-cell { font-weight:600; color:var(--ink); font-family:'Cormorant Garamond',serif; font-size:15px; }
+
+/* Intern table overrides via context */
+.intern-table-wrap {
+  border-radius:12px; overflow:hidden; overflow-x:auto;
+}
+.surface > .tbl th {
+  background:#f9fafb; font-size:11px; font-weight:700;
+  padding:10px 14px; border-bottom:2px solid var(--border);
+}
+.surface > .tbl td {
+  padding:10px 14px; border-bottom:1px solid #f3f4f6;
+}
+.surface > .tbl tbody tr:hover td { background:#fafafa; cursor:default; }

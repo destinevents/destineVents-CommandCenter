@@ -1,0 +1,4 @@
+/* ─── EMPTY STATE ─── */
+.empty-state { text-align:center; padding:48px 20px; color:var(--ink-3); font-size:12.5px; line-height:1.6; }
+.empty-state-icon { font-size:28px; opacity:0.25; margin-bottom:10px; }
+.empty-icon { font-size:38px; margin-bottom:10px; }
