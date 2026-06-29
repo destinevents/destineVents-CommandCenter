@@ -100,6 +100,18 @@
   .user-chip .uname { font-size: 12px; font-weight: 700; color: var(--forest); }
   .user-chip .urole { font-size: 10px; color: var(--faint); text-transform: capitalize; }
   #content { flex: 1; overflow-y: auto; padding: 24px 28px; }
+  .page-loading {
+    display: flex; align-items: center; justify-content: center;
+    height: 200px; flex-direction: column; gap: 14px;
+  }
+  .spinner {
+    width: 28px; height: 28px; border-radius: 50%;
+    border: 3px solid var(--border);
+    border-top-color: var(--forest);
+    animation: spin-page 0.7s linear infinite;
+  }
+  @keyframes spin-page { to { transform: rotate(360deg); } }
+  .loading-text { font-size: 12px; color: var(--faint); font-weight: 500; }
 
   /* AVATAR */
   .avatar {
@@ -564,7 +576,7 @@
       </div>
       <div class="form-group">
         <label class="form-label">Hours Worked <span class="req">*</span></label>
-        <input type="number" class="form-input" id="lh-hours" placeholder="e.g. 8" min="0.5" max="12" step="0.5" />
+        <input type="number" class="form-input" id="lh-hours" placeholder="e.g. 8" min="0.5" max="8" step="0.5" />
       </div>
     </div>
     <div class="form-group">
@@ -767,6 +779,12 @@ async function renderPage(page){
     interns:   renderInterns,
     reports:   renderReports,
   };
+
+  const pageEl = document.getElementById('page-' + page);
+  if (pageEl) {
+    pageEl.innerHTML = `<div class="page-loading"><div class="spinner"></div><div class="loading-text">Loading…</div></div>`;
+  }
+
   await loadLiveTasks();
   await loadLiveTimesheets();
   await loadLiveUsers();
@@ -1117,6 +1135,24 @@ async function logHours(){
   const hours    = parseFloat(document.getElementById('lh-hours').value);
   const activity = document.getElementById('lh-activity').value.trim();
   if(!date||!hours||!activity){ toast('Please fill in required fields'); return; }
+
+  const existingEntries = liveTimesheets.filter(ts => ts.date === date && ts.intern_id === currentUser.id);
+  if (existingEntries.length > 0) {
+    const existingHours = existingEntries.reduce((s, t) => s + t.hours, 0);
+    const confirmed = confirm(
+      `⚠️ You already have ${existingHours}h logged for ${date}.\n\nDo you want to add another entry for the same date?`
+    );
+    if (!confirmed) return;
+  }
+
+  const existingHoursToday = liveTimesheets
+    .filter(ts => ts.date === date && ts.intern_id === currentUser.id)
+    .reduce((s, t) => s + t.hours, 0);
+  const totalIfAdded = existingHoursToday + hours;
+  if (totalIfAdded > 8) {
+    toast(`⚠️ Cannot log ${hours}h — total for ${date} would be ${totalIfAdded}h (max is 8h per day).`);
+    return;
+  }
 
   const logBtn = document.getElementById('log-hours-btn');
   if (logBtn) { logBtn.disabled = true; logBtn.textContent = 'Saving…'; }
