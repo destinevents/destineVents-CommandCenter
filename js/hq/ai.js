@@ -1,7 +1,3 @@
-function loadAIPage() {}
-
-function saveAIKey(val) {}
-
 function selectTemplate(el) {
   document.querySelectorAll('.ai-template').forEach(t=>t.classList.remove('selected'));
   el.classList.add('selected');
@@ -27,7 +23,7 @@ function buildAIPrompt(template, client, project, context) {
 }
 
 async function simulateAI() {
-  const apiKey  = '';
+  const apiKey  = localStorage.getItem('ai-api-key') || '';
   const client  = document.getElementById('ai-client').value.trim();
   const project = document.getElementById('ai-project').value.trim();
   const context = document.getElementById('ai-context').value.trim();
@@ -35,7 +31,7 @@ async function simulateAI() {
   const r = document.getElementById('ai-result');
 
   if (!apiKey) {
-    r.innerHTML = '<div style="color:var(--red);font-size:12px">Enter your Anthropic API key in the Settings section above to enable real AI generation.</div>';
+    r.textContent = 'Enter your Anthropic API key in the Settings section above to enable real AI generation.';
     toast('API key required','error');
     return;
   }
@@ -65,9 +61,11 @@ async function simulateAI() {
 
     const data = await res.json();
     const text = data.content?.[0]?.text || '(no output)';
-    r.innerHTML = `<div style="white-space:pre-line;font-size:12px;line-height:1.85;color:var(--ink-2)">${text}</div>`;
+    r.textContent = text;
+    r.style.whiteSpace = 'pre-line';
   } catch(e) {
-    r.innerHTML = `<div style="color:var(--red);font-size:12px">Error: ${e.message}</div>`;
+    r.textContent = `Error: ${e.message}`;
+    r.style.color = 'var(--red)';
     toast(e.message, 'error');
   }
 }

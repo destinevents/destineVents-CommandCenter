@@ -39,6 +39,7 @@ function calcFinanceSummary(invoices, bills) {
   const apOutstanding = bills.filter(b => b.status !== 'Paid').reduce((s, b) => s + (b.amount || 0), 0);
   const revenueCollected = invoices.filter(i => i.status === 'Paid').reduce((s, i) => s + (i.amount || 0), 0);
   const overdueInvoices = invoices.filter(i => i.status === 'Overdue');
+  const pendingBills = bills.filter(b => b.status !== 'Paid');
   return {
     arOutstanding,
     apOutstanding,
@@ -46,11 +47,6 @@ function calcFinanceSummary(invoices, bills) {
     revenueCollected,
     overdueCount: overdueInvoices.length,
     overdueTotal: overdueInvoices.reduce((s, i) => s + (i.amount || 0), 0),
+    pendingBillsCount: pendingBills.length,
   };
-}
-
-function estimateDeductions(gross) {
-  const amount = +(gross) || 0;
-  const deductions = Math.round(amount * APP_SETTINGS.finance.deductionRate);
-  return { gross: amount, deductions, net: amount - deductions };
 }

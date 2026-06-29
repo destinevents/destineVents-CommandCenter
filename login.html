@@ -39,11 +39,11 @@
       <div class="login-sub">Sign in to your workspace</div>
       <div class="login-error" id="login-error"></div>
       <div class="form-group" style="margin-bottom:12px">
-        <div class="form-label">Email</div>
+        <label class="form-label" for="login-email">Email</label>
         <input class="form-input" id="login-email" type="email" placeholder="you@destinevents.biz" autocomplete="email"/>
       </div>
       <div class="form-group" style="margin-bottom:22px">
-        <div class="form-label">Password</div>
+        <label class="form-label" for="login-pass">Password</label>
         <input class="form-input" id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')handleSignIn()"/>
       </div>
       <button class="btn btn-primary" id="login-btn" onclick="handleSignIn()">Sign In</button>

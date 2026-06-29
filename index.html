@@ -49,11 +49,11 @@
       <div class="login-sub">Sign in to your Command Center</div>
       <div class="login-error" id="login-error"></div>
       <div class="form-group" style="margin-bottom:12px">
-        <div class="form-label">Email</div>
+        <label class="form-label" for="login-email">Email</label>
         <input class="form-input" id="login-email" type="email" placeholder="you@destinevents.biz" autocomplete="email"/>
       </div>
       <div class="form-group" style="margin-bottom:22px">
-        <div class="form-label">Password</div>
+        <label class="form-label" for="login-pass">Password</label>
         <input class="form-input" id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')handleSignIn()"/>
       </div>
       <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="handleSignIn()">Sign In</button>
@@ -63,14 +63,14 @@
 </div>
 
 <!-- TOAST -->
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <!-- MODAL -->
-<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
+<div class="modal-overlay" id="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title" onclick="if(event.target===this)closeModal()">
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title" id="modal-title"></div>
-      <span class="modal-close" onclick="closeModal()">✕</span>
+      <button class="modal-close" onclick="closeModal()" aria-label="Close dialog">✕</button>
     </div>
     <div class="modal-body" id="modal-body"></div>
     <div class="modal-footer">
@@ -81,7 +81,7 @@
 </div>
 
 <!-- SIDEBAR -->
-<aside class="sidebar">
+<aside class="sidebar" aria-label="Primary navigation">
   <div class="sidebar-logo">
     <div class="logo-mark">
       <span class="logo-script">destine</span>
@@ -98,7 +98,7 @@
     </button>
   </div>
 
-  <nav class="nav">
+  <nav class="nav" aria-label="Sidebar navigation">
     <div class="nav-section">Workspace</div>
     <div class="nav-item active" data-page="dashboard" onclick="showPage('dashboard')">
       <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
@@ -156,7 +156,7 @@
 </aside>
 
 <!-- MAIN -->
-<main class="main">
+<main class="main" role="main">
 
   <!-- TOPBAR -->
   <div class="topbar">
@@ -565,7 +565,7 @@
       <div style="display:flex;align-items:flex-end;gap:16px">
         <div class="form-group" style="flex:1;margin:0">
           <div class="form-label">Anthropic API Key</div>
-          <input class="form-input" id="ai-api-key" type="password" placeholder="sk-ant-api03-…" oninput="saveAIKey(this.value)"/>
+          <input class="form-input" id="ai-api-key" type="password" placeholder="sk-ant-api03-…" oninput="localStorage.setItem('ai-api-key',this.value)"/>
         </div>
         <div style="font-size:10px;color:var(--ink-3);padding-bottom:9px;line-height:1.7;white-space:nowrap">Stored in your browser only.<br>Get a key at console.anthropic.com</div>
       </div>

@@ -17,6 +17,8 @@ function openModal(title, bodyHTML, onSave) {
   document.getElementById('modal-body').innerHTML = bodyHTML;
   document.getElementById('modal-overlay').classList.add('open');
   _onSave = onSave;
+  const saveBtn = document.getElementById('modal-save-btn');
+  if (saveBtn) setTimeout(() => saveBtn.focus(), 100);
 }
 
 function closeModal() {
@@ -84,7 +86,7 @@ function setupRealtime() {
         reload();
       }
       if (payload.eventType === 'INSERT') {
-        toast(`New ${table.replace('_runs', '')} added by another user`, 'success');
+        toast(`New ${table.replace('_runs', '')} added`, 'success');
       } else if (payload.eventType === 'DELETE') {
         toast(`A ${table.replace('_runs', '')} record was removed`, '');
       }
@@ -131,7 +133,7 @@ function loadPage(name) {
     case 'partners':    loadPartners();     break;
     case 'documents':   loadDocuments();    break;
     case 'finance':     loadFinance();      break;
-    case 'ai':          loadAIPage();       break;
+    case 'ai':          break;
     case 'new-project': resetNewProject();  break;
   }
 }

@@ -10,11 +10,11 @@ function renderClients(clients) {
   document.getElementById('clients-tbody').innerHTML = clients.length
     ? clients.map(c => `
         <tr>
-          <td><div class="project-name">${c.name}</div><div class="project-client">${c.type}</div></td>
-          <td><span class="badge badge-${statusClass(c.status)}">${c.status}</span></td>
-          <td style="font-size:11px;color:var(--ink-3)">${c.brand||'\u2014'}</td>
-          <td style="font-size:12px">${c.contact||'\u2014'}</td>
-          <td style="font-size:11px;color:var(--ink-3)">${c.email||'\u2014'}</td>
+          <td><div class="project-name">${escapeHtml(c.name)}</div><div class="project-client">${escapeHtml(c.type)}</div></td>
+          <td><span class="badge badge-${statusClass(c.status)}">${escapeHtml(c.status)}</span></td>
+          <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(c.brand)||'\u2014'}</td>
+          <td style="font-size:12px">${escapeHtml(c.contact)||'\u2014'}</td>
+          <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(c.email)||'\u2014'}</td>
           <td class="project-value">${formatCurrency(c.total_value)}</td>
         </tr>`).join('')
     : `<tr><td colspan="6"><div class="empty-state">No clients yet \u2014 add your first one</div></td></tr>`;
@@ -75,11 +75,11 @@ function renderProposals(proposals) {
   document.getElementById('proposals-tbody').innerHTML = proposals.length
     ? proposals.map(p => `
         <tr>
-          <td><div class="project-name">${p.name}</div><div class="project-client">${p.client}</div></td>
+          <td><div class="project-name">${escapeHtml(p.name)}</div><div class="project-client">${escapeHtml(p.client)}</div></td>
           <td class="project-value">${formatCurrency(p.value)}</td>
-          <td style="font-size:11px;color:var(--ink-3)">${p.sent}</td>
-          <td style="font-size:11px;color:var(--ink-3)">${p.followup}</td>
-          <td><span class="badge badge-${statusClass(p.status)}">${p.status}</span></td>
+          <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(p.sent)}</td>
+          <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(p.followup)}</td>
+          <td><span class="badge badge-${statusClass(p.status)}">${escapeHtml(p.status)}</span></td>
         </tr>`).join('')
     : `<tr><td colspan="5"><div class="empty-state">No proposals yet</div></td></tr>`;
 }

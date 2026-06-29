@@ -34,20 +34,20 @@ function renderFinanceOverview(invoices, bills) {
   document.getElementById('finance-recent-ar').innerHTML = invoices.slice(0,4).map(i=>`
     <div class="activity-item">
       <div class="activity-dot ${i.status==='Paid'?'green':i.status==='Overdue'?'red':'blue'}"></div>
-      <div style="flex:1"><div class="activity-text">${i.client} — ${i.or_num}</div><div class="activity-time">${i.date}</div></div>
+      <div style="flex:1"><div class="activity-text">${escapeHtml(i.client)} — ${escapeHtml(i.or_num)}</div><div class="activity-time">${escapeHtml(i.date)}</div></div>
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-family:'Cormorant Garamond',serif;font-size:14px;font-weight:600">${formatCurrency(i.amount)}</span>
-        <span class="badge badge-${statusClass(i.status)}">${i.status}</span>
+        <span class="badge badge-${statusClass(i.status)}">${escapeHtml(i.status)}</span>
       </div>
     </div>`).join('');
 
   document.getElementById('finance-recent-ap').innerHTML = bills.slice(0,4).map(b=>`
     <div class="activity-item">
       <div class="activity-dot ${b.status==='Paid'?'green':'blue'}"></div>
-      <div style="flex:1"><div class="activity-text">${b.payee}</div><div class="activity-time">${b.date} · EWT ${b.ewt}</div></div>
+      <div style="flex:1"><div class="activity-text">${escapeHtml(b.payee)}</div><div class="activity-time">${escapeHtml(b.date)} · EWT ${escapeHtml(b.ewt)}</div></div>
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-family:'Cormorant Garamond',serif;font-size:14px;font-weight:600">${formatCurrency(b.amount)}</span>
-        <span class="badge badge-${statusClass(b.status)}">${b.status}</span>
+        <span class="badge badge-${statusClass(b.status)}">${escapeHtml(b.status)}</span>
       </div>
     </div>`).join('');
 }
@@ -59,12 +59,12 @@ function renderAR(invoices) {
   document.getElementById('ar-tbody').innerHTML = invoices.length
     ? invoices.map(i=>`
         <tr>
-          <td style="font-size:11px;color:var(--ink-3)">${i.or_num}</td>
-          <td style="font-weight:500;color:var(--ink)">${i.client}</td>
+          <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(i.or_num)}</td>
+          <td style="font-weight:500;color:var(--ink)">${escapeHtml(i.client)}</td>
           <td class="amount-cell">${formatCurrency(i.amount)}</td>
-          <td style="font-size:11px;color:var(--ink-3)">${i.date}</td>
-          <td style="font-size:11px;color:var(--ink-3)">${i.due}</td>
-          <td><span class="badge badge-${statusClass(i.status)}">${i.status}</span></td>
+          <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(i.date)}</td>
+          <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(i.due)}</td>
+          <td><span class="badge badge-${statusClass(i.status)}">${escapeHtml(i.status)}</span></td>
         </tr>`).join('')
     : `<tr><td colspan="6"><div class="empty-state">No invoices yet</div></td></tr>`;
 }
@@ -76,12 +76,12 @@ function renderAP(bills) {
   document.getElementById('ap-tbody').innerHTML = bills.length
     ? bills.map(b=>`
         <tr>
-          <td style="font-weight:500;color:var(--ink)">${b.payee}</td>
+          <td style="font-weight:500;color:var(--ink)">${escapeHtml(b.payee)}</td>
           <td class="amount-cell">${formatCurrency(b.amount)}</td>
-          <td style="font-size:11px;color:var(--ink-3)">${b.date}</td>
-          <td style="font-size:11px;color:var(--ink-3)">${b.category}</td>
-          <td style="font-size:11px;color:var(--ink-3)">${b.ewt}</td>
-          <td><span class="badge badge-${statusClass(b.status)}">${b.status}</span></td>
+          <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(b.date)}</td>
+          <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(b.category)}</td>
+          <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(b.ewt)}</td>
+          <td><span class="badge badge-${statusClass(b.status)}">${escapeHtml(b.status)}</span></td>
         </tr>`).join('')
     : `<tr><td colspan="6"><div class="empty-state">No bills yet</div></td></tr>`;
 }
@@ -90,12 +90,12 @@ function renderPayroll(runs) {
   document.getElementById('payroll-tbody').innerHTML = runs.length
     ? runs.map(r=>`
         <tr>
-          <td style="font-weight:500;color:var(--ink)">${r.period}</td>
+          <td style="font-weight:500;color:var(--ink)">${escapeHtml(r.period)}</td>
           <td style="font-size:11.5px;color:var(--ink-3)">${r.employees}</td>
           <td class="amount-cell">${formatCurrency(r.gross)}</td>
           <td style="font-size:12px;color:var(--ink-3)">${formatCurrency(r.deductions)}</td>
           <td class="amount-cell">${formatCurrency(r.net)}</td>
-          <td><span class="badge badge-${statusClass(r.status)}">${r.status}</span></td>
+          <td><span class="badge badge-${statusClass(r.status)}">${escapeHtml(r.status)}</span></td>
         </tr>`).join('')
     : `<tr><td colspan="6"><div class="empty-state">No payroll runs yet</div></td></tr>`;
 }

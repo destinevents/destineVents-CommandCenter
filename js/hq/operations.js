@@ -8,9 +8,9 @@ function renderPartners(list) {
   grid.innerHTML = list.length
     ? list.map(p => `
         <div class="partner-card">
-          <div class="partner-type-tag">${p.type}</div>
-          <div class="partner-name">${p.name}</div>
-          <div class="partner-contact">${p.contact||''}<br>${p.email||''}</div>
+          <div class="partner-type-tag">${escapeHtml(p.type)}</div>
+          <div class="partner-name">${escapeHtml(p.name)}</div>
+          <div class="partner-contact">${escapeHtml(p.contact)||''}<br>${escapeHtml(p.email)||''}</div>
         </div>`).join('')
     : `<div style="grid-column:1/-1"><div class="empty-state">No partners in this category</div></div>`;
 }
@@ -59,8 +59,8 @@ function renderDocuments(docs) {
         <div class="doc-item">
           <div class="doc-icon">${docTypeIcon(d.type)}</div>
           <div>
-            <div class="doc-name">${d.name}</div>
-            <div class="doc-meta">${d.type} \u00B7 ${d.size} \u00B7 ${d.date}</div>
+            <div class="doc-name">${escapeHtml(d.name)}</div>
+            <div class="doc-meta">${escapeHtml(d.type)} \u00B7 ${escapeHtml(d.size)} \u00B7 ${escapeHtml(d.date)}</div>
           </div>
           <div class="doc-actions">
             <button class="doc-btn" onclick="toast('Connect Supabase Storage to enable real file downloads','')">Download</button>

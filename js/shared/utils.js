@@ -13,12 +13,6 @@ function fmtDate(isoVal) {
   return new Date(isoVal + 'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
 }
 
-function formatBytes(b) {
-  if (b < 1024)       return b + ' B';
-  if (b < 1024*1024)  return Math.round(b/1024) + ' KB';
-  return (b/1024/1024).toFixed(1) + ' MB';
-}
-
 const num = n =>(+(n)||0).toLocaleString('en-PH');
 
 function statusClass(s='') {

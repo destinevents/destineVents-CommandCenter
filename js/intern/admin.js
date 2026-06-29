@@ -123,9 +123,9 @@ function exportPDF(uid) {
   const totalH = sheets.reduce((s,t)=>s+t.hours,0);
   const skillMap={}; sheets.forEach(ts=>(ts.skills||[]).forEach(s=>{skillMap[s]=(skillMap[s]||0)+1;}));
   const topSkills=Object.entries(skillMap).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([s])=>s);
-  const rows = sheets.map(ts=>{
+    const rows = sheets.map(ts=>{
     const task=liveTasks.find(t=>t.id===ts.task_id);
-    return `<tr><td>${ts.date}</td><td>${escapeHtml(task?.title)||'—'}</td><td>${escapeHtml(ts.activity_description)}</td><td>${ts.hours}h</td><td>${ts.industry_category}</td></tr>`;
+    return `<tr><td>${escapeHtml(ts.date)}</td><td>${escapeHtml(task?.title)||'—'}</td><td>${escapeHtml(ts.activity_description)}</td><td>${ts.hours}h</td><td>${escapeHtml(ts.industry_category)}</td></tr>`;
   }).join('');
   const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
     body{font-family:'DM Sans',sans-serif;padding:40px;color:#1a1a1a;max-width:800px;margin:0 auto}
@@ -147,8 +147,8 @@ function exportPDF(uid) {
     <hr class="divider"/>
     <div class="meta-grid">
       <div class="meta-box"><div class="v">${escapeHtml(intern.name)}</div><div class="l">Intern Name</div></div>
-      <div class="meta-box"><div class="v">${intern.program}</div><div class="l">Program</div></div>
-      <div class="meta-box"><div class="v">${intern.school}</div><div class="l">School</div></div>
+      <div class="meta-box"><div class="v">${escapeHtml(intern.program)}</div><div class="l">Program</div></div>
+      <div class="meta-box"><div class="v">${escapeHtml(intern.school)}</div><div class="l">School</div></div>
     </div>
     <div class="meta-grid">
       <div class="meta-box"><div class="v">${totalH}h</div><div class="l">Total Approved Hours</div></div>
@@ -162,7 +162,7 @@ function exportPDF(uid) {
     <tbody>${rows}</tbody></table>
     <div class="sig-section">
       <div class="sig-box"><strong>Intern Signature</strong><br/>${escapeHtml(intern.name)}<br/><br/><br/>___________________</div>
-      <div class="sig-box"><strong>Supervisor Signature</strong><br/>${supervisor.name}<br/><br/><br/>___________________</div>
+      <div class="sig-box"><strong>Supervisor Signature</strong><br/>${escapeHtml(supervisor.name)}<br/><br/><br/>___________________</div>
       <div class="sig-box"><strong>Company Seal</strong><br/>Disenyo Digitals<br/>Collective OPC<br/><br/>___________________</div>
     </div>
   </body></html>`;

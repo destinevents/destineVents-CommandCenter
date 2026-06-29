@@ -214,27 +214,27 @@
 <!-- ══════════════════════════ MODALS ════════════════════════════════════ -->
 
 <!-- Add Task Modal -->
-<div class="modal-overlay" id="modal-add-task">
+<div class="modal-overlay" id="modal-add-task" role="dialog" aria-modal="true" aria-labelledby="modal-add-task-title">
   <div class="modal-box wide">
     <div class="modal-header">
-      <span class="modal-title">Create New Task</span>
-      <button class="modal-close" data-action="close-modal" data-modal="modal-add-task">×</button>
+      <span class="modal-title" id="modal-add-task-title">Create New Task</span>
+      <button class="modal-close" data-action="close-modal" data-modal="modal-add-task" aria-label="Close dialog">×</button>
     </div>
     <div class="form-row">
       <div class="form-group" style="grid-column:1/-1">
-        <label class="form-label">Task Title <span class="req">*</span></label>
+        <label class="form-label" for="nt-title">Task Title <span class="req">*</span></label>
         <input class="form-input" id="nt-title" placeholder="e.g. Build Landing Page" />
       </div>
       <div class="form-group" style="grid-column:1/-1">
-        <label class="form-label">Description</label>
+        <label class="form-label" for="nt-desc">Description</label>
         <textarea class="form-input" id="nt-desc" rows="3" placeholder="What needs to be done…"></textarea>
       </div>
       <div class="form-group">
-        <label class="form-label">Assign To <span class="req">*</span></label>
+        <label class="form-label" for="nt-assignee">Assign To <span class="req">*</span></label>
         <select class="form-input" id="nt-assignee"></select>
       </div>
       <div class="form-group">
-        <label class="form-label">Priority</label>
+        <label class="form-label" for="nt-priority">Priority</label>
         <select class="form-input" id="nt-priority">
           <option value="high">High</option>
           <option value="medium" selected>Medium</option>
@@ -274,35 +274,35 @@
 </div>
 
 <!-- View Task Modal -->
-<div class="modal-overlay" id="modal-view-task">
+<div class="modal-overlay" id="modal-view-task" role="dialog" aria-modal="true" aria-labelledby="modal-view-task-title">
   <div class="modal-box wide">
     <div class="modal-header">
-      <span class="modal-title">Task Details</span>
-      <button class="modal-close" data-action="close-modal" data-modal="modal-view-task">×</button>
+      <span class="modal-title" id="modal-view-task-title">Task Details</span>
+      <button class="modal-close" data-action="close-modal" data-modal="modal-view-task" aria-label="Close dialog">×</button>
     </div>
     <div id="modal-task-body"></div>
   </div>
 </div>
 
 <!-- Log Hours Modal -->
-<div class="modal-overlay" id="modal-log-hours">
+<div class="modal-overlay" id="modal-log-hours" role="dialog" aria-modal="true" aria-labelledby="modal-log-hours-title">
   <div class="modal-box">
     <div class="modal-header">
-      <span class="modal-title">Log Work Hours</span>
-      <button class="modal-close" data-action="close-modal" data-modal="modal-log-hours">×</button>
+      <span class="modal-title" id="modal-log-hours-title">Log Work Hours</span>
+      <button class="modal-close" data-action="close-modal" data-modal="modal-log-hours" aria-label="Close dialog">×</button>
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label class="form-label">Date <span class="req">*</span></label>
+        <label class="form-label" for="lh-date">Date <span class="req">*</span></label>
         <input type="date" class="form-input" id="lh-date" />
       </div>
       <div class="form-group">
-        <label class="form-label">Hours Worked <span class="req">*</span></label>
+        <label class="form-label" for="lh-hours">Hours Worked <span class="req">*</span></label>
         <input type="number" class="form-input" id="lh-hours" placeholder="e.g. 8" min="0.5" max="10" step="0.5" />
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">Linked Task (optional)</label>
+      <label class="form-label" for="lh-task">Linked Task (optional)</label>
       <select class="form-input" id="lh-task"></select>
     </div>
     <div class="form-group">
@@ -331,11 +331,11 @@
 </div>
 
 <!-- Rejection Reason Modal -->
-<div class="modal-overlay" id="modal-reject-reason">
+<div class="modal-overlay" id="modal-reject-reason" role="dialog" aria-modal="true" aria-labelledby="modal-reject-reason-title">
   <div class="modal-box">
     <div class="modal-header">
-      <span class="modal-title">Reason for Rejection</span>
-      <button class="modal-close" data-action="close-modal" data-modal="modal-reject-reason">×</button>
+      <span class="modal-title" id="modal-reject-reason-title">Reason for Rejection</span>
+      <button class="modal-close" data-action="close-modal" data-modal="modal-reject-reason" aria-label="Close dialog">×</button>
     </div>
     <div class="form-group" style="margin-bottom:16px">
       <label class="form-label">Tell the intern what needs to be fixed <span class="req">*</span></label>
@@ -348,7 +348,7 @@
   </div>
 </div>
 
-<div id="toast"></div>
+<div id="toast" role="status" aria-live="polite"></div>
 
 <script src="services/supabase.js"></script>
 <script src="services/authService.js"></script>
