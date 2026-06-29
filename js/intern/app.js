@@ -125,11 +125,6 @@ async function renderPage(page) {
     reports:   renderReports,
   };
 
-  const pageEl = document.getElementById('page-' + page);
-  if (pageEl) {
-    pageEl.innerHTML = `<div class="page-loading"><div class="spinner"></div><div class="loading-text">Loading…</div></div>`;
-  }
-
   try {
     await loadLiveTasks();
     await loadLiveTimesheets();
@@ -138,9 +133,6 @@ async function renderPage(page) {
     if (fn) await fn();
   } catch (err) {
     handleError('renderPage:' + page, err);
-    if (pageEl) {
-      pageEl.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div>Failed to load page. Please refresh.</div>`;
-    }
   }
 }
 
