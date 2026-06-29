@@ -37,7 +37,7 @@ create table if not exists intern_timesheets (
   id                   uuid primary key default gen_random_uuid(),
   intern_id            uuid references intern_users(id) not null,
   date                 date not null,
-  hours                numeric(4,1) check (hours >= 0.5 and hours <= 12) not null,
+  hours numeric(4,1) check (hours >= 0.5 and hours <= 10) not null,
   task_id              uuid references intern_tasks(id),
   activity_description text not null,
   industry_category    text,
