@@ -1391,20 +1391,37 @@ async function init() {
     window.location.href = 'login.html';
     return;
   }
-  const user = session.user;
-  const role = user.user_metadata?.role || 'intern';
-  const name = user.user_metadata?.full_name || user.email;
+
+  const { data: profile, error } = await sb.from('intern_users')
+    .select('*')
+    .eq('id', session.user.id)
+    .single();
+
+  if (!profile || error) {
+    document.getElementById('page-dashboard').innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;text-align:center;padding:40px">
+        <div style="font-size:48px;margin-bottom:16px">👋</div>
+        <h2 style="margin-bottom:8px">Welcome to Intern Command Center</h2>
+        <p style="color:var(--muted);margin-bottom:24px;max-width:400px">
+          Your profile hasn't been set up yet. Please contact your supervisor or administrator to create your account.
+        </p>
+        <button class="btn-primary" onclick="handleSignOut()" style="padding:10px 24px">Sign Out</button>
+      </div>`;
+    return;
+  }
 
   currentUser = {
-    id: user.id,
-    name: name,
-    email: user.email,
-    role: role,
-    avatar: user.email.slice(0, 2).toUpperCase()
+    id: profile.id,
+    name: profile.name,
+    email: profile.email,
+    role: profile.role,
+    avatar: profile.avatar || profile.name.slice(0, 2).toUpperCase(),
+    program: profile.program,
+    school: profile.school
   };
 
-  document.getElementById('topbar-name').textContent = name;
-  document.getElementById('topbar-role').textContent = role;
+  document.getElementById('topbar-name').textContent = profile.name;
+  document.getElementById('topbar-role').textContent = profile.role;
   document.getElementById('topbar-avatar').textContent = currentUser.avatar;
   document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('en-PH', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
