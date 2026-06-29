@@ -47,15 +47,14 @@ async function renderTimesheets() {
 async function setSheetFilter(f) { sheetFilter = f; await renderTimesheets(); }
 
 async function approveSheet(id) {
-  const { error } = await updateTimesheet(id, {
+  const result = await updateTimesheet(id, {
     status: 'approved',
     approved_by: currentUser.id,
     approved_at: new Date().toISOString()
   });
+  if (!result) return;
 
-  if (error) { toast('Error approving entry: ' + error.message); return; }
-
-  await logAudit('approved_timesheet', 'timesheet', id, { approved_by: currentUser.id });
+  await logAudit('approved_timesheet', 'timesheet', id, { approved_by: currentUser.id }, currentUser.id);
 
   toast('Entry approved ✓');
   await updateBadges();
@@ -76,12 +75,12 @@ async function confirmReject() {
     return;
   }
   document.getElementById('reject-reason-input').style.borderColor = '';
-  const { error } = await updateTimesheet(pendingRejectId, {
+  const result = await updateTimesheet(pendingRejectId, {
     status: 'rejected',
     rejection_reason: reason
   });
-  if (!error) {
-    await logAudit('rejected_timesheet', 'timesheet', pendingRejectId, { reason });
+  if (result) {
+    await logAudit('rejected_timesheet', 'timesheet', pendingRejectId, { reason }, currentUser.id);
     closeModal('modal-reject-reason');
     pendingRejectId = null;
     await updateBadges();
@@ -124,7 +123,7 @@ async function logHours() {
   const skills   = [...skillsEl.selectedOptions].map(o=>o.value);
   const taskId   = document.getElementById('lh-task').value || null;
 
-  const { error } = await createTimesheet({
+  const result = await createTimesheet({
     intern_id:            currentUser.id,
     date,
     hours,
@@ -135,9 +134,8 @@ async function logHours() {
     status:               'pending'
   });
 
-  if (error) {
+  if (!result) {
     if (logBtn) { logBtn.disabled = false; logBtn.textContent = 'Save Entry'; }
-    toast('Error logging hours: ' + error.message);
     return;
   }
 

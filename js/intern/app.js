@@ -22,7 +22,7 @@ function toast(msg) {
 }
 
 function handleError(context, error) {
-  console.error(`[${context}]`, error);
+  logger.error(context, error?.message || 'Unknown error', error);
   toast(`Something went wrong: ${error?.message || 'Unknown error'}. Try refreshing.`);
 }
 
@@ -86,21 +86,18 @@ function setupRealtime() {
 }
 
 async function loadLiveUsers() {
-  const { data, error } = await fetchUsers();
-  if (error) { handleError('loadLiveUsers', error); return; }
-  if (data) liveUsers = data;
+  const result = await fetchUsers();
+  if (result) liveUsers = result;
 }
 
 async function loadLiveTasks() {
-  const { data, error } = await fetchTasks(currentUser.role, currentUser.id);
-  if (error) { handleError('loadLiveTasks', error); return; }
-  if (data) liveTasks = data;
+  const result = await fetchTasks(currentUser.role, currentUser.id);
+  if (result) liveTasks = result;
 }
 
 async function loadLiveTimesheets() {
-  const { data, error } = await fetchTimesheets(currentUser.role, currentUser.id);
-  if (error) { handleError('loadLiveTimesheets', error); return; }
-  if (data) liveTimesheets = data;
+  const result = await fetchTimesheets(currentUser.role, currentUser.id);
+  if (result) liveTimesheets = result;
 }
 
 async function goPage(page) {
@@ -181,15 +178,13 @@ async function handleSignOut() {
 
 async function init() {
   try {
-    const session = await getSession();
-    if (!session) {
+    const user = await getCurrentUser();
+    if (!user) {
       window.location.href = 'login.html';
       return;
     }
 
-    const { data: profile, error } = await getProfile(session.user.id);
-
-    if (!profile || error) {
+    if (!user.name) {
       document.getElementById('page-dashboard').innerHTML = `
         <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;text-align:center;padding:40px">
           <div style="font-size:48px;margin-bottom:16px">👋</div>
@@ -203,17 +198,17 @@ async function init() {
     }
 
     currentUser = {
-      id: profile.id,
-      name: profile.name,
-      email: profile.email,
-      role: profile.role,
-      avatar: profile.avatar || profile.name.slice(0, 2).toUpperCase(),
-      program: profile.program,
-      school: profile.school
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      avatar: user.avatar || user.name.slice(0, 2).toUpperCase(),
+      program: user.program,
+      school: user.school,
     };
 
-    document.getElementById('topbar-name').textContent = profile.name;
-    document.getElementById('topbar-role').textContent = profile.role;
+    document.getElementById('topbar-name').textContent = user.name;
+    document.getElementById('topbar-role').textContent = user.role;
     document.getElementById('topbar-avatar').textContent = currentUser.avatar;
     document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('en-PH', {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'

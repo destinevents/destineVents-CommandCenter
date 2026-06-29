@@ -1,0 +1,43 @@
+const APP_SETTINGS = {
+  company: {
+    name: 'DestineVents Collective OPC',
+    shortName: 'DestineVents',
+    founder: 'Jennifer Castro, Founder',
+    address: 'Baguio City, Philippines',
+    brand: 'DestineVents',
+    brands: ['DestineVents', 'DDC', 'AYA'],
+  },
+  intern: {
+    companyName: 'Disenyo Digitals Collective OPC',
+    maxDailyHours: 8,
+    minHoursEntry: 0.5,
+    maxHoursEntry: 10,
+    hourStep: 0.5,
+  },
+  finance: {
+    deductionRate: 0.15,
+    birYear: 2026,
+    ewtRates: ['0%', '2%', '5%', '10%', '15%'],
+    clientTypes: ['Government', 'Corporate', 'Education', 'NGO', 'Community', 'Startup'],
+    clientStatuses: ['Lead', 'Active', 'NDA Signed', 'Completed'],
+    proposalStatuses: ['Sent', 'Won', 'Lost', 'Expired'],
+    invoiceStatuses: ['Unpaid', 'Paid', 'Overdue'],
+    billStatuses: ['Unpaid', 'Paid'],
+    billCategories: ['Venue', 'Catering', 'Equipment', 'Services', 'Transport', 'Supplies', 'Other'],
+    payrollStatuses: ['Pending', 'Released'],
+  },
+  ai: {
+    apiUrl: 'https://api.anthropic.com/v1/messages',
+    apiVersion: '2023-06-01',
+    model: 'claude-haiku-4-5-20251001',
+    storageKey: 'anthropic_api_key',
+  },
+  storage: {
+    auditLogKey: 'audit_logged',
+    sidebarKey: 'sidebar_collapsed',
+  },
+  supabase: {
+    url: SUPABASE_URL,
+    anonKey: SUPABASE_ANON_KEY,
+  },
+};

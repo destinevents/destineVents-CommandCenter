@@ -4,9 +4,9 @@ async function loadFinance() {
     fetchBills(),
     fetchPayrollRuns(),
   ]);
-  if (inv.data) { _invoices = inv.data; }
-  if (bil.data) { _bills    = bil.data; }
-  if (pay.data) { _payroll  = pay.data; }
+  _invoices = inv || [];
+  _bills    = bil || [];
+  _payroll  = pay || [];
   renderFinanceOverview(_invoices, _bills);
   renderAR(_invoices);
   renderAP(_bills);
@@ -22,24 +22,21 @@ function showFinanceTab(name, el) {
 }
 
 function renderFinanceOverview(invoices, bills) {
-  const arOut   = invoices.filter(i=>i.status!=='Paid').reduce((s,i)=>s+i.amount,0);
-  const apOut   = bills.filter(b=>b.status!=='Paid').reduce((s,b)=>s+b.amount,0);
-  const rev     = invoices.filter(i=>i.status==='Paid').reduce((s,i)=>s+i.amount,0);
-  const net     = arOut - apOut;
-  const overdue = invoices.filter(i=>i.status==='Overdue').length;
+  const summary = calcFinanceSummary(invoices, bills);
+  const net     = summary.arOutstanding - summary.apOutstanding;
 
   document.getElementById('finance-stats').innerHTML = `
-    <div class="stat-card"><div class="stat-label">AR Outstanding</div><div class="stat-value" style="font-size:22px">₱${num(arOut)}</div><div class="stat-change">${overdue} overdue invoice${overdue!==1?'s':''}</div></div>
-    <div class="stat-card"><div class="stat-label">AP Outstanding</div><div class="stat-value" style="font-size:22px">₱${num(apOut)}</div><div class="stat-change">${bills.filter(b=>b.status!=='Paid').length} pending bills</div></div>
-    <div class="stat-card"><div class="stat-label">Revenue Collected</div><div class="stat-value" style="font-size:22px">₱${num(rev)}</div><div class="stat-change up">This quarter</div></div>
-    <div class="stat-card"><div class="stat-label">Net Position</div><div class="stat-value" style="font-size:22px${net<0?';color:var(--red)':''}">₱${num(Math.abs(net))}</div><div class="stat-change ${net>=0?'up':''}">${net>=0?'Receivable surplus':'Payable deficit'}</div></div>`;
+    <div class="stat-card"><div class="stat-label">AR Outstanding</div><div class="stat-value" style="font-size:22px">${formatCurrency(summary.arOutstanding)}</div><div class="stat-change">${summary.overdueCount} overdue invoice${summary.overdueCount!==1?'s':''}</div></div>
+    <div class="stat-card"><div class="stat-label">AP Outstanding</div><div class="stat-value" style="font-size:22px">${formatCurrency(summary.apOutstanding)}</div><div class="stat-change">${summary.pendingBillsCount} pending bills</div></div>
+    <div class="stat-card"><div class="stat-label">Revenue Collected</div><div class="stat-value" style="font-size:22px">${formatCurrency(summary.revenueCollected)}</div><div class="stat-change up">This quarter</div></div>
+    <div class="stat-card"><div class="stat-label">Net Position</div><div class="stat-value" style="font-size:22px${net<0?';color:var(--red)':''}">${formatCurrency(Math.abs(net))}</div><div class="stat-change ${net>=0?'up':''}">${net>=0?'Receivable surplus':'Payable deficit'}</div></div>`;
 
   document.getElementById('finance-recent-ar').innerHTML = invoices.slice(0,4).map(i=>`
     <div class="activity-item">
       <div class="activity-dot ${i.status==='Paid'?'green':i.status==='Overdue'?'red':'blue'}"></div>
       <div style="flex:1"><div class="activity-text">${i.client} — ${i.or_num}</div><div class="activity-time">${i.date}</div></div>
       <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-family:'Cormorant Garamond',serif;font-size:14px;font-weight:600">₱${num(i.amount)}</span>
+        <span style="font-family:'Cormorant Garamond',serif;font-size:14px;font-weight:600">${formatCurrency(i.amount)}</span>
         <span class="badge badge-${statusClass(i.status)}">${i.status}</span>
       </div>
     </div>`).join('');
@@ -49,7 +46,7 @@ function renderFinanceOverview(invoices, bills) {
       <div class="activity-dot ${b.status==='Paid'?'green':'blue'}"></div>
       <div style="flex:1"><div class="activity-text">${b.payee}</div><div class="activity-time">${b.date} · EWT ${b.ewt}</div></div>
       <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-family:'Cormorant Garamond',serif;font-size:14px;font-weight:600">₱${num(b.amount)}</span>
+        <span style="font-family:'Cormorant Garamond',serif;font-size:14px;font-weight:600">${formatCurrency(b.amount)}</span>
         <span class="badge badge-${statusClass(b.status)}">${b.status}</span>
       </div>
     </div>`).join('');
@@ -58,13 +55,13 @@ function renderFinanceOverview(invoices, bills) {
 function renderAR(invoices) {
   const total = invoices.reduce((s,i)=>s+i.amount,0);
   const out   = invoices.filter(i=>i.status!=='Paid').reduce((s,i)=>s+i.amount,0);
-  document.getElementById('ar-summary').textContent = `${invoices.length} invoices · ₱${num(total)} total · ₱${num(out)} outstanding`;
+  document.getElementById('ar-summary').textContent = `${invoices.length} invoices · ${formatCurrency(total)} total · ${formatCurrency(out)} outstanding`;
   document.getElementById('ar-tbody').innerHTML = invoices.length
     ? invoices.map(i=>`
         <tr>
           <td style="font-size:11px;color:var(--ink-3)">${i.or_num}</td>
           <td style="font-weight:500;color:var(--ink)">${i.client}</td>
-          <td class="amount-cell">₱${num(i.amount)}</td>
+          <td class="amount-cell">${formatCurrency(i.amount)}</td>
           <td style="font-size:11px;color:var(--ink-3)">${i.date}</td>
           <td style="font-size:11px;color:var(--ink-3)">${i.due}</td>
           <td><span class="badge badge-${statusClass(i.status)}">${i.status}</span></td>
@@ -75,12 +72,12 @@ function renderAR(invoices) {
 function renderAP(bills) {
   const total = bills.reduce((s,b)=>s+b.amount,0);
   const out   = bills.filter(b=>b.status!=='Paid').reduce((s,b)=>s+b.amount,0);
-  document.getElementById('ap-summary').textContent = `${bills.length} bills · ₱${num(total)} total · ₱${num(out)} outstanding`;
+  document.getElementById('ap-summary').textContent = `${bills.length} bills · ${formatCurrency(total)} total · ${formatCurrency(out)} outstanding`;
   document.getElementById('ap-tbody').innerHTML = bills.length
     ? bills.map(b=>`
         <tr>
           <td style="font-weight:500;color:var(--ink)">${b.payee}</td>
-          <td class="amount-cell">₱${num(b.amount)}</td>
+          <td class="amount-cell">${formatCurrency(b.amount)}</td>
           <td style="font-size:11px;color:var(--ink-3)">${b.date}</td>
           <td style="font-size:11px;color:var(--ink-3)">${b.category}</td>
           <td style="font-size:11px;color:var(--ink-3)">${b.ewt}</td>
@@ -95,9 +92,9 @@ function renderPayroll(runs) {
         <tr>
           <td style="font-weight:500;color:var(--ink)">${r.period}</td>
           <td style="font-size:11.5px;color:var(--ink-3)">${r.employees}</td>
-          <td class="amount-cell">₱${num(r.gross)}</td>
-          <td style="font-size:12px;color:var(--ink-3)">₱${num(r.deductions)}</td>
-          <td class="amount-cell">₱${num(r.net)}</td>
+          <td class="amount-cell">${formatCurrency(r.gross)}</td>
+          <td style="font-size:12px;color:var(--ink-3)">${formatCurrency(r.deductions)}</td>
+          <td class="amount-cell">${formatCurrency(r.net)}</td>
           <td><span class="badge badge-${statusClass(r.status)}">${r.status}</span></td>
         </tr>`).join('')
     : `<tr><td colspan="6"><div class="empty-state">No payroll runs yet</div></td></tr>`;
@@ -159,17 +156,17 @@ function openAddInvoice() {
 
 async function saveInvoice() {
   const or_num = document.getElementById('fi-or').value.trim();
-  if (!or_num) { toast('OR number is required','error'); return; }
-  const data = {
+  const err = validateRequired(or_num, 'OR number');
+  if (err) { toast(err, 'error'); return; }
+  const result = await createInvoice({
     id: Date.now(), or_num,
     client: document.getElementById('fi-client').value,
     amount: +document.getElementById('fi-amount').value||0,
     status: document.getElementById('fi-status').value,
     date:   fmtDate(document.getElementById('fi-date').value),
     due:    fmtDate(document.getElementById('fi-due').value),
-  };
-  const { error } = await createInvoice(data);
-  if (error) { toast(error.message,'error'); return; }
+  });
+  if (!result) return;
   toast('Invoice added','success');
   closeModal(); loadFinance();
 }
@@ -194,17 +191,17 @@ function openAddBill() {
 
 async function saveBill() {
   const payee = document.getElementById('fb-payee').value.trim();
-  if (!payee) { toast('Payee is required','error'); return; }
-  const data = {
+  const err = validateRequired(payee, 'Payee');
+  if (err) { toast(err, 'error'); return; }
+  const result = await createBill({
     id: Date.now(), payee,
     amount:   +document.getElementById('fb-amount').value||0,
     category: document.getElementById('fb-category').value,
     ewt:      document.getElementById('fb-ewt').value,
     date:     fmtDate(document.getElementById('fb-date').value),
     status:   document.getElementById('fb-status').value,
-  };
-  const { error } = await createBill(data);
-  if (error) { toast(error.message,'error'); return; }
+  });
+  if (!result) return;
   toast('Bill added','success');
   closeModal(); loadFinance();
 }
@@ -233,17 +230,17 @@ function estimateDeductions() {
 
 async function savePayroll() {
   const period = document.getElementById('pp-period').value.trim();
-  if (!period) { toast('Period is required','error'); return; }
+  const err = validateRequired(period, 'Period');
+  if (err) { toast(err, 'error'); return; }
   const gross = +document.getElementById('pp-gross').value||0;
   const ded   = +document.getElementById('pp-ded').value||0;
-  const data  = {
+  const result = await createPayrollRun({
     id: Date.now(), period,
     employees: +document.getElementById('pp-emp').value||0,
     gross, deductions: ded, net: gross - ded,
     status: document.getElementById('pp-status').value,
-  };
-  const { error } = await createPayrollRun(data);
-  if (error) { toast(error.message,'error'); return; }
+  });
+  if (!result) return;
   toast('Payroll run saved','success');
   closeModal(); loadFinance();
 }

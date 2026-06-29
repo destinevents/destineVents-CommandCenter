@@ -92,11 +92,8 @@ async function taskAction(id, action) {
     }
 
     if (outputLink) {
-      const { error: linkError } = await updateTask(id, { output_link: outputLink });
-      if (linkError) {
-        toast('Error saving output link: ' + linkError.message);
-        return;
-      }
+      const result = await updateTask(id, { output_link: outputLink });
+      if (!result) return;
     }
   }
 
@@ -104,11 +101,10 @@ async function taskAction(id, action) {
   const newStatus = statusMap[action];
   if (!newStatus) return;
 
-  const { error } = await updateTask(id, { status: newStatus, updated_at: new Date().toISOString() });
+  const result = await updateTask(id, { status: newStatus, updated_at: new Date().toISOString() });
+  if (!result) return;
 
-  if (error) { toast('Error updating task: ' + error.message); return; }
-
-  await logAudit('task_status_changed', 'task', id, { new_status: newStatus, action });
+  await logAudit('task_status_changed', 'task', id, { new_status: newStatus, action }, currentUser.id);
 
   closeModal('modal-view-task');
   toast('Task updated!');
@@ -126,12 +122,13 @@ async function populateAddTaskModal() {
 }
 
 async function createTask() {
-  const title    = document.getElementById('nt-title').value.trim();
+  const title = document.getElementById('nt-title').value.trim();
   const assignee = document.getElementById('nt-assignee').value;
-  if(!title || !assignee) { toast('Please fill in required fields'); return; }
+  const err = validateRequired(title, 'Title') || validateRequired(assignee, 'Assignee');
+  if (err) { toast(err, 'error'); return; }
 
   const skillsEl = document.getElementById('nt-skills');
-  const skills   = [...skillsEl.selectedOptions].map(o=>o.value);
+  const skills = [...skillsEl.selectedOptions].map(o=>o.value);
 
   const newTask = {
     title,
@@ -147,8 +144,8 @@ async function createTask() {
     output_link:       ''
   };
 
-  const { error } = await createTask(newTask);
-  if (error) { toast('Error creating task: ' + error.message); return; }
+  const result = await createTask(newTask);
+  if (!result) return;
 
   closeModal('modal-add-task');
   toast('Task created!');
