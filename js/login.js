@@ -33,25 +33,25 @@ async function handleSignIn() {
   errEl.textContent = '';
   if (!email || !pass) { errEl.textContent = 'Email and password required.'; return; }
   setLoading(true);
-  const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+  const { data, error } = await signIn(email, pass);
   setLoading(false);
   if (error) { errEl.textContent = error.message; return; }
-  await sb.auth.refreshSession();
-  const { data: { session: freshSession } } = await sb.auth.getSession();
-  const role = freshSession?.user?.user_metadata?.role || 'intern';
+  await refreshSession();
+  const session = await getSession();
+  const role = session?.user?.user_metadata?.role || 'intern';
   routeByRole(role);
 }
 
 async function handleSignOut() {
-  await sb.auth.signOut();
+  await signOut();
   document.getElementById('login-form').style.display = 'block';
   document.getElementById('role-picker').style.display = 'none';
   document.getElementById('login-error').textContent = '';
 }
 
 async function init() {
-  await sb.auth.refreshSession();
-  const { data: { session } } = await sb.auth.getSession();
+  await refreshSession();
+  const session = await getSession();
   if (session) {
     const role = session.user.user_metadata?.role || 'intern';
     routeByRole(role);

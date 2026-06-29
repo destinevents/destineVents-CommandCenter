@@ -1,0 +1,242 @@
+let currentUser = {};
+let activePage = "dashboard";
+let taskFilter = "all";
+let sheetFilter = "all";
+let sidebarOpen = true;
+let pendingRejectId = null;
+
+let liveUsers = [];
+let liveTasks = [];
+let liveTimesheets = [];
+
+function user(id) { return liveUsers.find(u=>u.id===id)||{}; }
+
+function myTasks() { return liveTasks; }
+
+function mySheets() { return liveTimesheets; }
+
+function pendingApprovals() { return liveTimesheets.filter(t=>t.status==='pending'); }
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2400);
+}
+
+function handleError(context, error) {
+  console.error(`[${context}]`, error);
+  toast(`Something went wrong: ${error?.message || 'Unknown error'}. Try refreshing.`);
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-overlay').forEach(m=>{
+  m.addEventListener('click', e=>{ if(e.target===m) m.classList.remove('open'); });
+});
+
+function applyRoleVisibility() {
+  const isAdmin = currentUser.role==='admin';
+  const isSup   = currentUser.role==='supervisor'||isAdmin;
+  const isIntern= currentUser.role==='intern';
+  document.querySelectorAll('.admin-only').forEach(el=>el.style.display=isAdmin?'':'none');
+  document.querySelectorAll('.supervisor-only').forEach(el=>el.style.display=isSup?'':'none');
+  document.querySelectorAll('.intern-only').forEach(el=>el.style.display=isIntern?'':'none');
+}
+
+function toggleSidebar() {
+  sidebarOpen = !sidebarOpen;
+  const sidebarEl = document.getElementById('sidebar');
+  sidebarEl.classList.toggle('collapsed', !sidebarOpen);
+  document.querySelector('.sb-collapse').textContent = sidebarOpen ? '◀' : '▶';
+}
+
+async function updateBadges() {
+  await loadLiveTimesheets();
+  const count = pendingApprovals().length;
+  document.getElementById('approval-badge').textContent = count;
+  document.getElementById('approval-badge').style.display = count>0?'inline':'none';
+  const nb = document.getElementById('notif-btn');
+  if(nb){ nb.style.display = (currentUser.role!=='intern'&&count>0)?'flex':'none'; }
+  document.getElementById('notif-count').textContent = count;
+}
+
+function setupRealtime() {
+  sb.channel('intern-realtime')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'intern_tasks' }, async () => {
+      await loadLiveTasks();
+      await updateBadges();
+      if (activePage === 'tasks' || activePage === 'dashboard' || activePage === 'outputs') {
+        await renderPage(activePage);
+      }
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'intern_timesheets' }, async () => {
+      await loadLiveTimesheets();
+      await updateBadges();
+      if (activePage === 'timesheets' || activePage === 'dashboard' || activePage === 'approvals') {
+        await renderPage(activePage);
+      }
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'intern_users' }, async () => {
+      await loadLiveUsers();
+      if (activePage === 'interns' || activePage === 'reports') {
+        await renderPage(activePage);
+      }
+    })
+    .subscribe();
+}
+
+async function loadLiveUsers() {
+  const { data, error } = await fetchUsers();
+  if (error) { handleError('loadLiveUsers', error); return; }
+  if (data) liveUsers = data;
+}
+
+async function loadLiveTasks() {
+  const { data, error } = await fetchTasks(currentUser.role, currentUser.id);
+  if (error) { handleError('loadLiveTasks', error); return; }
+  if (data) liveTasks = data;
+}
+
+async function loadLiveTimesheets() {
+  const { data, error } = await fetchTimesheets(currentUser.role, currentUser.id);
+  if (error) { handleError('loadLiveTimesheets', error); return; }
+  if (data) liveTimesheets = data;
+}
+
+async function goPage(page) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+page)?.classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.page===page);
+    const pip = b.querySelector('.pip');
+    if(pip) pip.style.display = b.classList.contains('active')?'block':'none';
+  });
+  activePage = page;
+  const titles = {dashboard:"Dashboard",tasks:"Tasks",timesheets:"Timesheets",outputs:"Output Portfolio",approvals:"Approvals",interns:"Interns",reports:"Reports"};
+  document.getElementById('topbar-title').textContent = titles[page]||page;
+  await renderPage(page);
+}
+
+async function renderPage(page) {
+  const map = {
+    dashboard: renderDashboard,
+    tasks:     renderTasks,
+    timesheets:renderTimesheets,
+    outputs:   renderOutputs,
+    approvals: renderApprovals,
+    interns:   renderInterns,
+    reports:   renderReports,
+  };
+
+  const pageEl = document.getElementById('page-' + page);
+  if (pageEl) {
+    pageEl.innerHTML = `<div class="page-loading"><div class="spinner"></div><div class="loading-text">Loading…</div></div>`;
+  }
+
+  try {
+    await loadLiveTasks();
+    await loadLiveTimesheets();
+    await loadLiveUsers();
+    const fn = map[page];
+    if (fn) await fn();
+  } catch (err) {
+    handleError('renderPage:' + page, err);
+    if (pageEl) {
+      pageEl.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div>Failed to load page. Please refresh.</div>`;
+    }
+  }
+}
+
+document.getElementById('sidebar-nav').addEventListener('click', async e=>{
+  const btn = e.target.closest('.nav-btn');
+  if(btn && btn.dataset.page) await goPage(btn.dataset.page);
+});
+
+document.addEventListener('click', async e=>{
+  const el = e.target.closest('[data-action]');
+  if(!el) return;
+  const a = el.dataset.action;
+  if(a==='signout') { e.preventDefault(); await handleSignOut(); return; }
+  if(a==='toggle-sidebar') { toggleSidebar(); return; }
+  if(a==='go-page') { await goPage(el.dataset.page); return; }
+  if(a==='open-modal') { openModal(el.dataset.modal); return; }
+  if(a==='close-modal') { closeModal(el.dataset.modal); return; }
+  if(a==='create-task') { await createTask(); return; }
+  if(a==='log-hours') { await logHours(); return; }
+  if(a==='confirm-reject') { confirmReject(); return; }
+  if(a==='set-task-filter') { setTaskFilter(el.dataset.filter); return; }
+  if(a==='set-sheet-filter') { setSheetFilter(el.dataset.filter); return; }
+  if(a==='open-task') { openTaskDetail(el.dataset.id); return; }
+  if(a==='task-action') { taskAction(el.dataset.id, el.dataset.taskAction); return; }
+  if(a==='approve-sheet') { await approveSheet(el.dataset.id); return; }
+  if(a==='reject-sheet') { rejectSheet(el.dataset.id); return; }
+  if(a==='export-excel') { exportExcel(el.dataset.id); return; }
+  if(a==='export-pdf') { exportPDF(el.dataset.id); return; }
+});
+
+async function handleSignOut() {
+  await signOut();
+  window.location.href = 'login.html';
+}
+
+async function init() {
+  try {
+    const session = await getSession();
+    if (!session) {
+      window.location.href = 'login.html';
+      return;
+    }
+
+    const { data: profile, error } = await getProfile(session.user.id);
+
+    if (!profile || error) {
+      document.getElementById('page-dashboard').innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;text-align:center;padding:40px">
+          <div style="font-size:48px;margin-bottom:16px">👋</div>
+          <h2 style="margin-bottom:8px">Welcome to Intern Command Center</h2>
+          <p style="color:var(--muted);margin-bottom:24px;max-width:400px">
+            Your profile hasn't been set up yet. Please contact your supervisor or administrator to create your account.
+          </p>
+          <button class="btn-primary" data-action="signout" style="padding:10px 24px">Sign Out</button>
+        </div>`;
+      return;
+    }
+
+    currentUser = {
+      id: profile.id,
+      name: profile.name,
+      email: profile.email,
+      role: profile.role,
+      avatar: profile.avatar || profile.name.slice(0, 2).toUpperCase(),
+      program: profile.program,
+      school: profile.school
+    };
+
+    document.getElementById('topbar-name').textContent = profile.name;
+    document.getElementById('topbar-role').textContent = profile.role;
+    document.getElementById('topbar-avatar').textContent = currentUser.avatar;
+    document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('en-PH', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+
+    document.getElementById('sb-avatar').textContent = currentUser.avatar;
+    document.getElementById('sb-name').textContent   = currentUser.name;
+    document.getElementById('sb-role').textContent   = currentUser.role;
+
+    applyRoleVisibility();
+    await loadLiveUsers();
+    await loadLiveTasks();
+    await loadLiveTimesheets();
+    await populateAddTaskModal();
+    await updateBadges();
+    await renderPage('dashboard');
+    setupRealtime();
+  } catch (err) {
+    handleError('init', err);
+    window.location.href = 'login.html';
+  }
+}
+
+init();
