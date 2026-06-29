@@ -96,14 +96,42 @@ alter table bills        enable row level security;
 alter table payroll_runs enable row level security;
 alter table documents    enable row level security;
 
--- Allow any authenticated user to do everything (internal tool — single team)
-create policy "auth_all" on clients      for all to authenticated using (true) with check (true);
-create policy "auth_all" on proposals    for all to authenticated using (true) with check (true);
-create policy "auth_all" on partners     for all to authenticated using (true) with check (true);
-create policy "auth_all" on invoices     for all to authenticated using (true) with check (true);
-create policy "auth_all" on bills        for all to authenticated using (true) with check (true);
-create policy "auth_all" on payroll_runs for all to authenticated using (true) with check (true);
-create policy "auth_all" on documents    for all to authenticated using (true) with check (true);
+-- Admin-only access — interns/supervisors should not query HQ tables
+drop policy if exists "auth_all" on clients;
+drop policy if exists "auth_all" on proposals;
+drop policy if exists "auth_all" on partners;
+drop policy if exists "auth_all" on invoices;
+drop policy if exists "auth_all" on bills;
+drop policy if exists "auth_all" on payroll_runs;
+drop policy if exists "auth_all" on documents;
+
+create policy "admin_only" on clients      for all to authenticated
+  using ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
+  with check ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+
+create policy "admin_only" on proposals    for all to authenticated
+  using ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
+  with check ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+
+create policy "admin_only" on partners     for all to authenticated
+  using ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
+  with check ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+
+create policy "admin_only" on invoices     for all to authenticated
+  using ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
+  with check ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+
+create policy "admin_only" on bills        for all to authenticated
+  using ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
+  with check ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+
+create policy "admin_only" on payroll_runs for all to authenticated
+  using ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
+  with check ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+
+create policy "admin_only" on documents    for all to authenticated
+  using ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
+  with check ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
 
 -- ─── REALTIME ────────────────────────────────────────────────────────────────
 -- Enable real-time updates for all tables (run this in SQL Editor)

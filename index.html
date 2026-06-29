@@ -113,10 +113,6 @@
   .modal-body { padding:22px; }
   .modal-footer { padding:16px 22px; border-top:1px solid var(--ink-4); display:flex; justify-content:flex-end; gap:8px; }
 
-  /* ─── DEMO BANNER ─── */
-  .demo-banner { background:var(--ink); color:var(--linen); font-size:10px; letter-spacing:0.1em; text-transform:uppercase; text-align:center; padding:6px; display:none; }
-  .demo-banner.visible { display:block; }
-
   /* ─── SIDEBAR ─── */
   .sidebar {
     width:224px; flex-shrink:0; background:var(--linen-2);
@@ -421,7 +417,7 @@
         <input class="form-input" id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')handleSignIn()"/>
       </div>
       <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="handleSignIn()">Sign In</button>
-      <div id="login-demo-note" style="display:none;margin-top:18px;font-size:10px;color:var(--ink-3);text-align:center;letter-spacing:0.05em">No Supabase configured — running in demo mode</div>
+      <div id="login-demo-note" style="display:none;margin-top:18px;font-size:10px;color:var(--ink-3);text-align:center;letter-spacing:0.05em"></div>
     </div>
   </div>
 </div>
@@ -443,9 +439,6 @@
     </div>
   </div>
 </div>
-
-<!-- DEMO BANNER -->
-<div class="demo-banner" id="demo-banner">Demo Mode — data is not saved · Add Supabase config to go live</div>
 
 <!-- SIDEBAR -->
 <aside class="sidebar">
@@ -970,77 +963,19 @@
 // Values moved to config.js — loaded before this script
 // ─────────────────────────────────────────────────────────────────────────────
 
-const DEMO = !SUPABASE_URL || !SUPABASE_ANON_KEY;
-const sb   = DEMO ? null : window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// ─── LOCAL STORAGE ────────────────────────────────────────────────────────────
-function saveLS(key, data) {
-  try { localStorage.setItem('dv_' + key, JSON.stringify(data)); } catch(e) {}
-}
-function loadLS(key, def) {
-  try { const s = localStorage.getItem('dv_' + key); return s ? JSON.parse(s) : def; } catch(e) { return def; }
-}
+// ─── CONSTANTS ───────────────────────────────────────────────────────────────
 
-// ─── DEFAULT DATA ─────────────────────────────────────────────────────────────
-const DEFAULT_CLIENTS = [
-  { id:1, name:'DTI CAR',                  type:'Government', brand:'DestineVents', contact:'Maria Santos',   email:'msantos@dti.gov.ph',         total_value:85000, status:'Active'    },
-  { id:2, name:'Baguio Central University', type:'Education',  brand:'DDC',         contact:'Dr. Reyes',      email:'dreyes@bcu.edu.ph',          total_value:24000, status:'Active'    },
-  { id:3, name:'SM City Baguio',            type:'Corporate',  brand:'DestineVents', contact:'Events Team',    email:'events@smcitybaguio.com.ph', total_value:18500, status:'NDA Signed'},
-  { id:4, name:'As You Are Baguio',         type:'Community',  brand:'AYA',          contact:'AYA Collective', email:'aya@ayabaguio.com',          total_value:12000, status:'Active'    },
-  { id:5, name:'Baguio City LGU',           type:'Government', brand:'DDC',          contact:'City Planning',  email:'planning@baguio.gov.ph',     total_value:5000,  status:'Completed' },
-  { id:6, name:'SIGLAT Youth Hub',          type:'NGO',        brand:'DestineVents', contact:'Youth Coord.',   email:'siglat@gmail.com',           total_value:8000,  status:'Lead'      },
-];
-const DEFAULT_PROPOSALS = [
-  { id:1, name:'DTI CAR MSME Innovation Summit',    client:'DTI CAR',    value:85000, sent:'May 20, 2026', followup:'Jun 7, 2026',  status:'Won'  },
-  { id:2, name:'BCU Digital Confidence Training',   client:'BCU',        value:24000, sent:'May 28, 2026', followup:'Jun 5, 2026',  status:'Sent' },
-  { id:3, name:'SIGLAT Youth Leadership Camp',      client:'SIGLAT',     value:15000, sent:'May 10, 2026', followup:'May 24, 2026', status:'Lost' },
-  { id:4, name:'SM City Baguio Events Partnership', client:'SM Baguio',  value:18500, sent:'May 15, 2026', followup:'Jun 2, 2026',  status:'Won'  },
-  { id:5, name:'Cordillera Agri Forum 2026',        client:'Baguio LGU', value:30000, sent:'Jun 1, 2026',  followup:'Jun 15, 2026', status:'Sent' },
-];
-const DEFAULT_PARTNERS = [
-  { id:1,  name:'Baguio Central University', type:'School',  contact:'Dr. Reyes',       email:'dreyes@bcu.edu.ph'          },
-  { id:2,  name:'SLU School of Business',    type:'School',  contact:'Dean Villanueva', email:'business@slu.edu.ph'        },
-  { id:3,  name:'DTI CAR',                   type:'LGU',     contact:'Maria Santos',    email:'msantos@dti.gov.ph'         },
-  { id:4,  name:'Baguio City LGU',           type:'LGU',     contact:'City Planning',   email:'planning@baguio.gov.ph'     },
-  { id:5,  name:'BLISTT Consortium',         type:'LGU',     contact:'Exec. Director',  email:'blistt@gov.ph'              },
-  { id:6,  name:'SIGLAT Youth Hub',          type:'NGO',     contact:'Youth Coord.',    email:'siglat@gmail.com'           },
-  { id:7,  name:'As You Are Baguio',         type:'NGO',     contact:'AYA Collective',  email:'aya@ayabaguio.com'          },
-  { id:8,  name:'SM City Baguio',            type:'Sponsor', contact:'Events Team',     email:'events@smcitybaguio.com.ph' },
-  { id:9,  name:'Baguio Midland Courier',    type:'Media',   contact:'Editor in Chief', email:'editor@midlandcourier.com'  },
-  { id:10, name:'Cordillera Today',          type:'Media',   contact:'News Desk',       email:'news@cordilleratoday.com'   },
-];
-const DEFAULT_DOCUMENTS = [
-  { id:1, name:'SM City Baguio — NDA Signed.pdf', type:'NDA',       size:'142 KB', date:'Jun 2, 2026'  },
-  { id:2, name:'DTI CAR — Event Agreement.pdf',   type:'Contract',  size:'287 KB', date:'May 20, 2026' },
-  { id:3, name:'BCU Training — Proposal.pdf',     type:'Proposal',  size:'94 KB',  date:'May 28, 2026' },
-  { id:4, name:'AYA Baguio — MOU 2026.pdf',       type:'Agreement', size:'201 KB', date:'Apr 15, 2026' },
-];
-const DEFAULT_INVOICES = [
-  { id:1, or_num:'OR-2026-001', client:'DTI CAR',    amount:42500, date:'May 20, 2026', due:'Jun 20, 2026', status:'Paid'    },
-  { id:2, or_num:'OR-2026-002', client:'SM Baguio',  amount:9250,  date:'Jun 2, 2026',  due:'Jul 2, 2026',  status:'Unpaid'  },
-  { id:3, or_num:'OR-2026-003', client:'BCU',        amount:12000, date:'Jun 1, 2026',  due:'Jul 1, 2026',  status:'Unpaid'  },
-  { id:4, or_num:'OR-2026-004', client:'AYA Baguio', amount:6000,  date:'Apr 15, 2026', due:'May 15, 2026', status:'Overdue' },
-];
-const DEFAULT_BILLS = [
-  { id:1, payee:'Venue — Camp John Hay',      amount:15000, date:'May 15, 2026', category:'Venue',     ewt:'0%',  status:'Paid'   },
-  { id:2, payee:'Catering — Tradisyon',       amount:8500,  date:'May 20, 2026', category:'Catering',  ewt:'2%',  status:'Paid'   },
-  { id:3, payee:'AV Equipment Rental',        amount:5000,  date:'Jun 1, 2026',  category:'Equipment', ewt:'2%',  status:'Unpaid' },
-  { id:4, payee:'Graphic Design — Freelance', amount:3500,  date:'Jun 2, 2026',  category:'Services',  ewt:'10%', status:'Unpaid' },
-];
-const DEFAULT_PAYROLL = [
-  { id:1, period:'May 2026', employees:3, gross:45000, deductions:6750, net:38250, status:'Released' },
-  { id:2, period:'Apr 2026', employees:3, gross:45000, deductions:6750, net:38250, status:'Released' },
-  { id:3, period:'Mar 2026', employees:2, gross:30000, deductions:4500, net:25500, status:'Released' },
-];
 
 // ─── LIVE DATA (localStorage-backed) ─────────────────────────────────────────
-let _clients   = loadLS('clients',   DEFAULT_CLIENTS);
-let _proposals = loadLS('proposals', DEFAULT_PROPOSALS);
-let _partners  = loadLS('partners',  DEFAULT_PARTNERS);
-let _documents = loadLS('documents', DEFAULT_DOCUMENTS);
-let _invoices  = loadLS('invoices',  DEFAULT_INVOICES);
-let _bills     = loadLS('bills',     DEFAULT_BILLS);
-let _payroll   = loadLS('payroll',   DEFAULT_PAYROLL);
+let _clients   = [];
+let _proposals = [];
+let _partners  = [];
+let _documents = [];
+let _invoices  = [];
+let _bills     = [];
+let _payroll   = [];
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 const num = n =>(+(n)||0).toLocaleString('en-PH');
@@ -1106,10 +1041,6 @@ function saveModal() { if (_onSave) _onSave(); }
 
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
 async function init() {
-  if (DEMO) {
-    enterApp('jenn@destinevents.biz');
-    return;
-  }
   const { data:{ session } } = await sb.auth.getSession();
   if (session) {
     const role = session.user.user_metadata?.role || 'intern';
@@ -1144,7 +1075,7 @@ function enterApp(email, name) {
     if (sav) sav.textContent = initials;
     if (sem) sem.textContent = email;
   }
-  const savedKey = loadLS('anthropic_key', '');
+  const savedKey = '';
   if (savedKey) { const k = document.getElementById('ai-api-key'); if (k) k.value = savedKey; }
   setupRealtime();
   showPage('dashboard');
@@ -1152,7 +1083,7 @@ function enterApp(email, name) {
 
 // ─── REALTIME ─────────────────────────────────────────────────────────────────
 function setupRealtime() {
-  if (DEMO || !sb) return;
+  if (!sb) return;
 
   // Which page to reload when each table changes
   const pageMap = {
@@ -1201,7 +1132,6 @@ async function handleSignIn() {
 }
 
 async function handleSignOut() {
-  if (DEMO) { toast('Running in demo mode'); return; }
   await sb.auth.signOut();
   location.reload();
 }
@@ -1243,10 +1173,8 @@ function filterTable(input, tbodyId) {
 
 // ─── CLIENTS ─────────────────────────────────────────────────────────────────
 async function loadClients() {
-  if (!DEMO) {
-    const { data } = await sb.from('clients').select('*').order('name');
-    if (data) { _clients = data; saveLS('clients', _clients); }
-  }
+  const { data } = await sb.from('clients').select('*').order('name');
+  if (data) { _clients = data; }
   renderClients(_clients);
 }
 
@@ -1297,24 +1225,16 @@ async function saveClient() {
     email:   document.getElementById('fc-email').value,
     total_value: 0,
   };
-  if (DEMO) {
-    _clients.push(data);
-    saveLS('clients', _clients);
-    toast('Client added','success');
-  } else {
-    const { error } = await sb.from('clients').insert(data);
-    if (error) { toast(error.message,'error'); return; }
-    toast('Client added','success');
-  }
+  const { error } = await sb.from('clients').insert(data);
+  if (error) { toast(error.message,'error'); return; }
+  toast('Client added','success');
   closeModal(); loadClients();
 }
 
 // ─── PROPOSALS ───────────────────────────────────────────────────────────────
 async function loadProposals() {
-  if (!DEMO) {
-    const { data } = await sb.from('proposals').select('*').order('sent',{ascending:false});
-    if (data) { _proposals = data; saveLS('proposals', _proposals); }
-  }
+  const { data } = await sb.from('proposals').select('*').order('sent',{ascending:false});
+  if (data) { _proposals = data; }
   renderProposals(_proposals);
 }
 
@@ -1373,30 +1293,22 @@ async function saveProposal() {
     followup: fmtDate(document.getElementById('fp-followup').value),
     status:   document.getElementById('fp-status').value,
   };
-  if (DEMO) {
-    _proposals.push(data);
-    saveLS('proposals', _proposals);
-    toast('Proposal added','success');
-  } else {
-    const { error } = await sb.from('proposals').insert(data);
-    if (error) { toast(error.message,'error'); return; }
-    toast('Proposal added','success');
-  }
+  const { error } = await sb.from('proposals').insert(data);
+  if (error) { toast(error.message,'error'); return; }
+  toast('Proposal added','success');
   closeModal(); loadProposals();
 }
 
 // ─── FINANCE ─────────────────────────────────────────────────────────────────
 async function loadFinance() {
-  if (!DEMO) {
-    const [inv, bil, pay] = await Promise.all([
-      sb.from('invoices').select('*').order('date',{ascending:false}),
-      sb.from('bills').select('*').order('date',{ascending:false}),
-      sb.from('payroll_runs').select('*').order('period',{ascending:false}),
-    ]);
-    if (inv.data) { _invoices = inv.data; saveLS('invoices', _invoices); }
-    if (bil.data) { _bills    = bil.data; saveLS('bills',    _bills);    }
-    if (pay.data) { _payroll  = pay.data; saveLS('payroll',  _payroll);  }
-  }
+  const [inv, bil, pay] = await Promise.all([
+    sb.from('invoices').select('*').order('date',{ascending:false}),
+    sb.from('bills').select('*').order('date',{ascending:false}),
+    sb.from('payroll_runs').select('*').order('period',{ascending:false}),
+  ]);
+  if (inv.data) { _invoices = inv.data; }
+  if (bil.data) { _bills    = bil.data; }
+  if (pay.data) { _payroll  = pay.data; }
   renderFinanceOverview(_invoices, _bills);
   renderAR(_invoices);
   renderAP(_bills);
@@ -1558,8 +1470,9 @@ async function saveInvoice() {
     date:   fmtDate(document.getElementById('fi-date').value),
     due:    fmtDate(document.getElementById('fi-due').value),
   };
-  if (DEMO) { _invoices.unshift(data); saveLS('invoices', _invoices); toast('Invoice added','success'); }
-  else { const{error}=await sb.from('invoices').insert(data); if(error){toast(error.message,'error');return;} toast('Invoice added','success'); }
+  const { error } = await sb.from('invoices').insert(data);
+  if (error) { toast(error.message,'error'); return; }
+  toast('Invoice added','success');
   closeModal(); loadFinance();
 }
 
@@ -1592,8 +1505,9 @@ async function saveBill() {
     date:     fmtDate(document.getElementById('fb-date').value),
     status:   document.getElementById('fb-status').value,
   };
-  if (DEMO) { _bills.unshift(data); saveLS('bills', _bills); toast('Bill added','success'); }
-  else { const{error}=await sb.from('bills').insert(data); if(error){toast(error.message,'error');return;} toast('Bill added','success'); }
+  const { error } = await sb.from('bills').insert(data);
+  if (error) { toast(error.message,'error'); return; }
+  toast('Bill added','success');
   closeModal(); loadFinance();
 }
 
@@ -1630,17 +1544,16 @@ async function savePayroll() {
     gross, deductions: ded, net: gross - ded,
     status: document.getElementById('pp-status').value,
   };
-  if (DEMO) { _payroll.unshift(data); saveLS('payroll', _payroll); toast('Payroll run saved','success'); }
-  else { const{error}=await sb.from('payroll_runs').insert(data); if(error){toast(error.message,'error');return;} toast('Payroll run saved','success'); }
+  const { error } = await sb.from('payroll_runs').insert(data);
+  if (error) { toast(error.message,'error'); return; }
+  toast('Payroll run saved','success');
   closeModal(); loadFinance();
 }
 
 // ─── PARTNERS ────────────────────────────────────────────────────────────────
 async function loadPartners() {
-  if (!DEMO) {
-    const { data } = await sb.from('partners').select('*').order('name');
-    if (data) { _partners = data; saveLS('partners', _partners); }
-  }
+  const { data } = await sb.from('partners').select('*').order('name');
+  if (data) { _partners = data; }
   renderPartners(_partners);
 }
 
@@ -1683,17 +1596,16 @@ async function savePartner() {
     contact: document.getElementById('fpr-contact').value,
     email:   document.getElementById('fpr-email').value,
   };
-  if (DEMO) { _partners.push(data); saveLS('partners', _partners); toast('Partner added','success'); }
-  else { const{error}=await sb.from('partners').insert(data); if(error){toast(error.message,'error');return;} toast('Partner added','success'); }
+  const { error } = await sb.from('partners').insert(data);
+  if (error) { toast(error.message,'error'); return; }
+  toast('Partner added','success');
   closeModal(); loadPartners();
 }
 
 // ─── DOCUMENTS ───────────────────────────────────────────────────────────────
 async function loadDocuments() {
-  if (!DEMO) {
-    const { data } = await sb.from('documents').select('*').order('created_at',{ascending:false});
-    if (data) { _documents = data; saveLS('documents', _documents); }
-  }
+  const { data } = await sb.from('documents').select('*').order('created_at',{ascending:false});
+  if (data) { _documents = data; }
   renderDocuments(_documents);
 }
 
@@ -1717,19 +1629,6 @@ function handleFileSelect(files) {
   if (!files||!files.length) return;
   const file = files[0];
   document.getElementById('file-input').value = '';
-  if (DEMO) {
-    _documents.unshift({
-      id:   Date.now(),
-      name: file.name,
-      type: guessDocType(file.name),
-      size: formatBytes(file.size),
-      date: new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),
-    });
-    saveLS('documents', _documents);
-    toast('File logged to vault (demo — not uploaded to server)','success');
-    renderDocuments(_documents);
-    return;
-  }
   uploadToStorage(file);
 }
 
@@ -1808,7 +1707,6 @@ function npFinish() {
 
   if (!_clients.find(c =>c.name.toLowerCase() === client.toLowerCase())) {
     _clients.push({ id:Date.now(), name:client, type:'Corporate', brand, contact, email, total_value:0, status:'NDA Signed' });
-    saveLS('clients', _clients);
   }
 
   const c2 = document.getElementById('np-circle-2'); c2.className='step-circle done'; c2.textContent='✓';
@@ -1860,13 +1758,9 @@ function downloadNDA() {
 }
 
 // ─── AI ASSISTANT ─────────────────────────────────────────────────────────────
-function loadAIPage() {
-  const saved = loadLS('anthropic_key','');
-  const k = document.getElementById('ai-api-key');
-  if (k && saved) k.value = saved;
-}
+function loadAIPage() {}
 
-function saveAIKey(val) { saveLS('anthropic_key', val.trim()); }
+function saveAIKey(val) {}
 
 function selectTemplate(el) {
   document.querySelectorAll('.ai-template').forEach(t=>t.classList.remove('selected'));
@@ -1893,7 +1787,7 @@ function buildAIPrompt(template, client, project, context) {
 }
 
 async function simulateAI() {
-  const apiKey  = loadLS('anthropic_key','');
+  const apiKey  = '';
   const client  = document.getElementById('ai-client').value.trim();
   const project = document.getElementById('ai-project').value.trim();
   const context = document.getElementById('ai-context').value.trim();
