@@ -161,6 +161,7 @@ document.addEventListener('click', async e=>{
   if(a==='reject-sheet') { rejectSheet(el.dataset.id); return; }
   if(a==='export-excel') { exportExcel(el.dataset.id); return; }
   if(a==='export-pdf') { exportPDF(el.dataset.id); return; }
+  if(a==='switch-to-hq') { window.location.href = 'index.html'; return; }
 });
 
 async function handleSignOut() {
