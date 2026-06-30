@@ -219,36 +219,37 @@ function checkPasswordReqs() {
 
 // ── Change Password ───────────────────────────────────────
 async function changePassword() {
-  const current = document.getElementById('cp-current').value;
-  const newPwd  = document.getElementById('cp-new').value;
-  const confirm = document.getElementById('cp-confirm').value;
-
-  if (!current) { toast('Current password is required.'); return; }
-  if (!newPwd)  { toast('New password is required.'); return; }
-  if (newPwd !== confirm) { toast('Passwords do not match.'); return; }
-
   const btn = document.getElementById('cp-save-btn');
-  btn.disabled = true;
-  btn.textContent = 'Updating…';
-
   try {
-    const { error } = await updatePassword(currentUser.email, current, newPwd);
+    const current = document.getElementById('cp-current').value;
+    const newPwd  = document.getElementById('cp-new').value;
+    const confirm = document.getElementById('cp-confirm').value;
+
+    if (!current) { toast('Current password is required.'); return; }
+    if (!newPwd)  { toast('New password is required.'); return; }
+    if (newPwd !== confirm) { toast('Passwords do not match.'); return; }
+
+    if (btn) { btn.disabled = true; btn.textContent = 'Updating…'; }
+
+    const { error } = await updatePassword(current, newPwd);
     if (error) {
       toast(error.message || 'Failed to update password.');
-      btn.disabled = false;
-      btn.textContent = 'Update Password';
+      if (btn) { btn.disabled = false; btn.textContent = 'Update Password'; }
       return;
     }
 
     toast('Password updated successfully!');
-    document.getElementById('cp-current').value = '';
-    document.getElementById('cp-new').value     = '';
-    document.getElementById('cp-confirm').value = '';
+    const curEl = document.getElementById('cp-current');
+    const newEl = document.getElementById('cp-new');
+    const conEl = document.getElementById('cp-confirm');
+    if (curEl) curEl.value = '';
+    if (newEl) newEl.value = '';
+    if (conEl) conEl.value = '';
     checkPasswordReqs();
-    btn.textContent = 'Update Password';
+    if (btn) btn.textContent = 'Update Password';
   } catch (err) {
+    console.error('changePassword error:', err);
     toast('Something went wrong. Try again.');
-    btn.disabled = false;
-    btn.textContent = 'Update Password';
+    if (btn) { btn.disabled = false; btn.textContent = 'Update Password'; }
   }
 }

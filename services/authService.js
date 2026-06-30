@@ -92,9 +92,12 @@ async function updateProfile(userId, updates) {
   }
 }
 
-async function updatePassword(email, currentPassword, newPassword) {
+async function updatePassword(currentPassword, newPassword) {
   try {
-    // Verify current password by re-authenticating
+    const { data: { session } } = await sb.auth.getSession();
+    const email = session?.user?.email;
+    if (!email) return { error: { message: 'Session expired. Please sign in again.' } };
+
     const { error: authErr } = await sb.auth.signInWithPassword({ email, password: currentPassword });
     if (authErr) return { error: { message: 'Current password is incorrect.' } };
 
@@ -103,6 +106,7 @@ async function updatePassword(email, currentPassword, newPassword) {
 
     return { error: null };
   } catch (err) {
+    logger.error('authService.updatePassword', err.message, err);
     return { error: err };
   }
 }
