@@ -6,11 +6,17 @@ const PW_RULES = [
   { id: 'req-special', test: p => /[^A-Za-z0-9]/.test(p),   label: 'At least one special character' },
 ];
 
+function pwField(id, placeholder) {
+  return `<div class="pw-wrap">
+              <input class="form-input" id="${id}" type="password" placeholder="${placeholder}"/>
+              <button type="button" class="pw-toggle-btn" data-target="${id}">Show</button>
+            </div>`;
+}
+
 async function renderAccount() {
   const el = document.getElementById('page-account');
-  const authUser = await getAuthUser();
-  const joinedDate = authUser?.created_at
-    ? new Date(authUser.created_at).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })
+  const joinedDate = currentUser.created_at
+    ? new Date(currentUser.created_at).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })
     : '—';
 
   const infoRows = [
@@ -100,27 +106,18 @@ async function renderAccount() {
         <div class="acc-form">
           <div class="form-group">
             <label class="form-label">Current Password <span class="req">*</span></label>
-            <div class="pw-wrap">
-              <input class="form-input" id="cp-current" type="password" placeholder="Enter current password"/>
-              <button type="button" class="pw-toggle-btn" data-target="cp-current">Show</button>
-            </div>
+            ${pwField('cp-current', 'Enter current password')}
           </div>
           <div class="form-group">
             <label class="form-label">New Password <span class="req">*</span></label>
-            <div class="pw-wrap">
-              <input class="form-input" id="cp-new" type="password" placeholder="Enter new password"/>
-              <button type="button" class="pw-toggle-btn" data-target="cp-new">Show</button>
-            </div>
+            ${pwField('cp-new', 'Enter new password')}
             <ul class="pw-reqs" id="pw-reqs">
               ${PW_RULES.map(r => `<li class="pw-req pw-req-fail" id="${r.id}">${r.label}</li>`).join('')}
             </ul>
           </div>
           <div class="form-group">
             <label class="form-label">Confirm New Password <span class="req">*</span></label>
-            <div class="pw-wrap">
-              <input class="form-input" id="cp-confirm" type="password" placeholder="Repeat new password"/>
-              <button type="button" class="pw-toggle-btn" data-target="cp-confirm">Show</button>
-            </div>
+            ${pwField('cp-confirm', 'Repeat new password')}
             <span class="acc-hint" id="cp-match-msg"></span>
           </div>
         </div>
@@ -190,14 +187,13 @@ function checkPasswordReqs() {
   const pwd     = document.getElementById('cp-new').value;
   const confirm = document.getElementById('cp-confirm').value;
 
-  let allPass = true;
-  PW_RULES.forEach(rule => {
+  const allPass = PW_RULES.every(rule => {
     const el = document.getElementById(rule.id);
-    if (!el) return;
+    if (!el) return true;
     const pass = rule.test(pwd);
-    if (!pass) allPass = false;
     el.classList.toggle('pw-req-pass', pass);
     el.classList.toggle('pw-req-fail', !pass);
+    return pass;
   });
 
   const matchEl = document.getElementById('cp-match-msg');
@@ -231,7 +227,7 @@ async function changePassword() {
 
     if (btn) { btn.disabled = true; btn.textContent = 'Updating…'; }
 
-    const { error } = await updatePassword(current, newPwd);
+    const { error } = await updatePassword(currentUser.email, current, newPwd);
     if (error) {
       toast(error.message || 'Failed to update password.');
       if (btn) { btn.disabled = false; btn.textContent = 'Update Password'; }
@@ -239,12 +235,7 @@ async function changePassword() {
     }
 
     toast('Password updated successfully!');
-    const curEl = document.getElementById('cp-current');
-    const newEl = document.getElementById('cp-new');
-    const conEl = document.getElementById('cp-confirm');
-    if (curEl) curEl.value = '';
-    if (newEl) newEl.value = '';
-    if (conEl) conEl.value = '';
+    ['cp-current', 'cp-new', 'cp-confirm'].forEach(id => { document.getElementById(id).value = ''; });
     checkPasswordReqs();
     if (btn) btn.textContent = 'Update Password';
   } catch (err) {

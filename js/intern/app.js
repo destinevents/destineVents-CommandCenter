@@ -1,6 +1,7 @@
 let currentUser = {};
 let activePage = "dashboard";
 let sheetFilter = "all";
+let taskFilter  = "all";
 let sidebarOpen = true;
 let pendingRejectId = null;
 

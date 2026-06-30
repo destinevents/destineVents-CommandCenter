@@ -92,12 +92,9 @@ async function updateProfile(userId, updates) {
   }
 }
 
-async function updatePassword(currentPassword, newPassword) {
+async function updatePassword(email, currentPassword, newPassword) {
+  if (!email) return { error: { message: 'Session expired. Please sign in again.' } };
   try {
-    const { data: { session } } = await sb.auth.getSession();
-    const email = session?.user?.email;
-    if (!email) return { error: { message: 'Session expired. Please sign in again.' } };
-
     const { error: authErr } = await sb.auth.signInWithPassword({ email, password: currentPassword });
     if (authErr) return { error: { message: 'Current password is incorrect.' } };
 

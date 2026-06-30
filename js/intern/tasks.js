@@ -1,5 +1,3 @@
-let taskFilter = 'all';
-
 async function renderTasks() {
   const tasks = myTasks();
   document.getElementById('task-count-label').textContent = `${tasks.length} total tasks`;

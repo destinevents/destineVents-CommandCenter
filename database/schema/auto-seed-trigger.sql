@@ -50,7 +50,7 @@ select
   coalesce(au.raw_user_meta_data->>'full_name', au.raw_user_meta_data->>'name', split_part(au.email,'@',1)),
   au.email,
   coalesce(au.raw_user_meta_data->>'role', 'intern'),
-  upper(left(coalesce(au.raw_user_meta_data->>'full_name', au.raw_user_meta_data->>'name', au.email), 2)),
+  upper(left(coalesce(au.raw_user_meta_data->>'full_name', au.raw_user_meta_data->>'name', split_part(au.email,'@',1)), 2)),
   au.raw_user_meta_data->>'program',
   au.raw_user_meta_data->>'school'
 from auth.users au
