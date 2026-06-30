@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Sign Up — DestineVents</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&family=Dancing+Script:wght@600;700&display=swap" rel="stylesheet"/>
+<script src="config/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<link rel="stylesheet" href="css/login.css"/>
+<link rel="stylesheet" href="css/components/login.css"/>
+<link rel="stylesheet" href="css/components/form.css"/>
+<link rel="stylesheet" href="css/components/button.css"/>
+<link rel="stylesheet" href="css/components/layout.css"/>
+</head>
+<body>
+
+<div class="login-screen">
+  <div class="login-brand">
+    <div class="lb-logo">
+      <div style="display:flex;align-items:baseline;gap:0;line-height:1">
+        <span class="lb-script">destine</span>
+        <span class="lb-sans">vents</span>
+      </div>
+      <div class="lb-divider"></div>
+      <div class="lb-tagline">Collective OPC · Baguio City</div>
+    </div>
+    <div class="lb-quote">
+      Join the team.<br>
+      <strong>Your journey starts here.</strong>
+    </div>
+    <div class="lb-footer">DestineVents Collective OPC · Internal Tool</div>
+  </div>
+
+  <div class="login-form-wrap">
+    <div class="login-box">
+      <div class="login-greeting">Create account.</div>
+      <div class="login-sub">Fill in your details to get started</div>
+      <div class="login-error" id="signup-error"></div>
+
+      <div class="form-group" style="margin-bottom:12px">
+        <label class="form-label" for="su-name">Full Name <span style="color:var(--red)">*</span></label>
+        <input class="form-input" id="su-name" type="text" placeholder="Juan dela Cruz" autocomplete="name"/>
+      </div>
+      <div class="form-group" style="margin-bottom:12px">
+        <label class="form-label" for="su-email">Email <span style="color:var(--red)">*</span></label>
+        <input class="form-input" id="su-email" type="email" placeholder="you@destinevents.biz" autocomplete="email"/>
+      </div>
+      <div class="form-group" style="margin-bottom:12px">
+        <label class="form-label" for="su-phone">CP Number <span style="color:var(--red)">*</span></label>
+        <input class="form-input" id="su-phone" type="tel" placeholder="09XXXXXXXXX" autocomplete="tel"/>
+      </div>
+      <div class="form-group" style="margin-bottom:24px">
+        <label class="form-label" for="su-pass">Password <span style="color:var(--red)">*</span></label>
+        <input class="form-input" id="su-pass" type="password" placeholder="••••••••" autocomplete="new-password" onkeydown="if(event.key==='Enter')handleSignUp()"/>
+      </div>
+
+      <button class="btn btn-primary" id="signup-btn" onclick="handleSignUp()" style="width:100%;margin-bottom:16px">Create Account</button>
+      <div style="text-align:center;font-size:11px;color:var(--ink-3)">
+        Already have an account?
+        <a href="login.html" style="color:var(--ink);font-weight:600;text-decoration:none">Sign in</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="services/supabase.js"></script>
+<script src="services/authService.js"></script>
+<script src="utils/errorHandler.js"></script>
+<script src="utils/logger.js"></script>
+<script src="js/signup.js"></script>
+</body>
+</html>

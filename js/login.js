@@ -1,28 +1,11 @@
 function setLoading(loading) {
   const btn = document.getElementById('login-btn');
-  const signupBtn = document.getElementById('signup-btn');
   if (loading) {
     btn.classList.add('btn-loading');
     btn.disabled = true;
-    signupBtn.disabled = true;
   } else {
     btn.classList.remove('btn-loading');
     btn.disabled = false;
-    signupBtn.disabled = false;
-  }
-}
-
-function setSignUpLoading(loading) {
-  const btn = document.getElementById('signup-btn');
-  const loginBtn = document.getElementById('login-btn');
-  if (loading) {
-    btn.classList.add('btn-loading');
-    btn.disabled = true;
-    loginBtn.disabled = true;
-  } else {
-    btn.classList.remove('btn-loading');
-    btn.disabled = false;
-    loginBtn.disabled = false;
   }
 }
 
@@ -60,26 +43,6 @@ async function handleSignIn() {
     routeByRole(role);
   } finally {
     setLoading(false);
-  }
-}
-
-async function handleSignUp() {
-  const email = document.getElementById('login-email').value.trim();
-  const pass = document.getElementById('login-pass').value;
-  const errEl = document.getElementById('login-error');
-  errEl.textContent = '';
-  if (!email || !pass) { errEl.textContent = 'Email and password required.'; return; }
-  setSignUpLoading(true);
-  try {
-    const { data, error } = await signUp(email, pass);
-    if (error) {
-      errEl.textContent = error.message || 'Sign up failed. Please try again.';
-      return;
-    }
-    errEl.style.color = '#10b981';
-    errEl.textContent = 'Account created! Check your email to confirm before signing in.';
-  } finally {
-    setSignUpLoading(false);
   }
 }
 

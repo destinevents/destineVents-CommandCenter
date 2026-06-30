@@ -1,6 +1,9 @@
-async function signUp(email, password) {
+async function signUp(email, password, meta = {}) {
   try {
-    const { data, error } = await sb.auth.signUp({ email, password });
+    const { data, error } = await sb.auth.signUp({
+      email, password,
+      options: { data: meta }
+    });
     if (error) return { data: null, error };
     return { data, error: null };
   } catch (err) {
