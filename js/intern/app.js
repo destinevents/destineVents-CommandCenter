@@ -108,7 +108,7 @@ async function goPage(page) {
     if(pip) pip.style.display = b.classList.contains('active')?'block':'none';
   });
   activePage = page;
-  const titles = {dashboard:"Dashboard",tasks:"Tasks",timesheets:"Timesheets",outputs:"Output Portfolio",approvals:"Approvals",interns:"Interns",reports:"Reports"};
+  const titles = {dashboard:"Dashboard",tasks:"Tasks",timesheets:"Timesheets",outputs:"Output Portfolio",approvals:"Approvals",interns:"Interns",reports:"Reports",account:"Account Settings"};
   document.getElementById('topbar-title').textContent = titles[page]||page;
   await renderPage(page);
 }
@@ -124,6 +124,7 @@ async function renderPage(page) {
     approvals: renderApprovals,
     interns:   renderInterns,
     reports:   renderReports,
+    account:   renderAccount,
   };
 
   try {

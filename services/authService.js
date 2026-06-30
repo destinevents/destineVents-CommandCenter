@@ -65,3 +65,44 @@ async function getCurrentUser() {
     role: session.user.user_metadata?.role || profile?.role || ROLES.INTERN,
   };
 }
+
+async function getAuthUser() {
+  try {
+    const { data: { user } } = await sb.auth.getUser();
+    return user;
+  } catch (err) {
+    logger.error('authService.getAuthUser', err.message, err);
+    return null;
+  }
+}
+
+async function updateProfile(userId, updates) {
+  try {
+    const { error: dbErr } = await sb.from('intern_users')
+      .update(updates)
+      .eq('id', userId);
+    if (dbErr) return { error: dbErr };
+
+    const { error: metaErr } = await sb.auth.updateUser({ data: updates });
+    if (metaErr) return { error: metaErr };
+
+    return { error: null };
+  } catch (err) {
+    return { error: err };
+  }
+}
+
+async function updatePassword(email, currentPassword, newPassword) {
+  try {
+    // Verify current password by re-authenticating
+    const { error: authErr } = await sb.auth.signInWithPassword({ email, password: currentPassword });
+    if (authErr) return { error: { message: 'Current password is incorrect.' } };
+
+    const { error: updateErr } = await sb.auth.updateUser({ password: newPassword });
+    if (updateErr) return { error: updateErr };
+
+    return { error: null };
+  } catch (err) {
+    return { error: err };
+  }
+}

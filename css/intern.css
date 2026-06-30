@@ -327,6 +327,151 @@ textarea.form-input { resize: vertical; min-height: 100px; }
 .see-all { font-size: 11px; color: var(--gold); background: none; border: none; cursor: pointer; font-weight: 600; font-family: inherit; }
 .task-link-tag { font-size: 11px; color: var(--indigo); font-weight: 600; margin-top: 4px; }
 
+/* ─── ACCOUNT SETTINGS ─── */
+.acc-hero {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 28px 28px;
+  margin-bottom: 20px;
+  background: var(--forest);
+  border-radius: 16px;
+}
+.acc-avatar-xl {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--gold);
+  color: var(--forest);
+  font-size: 26px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: 1px;
+  border: 3px solid rgba(255,255,255,0.2);
+}
+.acc-hero-name {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--cream);
+  letter-spacing: 0.01em;
+}
+.acc-hero-meta {
+  font-size: 12px;
+  color: var(--gold);
+  margin-top: 4px;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.acc-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.acc-card { border-radius: 16px; }
+.acc-card-head { margin-bottom: 20px; }
+.acc-card-head h3 {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--forest);
+  margin: 0 0 4px;
+}
+.acc-card-head p {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0;
+}
+.acc-form { display: flex; flex-direction: column; gap: 16px; }
+.acc-card-footer {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+.acc-readonly {
+  background: var(--bg) !important;
+  color: var(--muted) !important;
+  cursor: not-allowed;
+}
+.acc-hint {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+  display: block;
+}
+
+/* Profile info rows */
+.acc-info-list { display: flex; flex-direction: column; gap: 0; }
+.acc-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.acc-info-row:last-child { border-bottom: none; }
+.acc-info-label {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+  min-width: 120px;
+}
+.acc-info-value {
+  font-size: 13px;
+  color: var(--forest);
+  font-weight: 600;
+  text-align: right;
+  word-break: break-word;
+}
+
+/* Password field */
+.pw-wrap { position: relative; display: flex; align-items: center; }
+.pw-wrap .form-input { flex: 1; padding-right: 64px; }
+.pw-toggle-btn {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--forest);
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-family: inherit;
+}
+.pw-toggle-btn:hover { background: rgba(37,47,39,0.08); }
+
+/* Password requirements */
+.pw-reqs {
+  list-style: none;
+  padding: 10px 0 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.pw-req {
+  font-size: 11.5px;
+  font-weight: 500;
+  padding-left: 18px;
+  position: relative;
+}
+.pw-req::before {
+  content: '○';
+  position: absolute;
+  left: 0;
+  font-size: 10px;
+}
+.pw-req-fail { color: var(--muted); }
+.pw-req-pass { color: var(--green); }
+.pw-req-pass::before { content: '✓'; }
+
+/* Required asterisk */
+.req { color: var(--red); margin-left: 2px; }
+
 @media (max-width: 768px) {
   #sidebar { width: 60px; }
   #sidebar .sb-logo-text, #sidebar .label, #sidebar .nav-badge, #sidebar .sb-section-label, #sidebar .rname, #sidebar .rrole { display: none; }
@@ -334,4 +479,6 @@ textarea.form-input { resize: vertical; min-height: 100px; }
   #topbar { padding: 12px 16px; }
   .kanban { grid-template-columns: repeat(5, 200px); }
   .grid2, .grid3, .grid4 { grid-template-columns: 1fr; }
+  .acc-hero { flex-direction: column; text-align: center; padding: 24px 20px; }
+  .acc-info-label { min-width: 90px; }
 }
