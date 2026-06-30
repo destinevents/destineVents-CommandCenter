@@ -269,7 +269,7 @@
             <option value="landing_page">Landing Page</option>
           </select>
         </div>
-        <div class="form-group">
+        <div class="form-group" style="grid-column:1/-1">
           <label class="form-label">Skills Tagged</label>
           <div class="skill-picker" id="nt-skills-picker"></div>
           <select id="nt-skills" multiple style="display:none"></select>
@@ -320,20 +320,18 @@
         <label class="form-label">Activity Description <span class="req">*</span></label>
         <textarea class="form-input" id="lh-activity" rows="3" placeholder="Describe what you worked on…"></textarea>
       </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Industry Category</label>
-          <select class="form-input" id="lh-cat">
-            <option value="">Select…</option>
-            <option>Technology</option><option>Design</option><option>Marketing</option>
-            <option>Operations</option><option>Research</option><option>Events</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Skills Demonstrated</label>
-          <div class="skill-picker" id="lh-skills-picker"></div>
-          <select id="lh-skills" multiple style="display:none"></select>
-        </div>
+      <div class="form-group" style="margin-bottom:16px">
+        <label class="form-label">Industry Category</label>
+        <select class="form-input" id="lh-cat">
+          <option value="">Select…</option>
+          <option>Technology</option><option>Design</option><option>Marketing</option>
+          <option>Operations</option><option>Research</option><option>Events</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Skills Demonstrated</label>
+        <div class="skill-picker" id="lh-skills-picker"></div>
+        <select id="lh-skills" multiple style="display:none"></select>
       </div>
     </div>
     <div class="modal-footer">

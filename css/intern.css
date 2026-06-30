@@ -208,7 +208,11 @@ nav { flex: 1; padding: 10px 8px; display: flex; flex-direction: column; gap: 2p
 
 /* ─── MODAL ALIGNMENT (all sections locked to 24px horizontal) ─── */
 .modal-body  { padding: 20px 24px 24px; }
-.modal-footer { padding: 16px 24px; }
+.modal-footer {
+  padding: 16px 24px;
+  position: sticky; bottom: 0;
+  background: var(--white); z-index: 1;
+}
 #modal-task-body { padding: 20px 24px 24px; }
 
 /* ─── SURFACE ─── */
