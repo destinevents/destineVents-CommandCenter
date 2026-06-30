@@ -26,7 +26,7 @@ async function handleSignUp() {
 
   setLoading(true);
   try {
-    const { data, error } = await signUp(email, pass, { name, phone });
+    const { data, error } = await signUp(email, pass, { name, phone, role: 'intern' });
     if (error) {
       errEl.textContent = error.message || 'Sign up failed. Please try again.';
       return;
