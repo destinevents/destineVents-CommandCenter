@@ -245,8 +245,9 @@ nav { flex: 1; padding: 10px 8px; display: flex; flex-direction: column; gap: 2p
 #modal-task-body { padding: 24px 28px 28px; background: #f9fafb; }
 
 /* ─── FORM INPUT POLISH ─── */
-/* Enforce uniform height across input, select, date, number */
-.form-input { min-height: 44px; }
+/* Enforce uniform height with border-box so height = total visual height (incl. padding + border).
+   Applies to input and select only — textarea uses min-height below. */
+input.form-input, select.form-input { height: 44px; box-sizing: border-box; }
 
 /* Green focus ring — overrides form.css default */
 .form-input:focus {
