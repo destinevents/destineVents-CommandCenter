@@ -1,5 +1,5 @@
 async function renderDashboard() {
-  const first = currentUser.name.split(' ')[0];
+  const first = (currentUser.name || 'there').split(' ')[0];
   document.getElementById('dash-greeting').textContent = `Good day, ${first} 👋`;
   document.getElementById('dash-date').textContent = new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 

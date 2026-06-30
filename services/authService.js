@@ -61,6 +61,7 @@ async function getCurrentUser() {
     ...session.user,
     ...(profile || {}),
     id: session.user.id,
+    name: profile?.name || session.user.user_metadata?.name || null,
     role: session.user.user_metadata?.role || profile?.role || ROLES.INTERN,
   };
 }

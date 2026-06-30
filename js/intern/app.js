@@ -114,6 +114,8 @@ async function goPage(page) {
 }
 
 async function renderPage(page) {
+  if (!currentUser.id) return;
+
   const map = {
     dashboard: renderDashboard,
     tasks:     renderTasks,
