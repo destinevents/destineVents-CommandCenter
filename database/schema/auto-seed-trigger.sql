@@ -4,19 +4,32 @@
 -- no more FK constraint errors when new users try to log timesheets.
 
 -- Step 1: trigger function
+-- Handles both 'name' (signup form) and 'full_name' (manual SQL seeds) metadata keys.
+-- Also writes program and school captured at signup.
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
 security definer set search_path = public
 as $$
+declare
+  v_name text;
 begin
-  insert into public.intern_users (id, name, email, role, avatar)
+  -- signup.js sends 'name'; manual seeds use 'full_name' — check both
+  v_name := coalesce(
+    new.raw_user_meta_data->>'full_name',
+    new.raw_user_meta_data->>'name',
+    split_part(new.email,'@',1)
+  );
+
+  insert into public.intern_users (id, name, email, role, avatar, program, school)
   values (
     new.id,
-    coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email,'@',1)),
+    v_name,
     new.email,
     coalesce(new.raw_user_meta_data->>'role', 'intern'),
-    upper(left(coalesce(new.raw_user_meta_data->>'full_name', new.email), 2))
+    upper(left(v_name, 2)),
+    new.raw_user_meta_data->>'program',
+    new.raw_user_meta_data->>'school'
   )
   on conflict (id) do nothing;
   return new;
@@ -30,14 +43,16 @@ create trigger on_auth_user_created
   for each row execute procedure public.handle_new_user();
 
 -- Step 3: back-fill any existing auth users not yet in intern_users
--- (fixes the new user you just added, and any others in the same state)
-insert into intern_users (id, name, email, role, avatar)
+-- (fixes users who signed up before the trigger was active)
+insert into intern_users (id, name, email, role, avatar, program, school)
 select
   au.id,
-  coalesce(au.raw_user_meta_data->>'full_name', split_part(au.email,'@',1)),
+  coalesce(au.raw_user_meta_data->>'full_name', au.raw_user_meta_data->>'name', split_part(au.email,'@',1)),
   au.email,
   coalesce(au.raw_user_meta_data->>'role', 'intern'),
-  upper(left(coalesce(au.raw_user_meta_data->>'full_name', au.email), 2))
+  upper(left(coalesce(au.raw_user_meta_data->>'full_name', au.raw_user_meta_data->>'name', au.email), 2)),
+  au.raw_user_meta_data->>'program',
+  au.raw_user_meta_data->>'school'
 from auth.users au
 where not exists (
   select 1 from intern_users iu where iu.id = au.id
