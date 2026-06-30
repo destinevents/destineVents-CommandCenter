@@ -33,13 +33,16 @@ async function handleSignIn() {
   errEl.textContent = '';
   if (!email || !pass) { errEl.textContent = 'Email and password required.'; return; }
   setLoading(true);
-  const { data, error } = await signIn(email, pass);
-  setLoading(false);
-  if (error) { errEl.textContent = error.message; return; }
-  await refreshSession();
-  const session = await getSession();
-  const role = session?.user?.user_metadata?.role || 'intern';
-  routeByRole(role);
+  try {
+    const { data, error } = await signIn(email, pass);
+    if (error) { errEl.textContent = error.message; return; }
+    const role = data?.user?.user_metadata?.role || 'intern';
+    routeByRole(role);
+  } catch (err) {
+    errEl.textContent = 'Sign in failed. Please try again.';
+  } finally {
+    setLoading(false);
+  }
 }
 
 async function handleSignOut() {
@@ -50,7 +53,6 @@ async function handleSignOut() {
 }
 
 async function init() {
-  await refreshSession();
   const session = await getSession();
   if (session) {
     const role = session.user.user_metadata?.role || 'intern';
