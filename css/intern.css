@@ -33,8 +33,8 @@
   --input-radius: 8px;
   --input-bg: var(--white);
   --input-border: 1.5px solid #d1d5db;
-  --input-padding: 10px 12px;
-  --input-font-size: 13px;
+  --input-padding: 11px 14px;
+  --input-font-size: 13.5px;
 
   --modal-radius: 16px;
   --modal-bg: var(--white);
@@ -48,7 +48,7 @@
   --modal-overlay-bg: rgba(0,0,0,0.45);
   --modal-blur: none;
   --modal-z: 1000;
-  --modal-header-padding: 20px 24px;
+  --modal-header-padding: 22px 28px;
   --modal-header-bg: var(--white);
   --modal-border: none;
   --modal-close-size: 22px;
@@ -228,24 +228,42 @@ nav { flex: 1; padding: 10px 8px; display: flex; flex-direction: column; gap: 2p
 .skill-tag:hover { border-color: var(--forest); color: var(--forest); background: var(--white); }
 .skill-tag.selected { background: #eef2ff; border-color: #6366f1; color: #4f46e5; }
 
-/* ─── MODAL ALIGNMENT (all sections locked to 24px horizontal) ─── */
+/* ─── MODAL ALIGNMENT (all sections locked to 28px horizontal) ─── */
 .modal-body {
-  padding: 20px 24px 24px;
+  padding: 24px 28px 28px;
   background: var(--bg);
   border-radius: 0 0 var(--modal-radius) var(--modal-radius);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
 }
 .modal-footer {
-  padding: 16px 24px;
+  padding: 16px 28px;
   position: sticky; bottom: 0;
   background: var(--white); z-index: 1;
 }
-#modal-task-body { padding: 20px 24px 24px; background: #f9fafb; }
+#modal-task-body { padding: 24px 28px 28px; background: #f9fafb; }
 
-/* prevent textarea from resizing horizontally and overflowing */
-textarea.form-input { resize: vertical; }
+/* ─── FORM INPUT POLISH ─── */
+/* Enforce uniform height across input, select, date, number */
+.form-input { min-height: 44px; }
+
+/* Green focus ring — overrides form.css default */
+.form-input:focus {
+  border-color: var(--forest);
+  box-shadow: 0 0 0 3px rgba(37, 47, 39, 0.12);
+}
+
+/* Extra right padding for the native date-picker calendar icon */
+input[type="date"].form-input { padding-right: 40px; }
+
+/* Textarea: taller default, vertical-only resize */
+textarea.form-input { resize: vertical; min-height: 100px; }
+
+/* ─── RESPONSIVE: stack Date / Hours on narrow screens ─── */
+@media (max-width: 480px) {
+  .form-row { grid-template-columns: 1fr; }
+}
 
 /* ─── SURFACE ─── */
 .surface { background: var(--white); border-radius: 12px; border: 1px solid var(--border); }
