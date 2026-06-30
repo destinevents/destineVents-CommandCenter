@@ -211,6 +211,9 @@ nav { flex: 1; padding: 10px 8px; display: flex; flex-direction: column; gap: 2p
   padding: 20px 24px 24px;
   background: var(--bg);
   border-radius: 0 0 var(--modal-radius) var(--modal-radius);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 .modal-footer {
   padding: 16px 24px;
