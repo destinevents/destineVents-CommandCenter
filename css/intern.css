@@ -186,6 +186,28 @@ nav { flex: 1; padding: 10px 8px; display: flex; flex-direction: column; gap: 2p
 @keyframes spin-page { to { transform: rotate(360deg); } }
 .loading-text { font-size: 12px; color: var(--faint); font-weight: 500; }
 
+/* ─── FILTER TABS ─── */
+.filter-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.filter-tab {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border);
+  background: var(--white);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+  line-height: 1.4;
+}
+.filter-tab:hover { border-color: var(--forest); color: var(--forest); }
+.filter-tab.active { background: var(--forest); border-color: var(--forest); color: var(--cream); }
+
 /* ─── SKILL PILLS ─── */
 .skill-pill { background: #eef2ff; color: #6366f1; border-radius: 999px; padding: 2px 9px; font-size: 10px; font-weight: 600; }
 .skill-pill-green { background: #f0fdf4; color: #16a34a; border-radius: 999px; padding: 2px 9px; font-size: 10px; font-weight: 600; }
