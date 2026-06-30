@@ -32,7 +32,7 @@
 
   --input-radius: 8px;
   --input-bg: var(--white);
-  --input-border: 1.5px solid #e5e7eb;
+  --input-border: 1.5px solid #d1d5db;
   --input-padding: 10px 12px;
   --input-font-size: 13px;
 
@@ -192,9 +192,9 @@ nav { flex: 1; padding: 10px 8px; display: flex; flex-direction: column; gap: 2p
 
 /* ─── SKILL PICKER ─── */
 .skill-picker {
-  display: flex; flex-wrap: wrap; gap: 6px;
-  padding: 10px 12px; min-height: 48px;
-  border: 1.5px solid #e5e7eb; border-radius: 8px;
+  display: flex; flex-wrap: wrap; gap: 8px;
+  padding: 12px 14px; min-height: 48px;
+  border: 1.5px solid #d1d5db; border-radius: 8px;
   background: var(--white);
 }
 .skill-tag {
@@ -207,13 +207,23 @@ nav { flex: 1; padding: 10px 8px; display: flex; flex-direction: column; gap: 2p
 .skill-tag.selected { background: #eef2ff; border-color: #6366f1; color: #4f46e5; }
 
 /* ─── MODAL ALIGNMENT (all sections locked to 24px horizontal) ─── */
-.modal-body  { padding: 20px 24px 24px; }
+.modal-body {
+  padding: 20px 24px 24px;
+  background: #f9fafb;
+  border-radius: 0 0 var(--modal-radius) var(--modal-radius);
+}
 .modal-footer {
   padding: 16px 24px;
   position: sticky; bottom: 0;
   background: var(--white); z-index: 1;
 }
-#modal-task-body { padding: 20px 24px 24px; }
+#modal-task-body { padding: 20px 24px 24px; background: #f9fafb; }
+
+/* form-row inside modals: more gap so adjacent inputs look separate */
+.modal-body .form-row { gap: 16px; row-gap: 16px; }
+
+/* prevent textarea from resizing horizontally and overflowing */
+textarea.form-input { resize: vertical; }
 
 /* ─── SURFACE ─── */
 .surface { background: var(--white); border-radius: 12px; border: 1px solid var(--border); }
