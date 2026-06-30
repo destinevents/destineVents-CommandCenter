@@ -32,7 +32,7 @@ on conflict (id) do update set
 
 -- Mary Keirstin Ante — intern, IT, BSU
 insert into intern_users (id, name, email, role, avatar, program, school)
-select id, 'Mary Keirstin Ante', email, 'intern', 'MK', 'IT', 'BSU'
+select id, 'Mary Keirstin Ante', email, 'intern', 'MK', 'IT', 'UC'
 from auth.users
 where email = 'marykeirstin.ante@example.com'
 on conflict (id) do update set
@@ -45,7 +45,7 @@ on conflict (id) do update set
 
 -- Derick Myles Mercado — intern, IT, BSU
 insert into intern_users (id, name, email, role, avatar, program, school)
-select id, 'Derick Myles Mercado', email, 'intern', 'DM', 'IT', 'BSU'
+select id, 'Derick Myles Mercado', email, 'intern', 'DM', 'IT', 'UC'
 from auth.users
 where email = 'derickmyles.mercado@example.com'
 on conflict (id) do update set

@@ -1,6 +1,5 @@
 let currentUser = {};
 let activePage = "dashboard";
-let taskFilter = "all";
 let sheetFilter = "all";
 let sidebarOpen = true;
 let pendingRejectId = null;
@@ -153,7 +152,6 @@ document.addEventListener('click', async e=>{
   if(a==='create-task') { await createTask(); return; }
   if(a==='log-hours') { await logHours(); return; }
   if(a==='confirm-reject') { confirmReject(); return; }
-  if(a==='set-task-filter') { setTaskFilter(el.dataset.filter); return; }
   if(a==='set-sheet-filter') { setSheetFilter(el.dataset.filter); return; }
   if(a==='open-task') { openTaskDetail(el.dataset.id); return; }
   if(a==='task-action') { taskAction(el.dataset.id, el.dataset.taskAction); return; }

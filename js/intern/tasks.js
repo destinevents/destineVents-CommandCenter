@@ -2,11 +2,6 @@ async function renderTasks() {
   const tasks = myTasks();
   document.getElementById('task-count-label').textContent = `${tasks.length} total tasks`;
 
-  const labelMap = { all:'All' };
-  KANBAN_COLS.forEach(c => { labelMap[c] = STATUS_LABELS[c] || c; });
-  renderFilterTabs('task-filters', ['all', ...KANBAN_COLS], taskFilter, 'set-task-filter', 'filter', labelMap);
-
-  const filtered = taskFilter==='all' ? tasks : tasks.filter(t=>t.status===taskFilter);
   document.getElementById('kanban-board').innerHTML = KANBAN_COLS.map(col=>{
     const colTasks = tasks.filter(t=>t.status===col);
     return `<div class="kan-col">
@@ -26,7 +21,6 @@ async function renderTasks() {
   }).join('');
 }
 
-async function setTaskFilter(f) { taskFilter = f; await renderTasks(); }
 
 function openTaskDetail(id) {
   const t = liveTasks.find(x=>x.id===id);
