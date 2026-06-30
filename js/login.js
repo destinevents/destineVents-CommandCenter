@@ -35,11 +35,12 @@ async function handleSignIn() {
   setLoading(true);
   try {
     const { data, error } = await signIn(email, pass);
-    if (error) { errEl.textContent = error.message; return; }
+    if (error) {
+      errEl.textContent = error.message || 'Sign in failed. Please try again.';
+      return;
+    }
     const role = data?.user?.user_metadata?.role || 'intern';
     routeByRole(role);
-  } catch (err) {
-    errEl.textContent = 'Sign in failed. Please try again.';
   } finally {
     setLoading(false);
   }

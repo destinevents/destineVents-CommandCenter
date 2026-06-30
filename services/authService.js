@@ -1,7 +1,11 @@
 async function signIn(email, password) {
-  const { data, error } = await sb.auth.signInWithPassword({ email, password });
-  if (error) return { data: null, error, userMessage: handleAuthError(error) };
-  return { data, error: null };
+  try {
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) return { data: null, error };
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: err };
+  }
 }
 
 async function signOut() {
