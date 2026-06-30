@@ -48,7 +48,7 @@
   --modal-overlay-bg: rgba(0,0,0,0.45);
   --modal-blur: none;
   --modal-z: 1000;
-  --modal-header-padding: 0 0 20px 0;
+  --modal-header-padding: 20px 24px;
   --modal-header-bg: var(--white);
   --modal-border: none;
   --modal-close-size: 22px;
@@ -206,8 +206,10 @@ nav { flex: 1; padding: 10px 8px; display: flex; flex-direction: column; gap: 2p
 .skill-tag:hover { border-color: var(--forest); color: var(--forest); background: var(--white); }
 .skill-tag.selected { background: #eef2ff; border-color: #6366f1; color: #4f46e5; }
 
-/* ─── MODAL BODY PADDING ─── */
-.modal-body { padding: 22px 24px; }
+/* ─── MODAL ALIGNMENT (all sections locked to 24px horizontal) ─── */
+.modal-body  { padding: 20px 24px 24px; }
+.modal-footer { padding: 16px 24px; }
+#modal-task-body { padding: 20px 24px 24px; }
 
 /* ─── SURFACE ─── */
 .surface { background: var(--white); border-radius: 12px; border: 1px solid var(--border); }
