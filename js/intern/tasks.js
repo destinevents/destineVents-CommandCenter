@@ -114,7 +114,7 @@ async function populateAddTaskModal() {
   renderSkillPicker('nt-skills-picker', 'nt-skills');
 }
 
-async function createTask() {
+async function handleCreateTask() {
   const title = document.getElementById('nt-title').value.trim();
   const assignee = document.getElementById('nt-assignee').value;
   const err = validateRequired(title, 'Title') || validateRequired(assignee, 'Assignee');

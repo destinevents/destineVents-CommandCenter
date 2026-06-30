@@ -151,7 +151,7 @@ document.addEventListener('click', async e=>{
   if(a==='go-page') { await goPage(el.dataset.page); return; }
   if(a==='open-modal') { openModal(el.dataset.modal); return; }
   if(a==='close-modal') { closeModal(el.dataset.modal); return; }
-  if(a==='create-task') { await createTask(); return; }
+  if(a==='create-task') { await handleCreateTask(); return; }
   if(a==='log-hours') { await logHours(); return; }
   if(a==='confirm-reject') { confirmReject(); return; }
   if(a==='set-sheet-filter') { setSheetFilter(el.dataset.filter); return; }
