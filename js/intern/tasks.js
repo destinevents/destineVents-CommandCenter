@@ -111,8 +111,7 @@ async function populateAddTaskModal() {
   const intern_select = document.getElementById('nt-assignee');
   intern_select.innerHTML = '<option value="">Select intern…</option>' +
     liveUsers.filter(u=>u.role==='intern').map(u=>`<option value="${u.id}">${u.name}</option>`).join('');
-  const skills_select = document.getElementById('nt-skills');
-  skills_select.innerHTML = SKILL_LIST.map(s=>`<option value="${s}">${s}</option>`).join('');
+  renderSkillPicker('nt-skills-picker', 'nt-skills');
 }
 
 async function createTask() {
@@ -144,6 +143,7 @@ async function createTask() {
   closeModal('modal-add-task');
   toast('Task created!');
   ['nt-title','nt-desc','nt-due'].forEach(id => document.getElementById(id).value = '');
+  resetSkillPicker('nt-skills-picker');
   await renderTasks();
   await renderDashboard();
 }

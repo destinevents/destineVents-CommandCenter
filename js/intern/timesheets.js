@@ -41,7 +41,7 @@ async function renderTimesheets() {
   const lhTask = document.getElementById('lh-task');
   lhTask.innerHTML = '<option value="">None</option>' +
     myTasks().map(t=>`<option value="${t.id}">${escapeHtml(t.title)}</option>`).join('');
-  document.getElementById('lh-skills').innerHTML = SKILL_LIST.map(s=>`<option value="${s}">${s}</option>`).join('');
+  renderSkillPicker('lh-skills-picker', 'lh-skills');
 }
 
 async function setSheetFilter(f) { sheetFilter = f; await renderTimesheets(); }
@@ -143,6 +143,7 @@ async function logHours() {
   if (logBtn) { logBtn.disabled = false; logBtn.textContent = 'Save Entry'; }
   toast('Hours logged! Pending approval.');
   ['lh-date','lh-hours','lh-activity'].forEach(id => document.getElementById(id).value = '');
+  resetSkillPicker('lh-skills-picker');
   await updateBadges();
   await renderTimesheets();
   await renderDashboard();

@@ -223,50 +223,57 @@
       <span class="modal-title" id="modal-add-task-title">Create New Task</span>
       <button class="modal-close" data-action="close-modal" data-modal="modal-add-task" aria-label="Close dialog">×</button>
     </div>
-    <div class="form-row">
-      <div class="form-group" style="grid-column:1/-1">
-        <label class="form-label" for="nt-title">Task Title <span class="req">*</span></label>
-        <input class="form-input" id="nt-title" placeholder="e.g. Build Landing Page" />
-      </div>
-      <div class="form-group" style="grid-column:1/-1">
-        <label class="form-label" for="nt-desc">Description</label>
-        <textarea class="form-input" id="nt-desc" rows="3" placeholder="What needs to be done…"></textarea>
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="nt-assignee">Assign To <span class="req">*</span></label>
-        <select class="form-input" id="nt-assignee"></select>
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="nt-priority">Priority</label>
-        <select class="form-input" id="nt-priority">
-          <option value="high">High</option>
-          <option value="medium" selected>Medium</option>
-          <option value="low">Low</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Due Date</label>
-        <input type="date" class="form-input" id="nt-due" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Industry Category</label>
-        <select class="form-input" id="nt-cat">
-          <option value="">Select…</option>
-          <option>Technology</option><option>Design</option><option>Marketing</option>
-          <option>Operations</option><option>Research</option><option>Events</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Output Type</label>
-        <select class="form-input" id="nt-outtype">
-          <option value="">Select…</option>
-          <option>code</option><option>design</option><option>video</option>
-          <option>document</option><option>automation</option><option>landing_page</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Skills Tagged</label>
-        <select class="form-input" id="nt-skills" multiple style="height:90px"></select>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label" for="nt-title">Task Title <span class="req">*</span></label>
+          <input class="form-input" id="nt-title" placeholder="e.g. Build Landing Page" />
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label" for="nt-desc">Description</label>
+          <textarea class="form-input" id="nt-desc" rows="3" placeholder="What needs to be done…"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="nt-assignee">Assign To <span class="req">*</span></label>
+          <select class="form-input" id="nt-assignee"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="nt-priority">Priority</label>
+          <select class="form-input" id="nt-priority">
+            <option value="high">High</option>
+            <option value="medium" selected>Medium</option>
+            <option value="low">Low</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Due Date</label>
+          <input type="date" class="form-input" id="nt-due" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Industry Category</label>
+          <select class="form-input" id="nt-cat">
+            <option value="">Select…</option>
+            <option>Technology</option><option>Design</option><option>Marketing</option>
+            <option>Operations</option><option>Research</option><option>Events</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Output Type</label>
+          <select class="form-input" id="nt-outtype">
+            <option value="">Select…</option>
+            <option value="code">Code</option>
+            <option value="design">Design</option>
+            <option value="video">Video</option>
+            <option value="document">Document</option>
+            <option value="automation">Automation</option>
+            <option value="landing_page">Landing Page</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Skills Tagged</label>
+          <div class="skill-picker" id="nt-skills-picker"></div>
+          <select id="nt-skills" multiple style="display:none"></select>
+        </div>
       </div>
     </div>
     <div class="modal-footer">
@@ -294,36 +301,39 @@
       <span class="modal-title" id="modal-log-hours-title">Log Work Hours</span>
       <button class="modal-close" data-action="close-modal" data-modal="modal-log-hours" aria-label="Close dialog">×</button>
     </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label" for="lh-date">Date <span class="req">*</span></label>
-        <input type="date" class="form-input" id="lh-date" />
+    <div class="modal-body">
+      <div class="form-row" style="margin-bottom:14px">
+        <div class="form-group">
+          <label class="form-label" for="lh-date">Date <span class="req">*</span></label>
+          <input type="date" class="form-input" id="lh-date" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="lh-hours">Hours Worked <span class="req">*</span></label>
+          <input type="number" class="form-input" id="lh-hours" placeholder="e.g. 4" min="0.5" max="10" step="0.5" />
+        </div>
       </div>
-      <div class="form-group">
-        <label class="form-label" for="lh-hours">Hours Worked <span class="req">*</span></label>
-        <input type="number" class="form-input" id="lh-hours" placeholder="e.g. 8" min="0.5" max="10" step="0.5" />
+      <div class="form-group" style="margin-bottom:14px">
+        <label class="form-label" for="lh-task">Linked Task (optional)</label>
+        <select class="form-input" id="lh-task"></select>
       </div>
-    </div>
-    <div class="form-group">
-      <label class="form-label" for="lh-task">Linked Task (optional)</label>
-      <select class="form-input" id="lh-task"></select>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Activity Description <span class="req">*</span></label>
-      <textarea class="form-input" id="lh-activity" rows="3" placeholder="Describe what you worked on…"></textarea>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">Industry Category</label>
-        <select class="form-input" id="lh-cat">
-          <option value="">Select…</option>
-          <option>Technology</option><option>Design</option><option>Marketing</option>
-          <option>Operations</option><option>Research</option><option>Events</option>
-        </select>
+      <div class="form-group" style="margin-bottom:14px">
+        <label class="form-label">Activity Description <span class="req">*</span></label>
+        <textarea class="form-input" id="lh-activity" rows="3" placeholder="Describe what you worked on…"></textarea>
       </div>
-      <div class="form-group">
-        <label class="form-label">Skills Demonstrated</label>
-        <select class="form-input" id="lh-skills" multiple style="height:80px"></select>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Industry Category</label>
+          <select class="form-input" id="lh-cat">
+            <option value="">Select…</option>
+            <option>Technology</option><option>Design</option><option>Marketing</option>
+            <option>Operations</option><option>Research</option><option>Events</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Skills Demonstrated</label>
+          <div class="skill-picker" id="lh-skills-picker"></div>
+          <select id="lh-skills" multiple style="display:none"></select>
+        </div>
       </div>
     </div>
     <div class="modal-footer">
@@ -384,6 +394,7 @@
 <script src="js/shared/components/badge.js"></script>
 <script src="js/shared/components/userChip.js"></script>
 <script src="js/shared/components/filterTabs.js"></script>
+<script src="js/shared/components/skillPicker.js"></script>
 <script src="js/intern/app.js"></script>
 <script src="js/intern/dashboard.js"></script>
 <script src="js/intern/tasks.js"></script>
