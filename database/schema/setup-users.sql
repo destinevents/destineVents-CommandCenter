@@ -82,5 +82,22 @@ on conflict (id) do update set
   program = excluded.program,
   school  = excluded.school;
 
--- 3. Verification query
+-- 3. Catch-all: seed any auth user not yet in intern_users
+-- Fixes interns whose real signup email doesn't match a placeholder above.
+-- Uses full_name / role from user_metadata when available; falls back to email prefix.
+-- program/school will be NULL and can be updated manually afterward.
+insert into intern_users (id, name, email, role, avatar)
+select
+  au.id,
+  coalesce(au.raw_user_meta_data->>'full_name', split_part(au.email,'@',1)),
+  au.email,
+  coalesce(au.raw_user_meta_data->>'role', 'intern'),
+  upper(left(coalesce(au.raw_user_meta_data->>'full_name', au.email), 2))
+from auth.users au
+where not exists (
+  select 1 from intern_users iu where iu.id = au.id
+)
+on conflict (id) do nothing;
+
+-- 4. Verification query
 select name, email, role, avatar, program, school from intern_users order by role, name;
