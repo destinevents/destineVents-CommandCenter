@@ -46,7 +46,10 @@
         <label class="form-label" for="login-pass">Password</label>
         <input class="form-input" id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')handleSignIn()"/>
       </div>
-      <button class="btn btn-primary" id="login-btn" onclick="handleSignIn()">Sign In</button>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-primary" id="login-btn" onclick="handleSignIn()">Sign In</button>
+        <button class="btn btn-primary" id="signup-btn" onclick="handleSignUp()">Sign Up</button>
+      </div>
     </div>
 
     <!-- Role Picker (shown after admin login) -->

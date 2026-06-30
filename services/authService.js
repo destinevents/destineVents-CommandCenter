@@ -1,3 +1,13 @@
+async function signUp(email, password) {
+  try {
+    const { data, error } = await sb.auth.signUp({ email, password });
+    if (error) return { data: null, error };
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: err };
+  }
+}
+
 async function signIn(email, password) {
   try {
     const { data, error } = await sb.auth.signInWithPassword({ email, password });
