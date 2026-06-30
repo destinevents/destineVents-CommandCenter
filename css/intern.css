@@ -209,7 +209,7 @@ nav { flex: 1; padding: 10px 8px; display: flex; flex-direction: column; gap: 2p
 /* ─── MODAL ALIGNMENT (all sections locked to 24px horizontal) ─── */
 .modal-body {
   padding: 20px 24px 24px;
-  background: #f9fafb;
+  background: var(--bg);
   border-radius: 0 0 var(--modal-radius) var(--modal-radius);
 }
 .modal-footer {
@@ -218,9 +218,6 @@ nav { flex: 1; padding: 10px 8px; display: flex; flex-direction: column; gap: 2p
   background: var(--white); z-index: 1;
 }
 #modal-task-body { padding: 20px 24px 24px; background: #f9fafb; }
-
-/* form-row inside modals: more gap so adjacent inputs look separate */
-.modal-body .form-row { gap: 16px; row-gap: 16px; }
 
 /* prevent textarea from resizing horizontally and overflowing */
 textarea.form-input { resize: vertical; }
