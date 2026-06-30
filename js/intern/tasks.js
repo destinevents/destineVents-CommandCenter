@@ -1,8 +1,19 @@
+let taskFilter = 'all';
+
 async function renderTasks() {
   const tasks = myTasks();
   document.getElementById('task-count-label').textContent = `${tasks.length} total tasks`;
 
-  document.getElementById('kanban-board').innerHTML = KANBAN_COLS.map(col=>{
+  const tabs = ['all', ...KANBAN_COLS];
+  document.getElementById('task-filters').innerHTML = tabs.map(t => {
+    const label = t === 'all' ? 'All' : STATUS_LABELS[t];
+    const count = t === 'all' ? tasks.length : tasks.filter(x => x.status === t).length;
+    return `<button class="filter-tab${taskFilter===t ? ' active' : ''}" data-action="set-task-filter" data-filter="${t}">${label} (${count})</button>`;
+  }).join('');
+
+  const visibleCols = taskFilter === 'all' ? KANBAN_COLS : [taskFilter];
+
+  document.getElementById('kanban-board').innerHTML = visibleCols.map(col=>{
     const colTasks = tasks.filter(t=>t.status===col);
     return `<div class="kan-col">
       <div class="kan-col-header">
@@ -19,6 +30,11 @@ async function renderTasks() {
         </div>`).join('')}
     </div>`;
   }).join('');
+}
+
+async function setTaskFilter(f) {
+  taskFilter = f;
+  await renderTasks();
 }
 
 

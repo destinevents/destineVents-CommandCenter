@@ -156,6 +156,7 @@ document.addEventListener('click', async e=>{
   if(a==='log-hours') { await logHours(); return; }
   if(a==='confirm-reject') { confirmReject(); return; }
   if(a==='set-sheet-filter') { setSheetFilter(el.dataset.filter); return; }
+  if(a==='set-task-filter') { await setTaskFilter(el.dataset.filter); return; }
   if(a==='open-task') { openTaskDetail(el.dataset.id); return; }
   if(a==='task-action') { taskAction(el.dataset.id, el.dataset.taskAction); return; }
   if(a==='approve-sheet') { await approveSheet(el.dataset.id); return; }
