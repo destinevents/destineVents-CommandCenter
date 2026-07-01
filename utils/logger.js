@@ -22,3 +22,6 @@ const logger = {
   warn: (ctx, msg, data) => _log(LOG_LEVELS.WARN, 'WARN', ctx, msg, data),
   error: (ctx, msg, data) => _log(LOG_LEVELS.ERROR, 'ERROR', ctx, msg, data),
 };
+
+// ESM export so TypeScript services can import it
+export { logger };
