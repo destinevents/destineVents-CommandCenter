@@ -89,3 +89,25 @@ describe('validateDailyHours', () => {
     expect(validateDailyHours(6, 4, 8)).toBeTruthy());
   it('defaults max to 8 when not provided', () => expect(validateDailyHours(7, 2)).toBeTruthy());
 });
+
+describe('validateRequired — additional edge cases', () => {
+  it('returns error for undefined', () =>
+    expect(validateRequired(undefined, 'Field')).toBeTruthy());
+  it('returns null for a single non-space character', () =>
+    expect(validateRequired('a', 'Field')).toBeNull());
+});
+
+describe('validatePassword — boundary cases', () => {
+  it('returns null for exactly 8 characters (minimum boundary)', () =>
+    expect(validatePassword('Abcd@123')).toBeNull());
+  it('returns error for whitespace-only string (8 spaces)', () =>
+    expect(validatePassword('        ')).toBeTruthy());
+});
+
+describe('validateForm — multi-error case', () => {
+  it('joins all errors when multiple fields fail', () => {
+    const result = validateForm([['', 'Name'], ['', 'Email']]);
+    expect(result).toContain('Name is required.');
+    expect(result).toContain('Email is required.');
+  });
+});
