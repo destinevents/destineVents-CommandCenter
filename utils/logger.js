@@ -39,3 +39,5 @@ const logger = {
 
 // Attach to window so TypeScript services can also declare it as a global
 if (typeof window !== 'undefined') window.logger = logger;
+
+export { logger };
