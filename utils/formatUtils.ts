@@ -1,10 +1,10 @@
 export function formatCurrency(n: any): string {
-  const v = +(n) || 0;
+  const v = +n || 0;
   return '₱' + v.toLocaleString('en-PH');
 }
 
 export function formatNumber(n: any): string {
-  return (+(n) || 0).toLocaleString('en-PH');
+  return (+n || 0).toLocaleString('en-PH');
 }
 
 export function formatBytes(b: number): string {
@@ -24,5 +24,5 @@ export function capitalize(str: string): string {
 }
 
 export function pluralize(count: number, singular: string, plural?: string): string {
-  return count === 1 ? singular : (plural || singular + 's');
+  return count === 1 ? singular : plural || singular + 's';
 }

@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { formatDate, formatDateShort, formatDateForNDA, todayISO, getQuarter } from './dateUtils.ts';
+import {
+  formatDate,
+  formatDateShort,
+  formatDateForNDA,
+  todayISO,
+  getQuarter,
+} from './dateUtils.ts';
 
 describe('formatDate', () => {
   it('returns em dash for null', () => {

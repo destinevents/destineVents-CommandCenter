@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { formatCurrency, formatBytes, formatPercentage, capitalize, pluralize } from './formatUtils.ts';
+import {
+  formatCurrency,
+  formatBytes,
+  formatPercentage,
+  capitalize,
+  pluralize,
+} from './formatUtils.ts';
 
 describe('formatCurrency', () => {
   it('formats a positive number with peso sign', () => {

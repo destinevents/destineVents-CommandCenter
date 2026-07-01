@@ -5,7 +5,7 @@ export function generateCSV(headers: string[], rows: any[][]): string {
       ? '"' + s.replace(/"/g, '""') + '"'
       : s;
   };
-  return [headers.join(','), ...rows.map(r => r.map(esc).join(','))].join('\n');
+  return [headers.join(','), ...rows.map((r) => r.map(esc).join(','))].join('\n');
 }
 
 export function generateTimesheetCSV(
@@ -14,7 +14,7 @@ export function generateTimesheetCSV(
   users: any[]
 ): { headers: string[]; rows: any[][] } {
   const headers = ['Intern', 'Date', 'Task', 'Activity', 'Hours', 'Category', 'Skills', 'Status'];
-  const rows = timesheets.map(ts => {
+  const rows = timesheets.map((ts) => {
     const task = tasks.find((t: any) => t.id === ts.task_id);
     const intern = users.find((u: any) => u.id === ts.intern_id);
     return [

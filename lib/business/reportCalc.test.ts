@@ -3,7 +3,13 @@ import { generateCSV, generateTimesheetCSV } from './reportCalc.ts';
 
 describe('generateCSV', () => {
   it('produces a header row and data rows joined by newlines', () => {
-    const csv = generateCSV(['Name', 'Age'], [['Alice', 30], ['Bob', 25]]);
+    const csv = generateCSV(
+      ['Name', 'Age'],
+      [
+        ['Alice', 30],
+        ['Bob', 25],
+      ]
+    );
     expect(csv).toBe('Name,Age\nAlice,30\nBob,25');
   });
 
@@ -24,17 +30,34 @@ describe('generateCSV', () => {
 });
 
 describe('generateTimesheetCSV', () => {
-  const timesheets = [{
-    id: 'ts1', intern_id: 'u1', task_id: 't1',
-    date: '2026-07-01', activity_description: 'Built feature',
-    hours: 4, industry_category: 'Tech', skills: ['JS', 'React'], status: 'approved',
-  }];
+  const timesheets = [
+    {
+      id: 'ts1',
+      intern_id: 'u1',
+      task_id: 't1',
+      date: '2026-07-01',
+      activity_description: 'Built feature',
+      hours: 4,
+      industry_category: 'Tech',
+      skills: ['JS', 'React'],
+      status: 'approved',
+    },
+  ];
   const tasks = [{ id: 't1', title: 'Feature X' }];
   const users = [{ id: 'u1', name: 'Alice Santos' }];
 
   it('returns the correct 8-column header row', () => {
     const { headers } = generateTimesheetCSV(timesheets, tasks, users);
-    expect(headers).toEqual(['Intern', 'Date', 'Task', 'Activity', 'Hours', 'Category', 'Skills', 'Status']);
+    expect(headers).toEqual([
+      'Intern',
+      'Date',
+      'Task',
+      'Activity',
+      'Hours',
+      'Category',
+      'Skills',
+      'Status',
+    ]);
   });
 
   it('resolves intern name from users array', () => {
@@ -53,20 +76,12 @@ describe('generateTimesheetCSV', () => {
   });
 
   it('uses em dash for a missing task reference', () => {
-    const { rows } = generateTimesheetCSV(
-      [{ ...timesheets[0], task_id: 'missing' }],
-      [],
-      users
-    );
+    const { rows } = generateTimesheetCSV([{ ...timesheets[0], task_id: 'missing' }], [], users);
     expect(rows[0][2]).toBe('—');
   });
 
   it('uses em dash for a missing intern reference', () => {
-    const { rows } = generateTimesheetCSV(
-      [{ ...timesheets[0], intern_id: 'missing' }],
-      tasks,
-      []
-    );
+    const { rows } = generateTimesheetCSV([{ ...timesheets[0], intern_id: 'missing' }], tasks, []);
     expect(rows[0][0]).toBe('—');
   });
 });

@@ -4,9 +4,14 @@ export function formatDate(
   options?: Intl.DateTimeFormatOptions
 ): string {
   if (!isoVal) return '—';
-  return new Date(isoVal + 'T12:00:00').toLocaleDateString(locale || 'en-US', options || {
-    month: 'short', day: 'numeric', year: 'numeric',
-  });
+  return new Date(isoVal + 'T12:00:00').toLocaleDateString(
+    locale || 'en-US',
+    options || {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    }
+  );
 }
 
 export function formatDateShort(isoVal: string | null | undefined): string {

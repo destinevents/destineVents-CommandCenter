@@ -106,7 +106,10 @@ describe('validatePassword — boundary cases', () => {
 
 describe('validateForm — multi-error case', () => {
   it('joins all errors when multiple fields fail', () => {
-    const result = validateForm([['', 'Name'], ['', 'Email']]);
+    const result = validateForm([
+      ['', 'Name'],
+      ['', 'Email'],
+    ]);
     expect(result).toContain('Name is required.');
     expect(result).toContain('Email is required.');
   });
