@@ -23,7 +23,15 @@ const APP_SETTINGS = {
     proposalStatuses: ['Sent', 'Won', 'Lost', 'Expired'],
     invoiceStatuses: ['Unpaid', 'Paid', 'Overdue'],
     billStatuses: ['Unpaid', 'Paid'],
-    billCategories: ['Venue', 'Catering', 'Equipment', 'Services', 'Transport', 'Supplies', 'Other'],
+    billCategories: [
+      'Venue',
+      'Catering',
+      'Equipment',
+      'Services',
+      'Transport',
+      'Supplies',
+      'Other',
+    ],
     payrollStatuses: ['Pending', 'Released'],
   },
   ai: {

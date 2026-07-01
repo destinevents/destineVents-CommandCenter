@@ -1,18 +1,32 @@
 const LOG_LEVELS = { DEBUG: 0, INFO: 1, WARN: 2, ERROR: 3 };
 let _logLevel = LOG_LEVELS.INFO;
 
-function setLogLevel(level) { _logLevel = level; }
+function setLogLevel(level) {
+  _logLevel = level;
+}
 
 function _log(level, label, context, message, data) {
   if (_logLevel > level) return;
   const ts = new Date().toISOString().slice(11, 23);
   const prefix = `[${ts}][${label}]`;
   if (data !== undefined) {
-    console[level === LOG_LEVELS.ERROR ? 'error' : level === LOG_LEVELS.WARN ? 'warn' : 'log'](prefix, context, message, data);
+    console[level === LOG_LEVELS.ERROR ? 'error' : level === LOG_LEVELS.WARN ? 'warn' : 'log'](
+      prefix,
+      context,
+      message,
+      data
+    );
   } else if (message !== undefined) {
-    console[level === LOG_LEVELS.ERROR ? 'error' : level === LOG_LEVELS.WARN ? 'warn' : 'log'](prefix, context, message);
+    console[level === LOG_LEVELS.ERROR ? 'error' : level === LOG_LEVELS.WARN ? 'warn' : 'log'](
+      prefix,
+      context,
+      message
+    );
   } else {
-    console[level === LOG_LEVELS.ERROR ? 'error' : level === LOG_LEVELS.WARN ? 'warn' : 'log'](prefix, context);
+    console[level === LOG_LEVELS.ERROR ? 'error' : level === LOG_LEVELS.WARN ? 'warn' : 'log'](
+      prefix,
+      context
+    );
   }
 }
 

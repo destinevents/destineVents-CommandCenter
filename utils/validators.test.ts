@@ -22,10 +22,8 @@ describe('validateRequired', () => {
 });
 
 describe('validatePassword', () => {
-  it('returns null for a strong password', () =>
-    expect(validatePassword('Secure@123')).toBeNull());
-  it('returns error for empty string', () =>
-    expect(validatePassword('')).toBeTruthy());
+  it('returns null for a strong password', () => expect(validatePassword('Secure@123')).toBeNull());
+  it('returns error for empty string', () => expect(validatePassword('')).toBeTruthy());
   it('returns error when shorter than 8 characters', () =>
     expect(validatePassword('Ab1@xyz')).toBeTruthy());
   it('returns error when missing uppercase', () =>
