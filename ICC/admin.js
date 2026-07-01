@@ -166,6 +166,10 @@ function exportPDF(uid) {
       <div class="sig-box"><strong>Company Seal</strong><br/>Disenyo Digitals<br/>Collective OPC<br/><br/>___________________</div>
     </div>
   </body></html>`;
-  const w=window.open('','_blank'); w.document.write(html); w.document.close(); w.print();
+  const w = window.open('', '_blank');
+  if (!w) { toast('Pop-up blocked — please allow pop-ups for this site.'); return; }
+  w.document.write(html);
+  w.document.close();
+  w.print();
   toast('PDF report opened for printing!');
 }
