@@ -36,8 +36,4 @@ const APP_SETTINGS = {
     auditLogKey: 'audit_logged',
     sidebarKey: 'sidebar_collapsed',
   },
-  supabase: {
-    url: SUPABASE_URL,
-    anonKey: SUPABASE_ANON_KEY,
-  },
 };
