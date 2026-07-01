@@ -1,4 +1,5 @@
 import { sb } from './supabase';
+import { logger } from '../utils/logger.js';
 import type { InternUser } from '../js/shared/types';
 
 interface AuthMeta {
@@ -18,11 +19,6 @@ interface ProfileUpdates {
 interface AuthResult {
   error: { message: string } | null;
 }
-
-const logger = {
-  error: (ctx: string, msg: string, err?: unknown) => console.error(`[${ctx}]`, msg, err),
-  warn:  (ctx: string, msg: string) => console.warn(`[${ctx}]`, msg),
-};
 
 export async function signUp(email: string, password: string, meta: AuthMeta = {}) {
   try {
@@ -51,7 +47,9 @@ export async function signOut(): Promise<void> {
 
 export async function getSession() {
   try {
-    const { data: { session } } = await sb.auth.getSession();
+    const {
+      data: { session },
+    } = await sb.auth.getSession();
     return session;
   } catch (err) {
     logger.error('authService.getSession', (err as Error).message, err);
@@ -61,7 +59,10 @@ export async function getSession() {
 
 export async function getProfile(userId: string): Promise<InternUser | null> {
   const { data, error } = await sb.from('intern_users').select('*').eq('id', userId).single();
-  if (error) { logger.warn('authService.getProfile', error.message); return null; }
+  if (error) {
+    logger.warn('authService.getProfile', error.message);
+    return null;
+  }
   return data as InternUser;
 }
 
@@ -80,7 +81,9 @@ export async function getCurrentUser(): Promise<InternUser | null> {
 
 export async function getAuthUser() {
   try {
-    const { data: { user } } = await sb.auth.getUser();
+    const {
+      data: { user },
+    } = await sb.auth.getUser();
     return user;
   } catch (err) {
     logger.error('authService.getAuthUser', (err as Error).message, err);
@@ -107,7 +110,10 @@ export async function updatePassword(
 ): Promise<AuthResult> {
   if (!email) return { error: { message: 'Session expired. Please sign in again.' } };
   try {
-    const { error: authErr } = await sb.auth.signInWithPassword({ email, password: currentPassword });
+    const { error: authErr } = await sb.auth.signInWithPassword({
+      email,
+      password: currentPassword,
+    });
     if (authErr) return { error: { message: 'Current password is incorrect.' } };
     const { error: updateErr } = await sb.auth.updateUser({ password: newPassword });
     if (updateErr) return { error: updateErr };
