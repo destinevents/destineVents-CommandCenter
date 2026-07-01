@@ -1,3 +1,4 @@
+// ─── GLOBAL STATE ────────────────────────────────────────────────────────────
 let currentUser = {};
 let activePage = 'dashboard';
 let sheetFilter = 'all';
@@ -9,6 +10,7 @@ let liveUsers = [];
 let liveTasks = [];
 let liveTimesheets = [];
 
+// ─── UTILITY FUNCTIONS ───────────────────────────────────────────────────────
 function user(id) {
   return liveUsers.find((u) => u.id === id) || {};
 }
@@ -42,12 +44,7 @@ function closeModal(id) {
   document.getElementById(id).classList.remove('open');
 }
 
-document.querySelectorAll('.modal-overlay').forEach((m) => {
-  m.addEventListener('click', (e) => {
-    if (e.target === m) m.classList.remove('open');
-  });
-});
-
+// ─── UI HELPERS ──────────────────────────────────────────────────────────────
 function applyRoleVisibility() {
   const isAdmin = currentUser.role === 'admin';
   const isSup = currentUser.role === 'supervisor' || isAdmin;
@@ -81,6 +78,86 @@ function updateBadges() {
   document.getElementById('notif-count').textContent = count;
 }
 
+// ─── DATA LOADING ────────────────────────────────────────────────────────────
+async function loadLiveUsers() {
+  const result = await fetchUsers();
+  if (result) liveUsers = result;
+}
+
+async function loadLiveTasks() {
+  const result = await fetchTasks(currentUser.role, currentUser.id);
+  if (result) liveTasks = result;
+}
+
+async function loadLiveTimesheets() {
+  const result = await fetchTimesheets(currentUser.role, currentUser.id);
+  if (result) liveTimesheets = result;
+}
+
+// ─── PAGE ROUTING ────────────────────────────────────────────────────────────
+const PAGE_DATA = {
+  dashboard: ['tasks', 'timesheets'],
+  tasks: ['tasks'],
+  timesheets: ['timesheets'],
+  outputs: ['tasks'],
+  approvals: ['timesheets'],
+  interns: ['users', 'tasks', 'timesheets'],
+  reports: ['users', 'tasks', 'timesheets'],
+  account: [],
+};
+
+async function goPage(page) {
+  document.querySelectorAll('.page').forEach((p) => p.classList.remove('active'));
+  document.getElementById('page-' + page)?.classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach((b) => {
+    b.classList.toggle('active', b.dataset.page === page);
+    const pip = b.querySelector('.pip');
+    if (pip) pip.style.display = b.classList.contains('active') ? 'block' : 'none';
+  });
+  activePage = page;
+  const titles = {
+    dashboard: 'Dashboard',
+    tasks: 'Tasks',
+    timesheets: 'Timesheets',
+    outputs: 'Output Portfolio',
+    approvals: 'Approvals',
+    interns: 'Interns',
+    reports: 'Reports',
+    account: 'Account Settings',
+  };
+  document.getElementById('topbar-title').textContent = titles[page] || page;
+  await renderPage(page);
+}
+
+async function renderPage(page) {
+  if (!currentUser.id) return;
+
+  const map = {
+    dashboard: renderDashboard,
+    tasks: renderTasks,
+    timesheets: renderTimesheets,
+    outputs: renderOutputs,
+    approvals: renderApprovals,
+    interns: renderInterns,
+    reports: renderReports,
+    account: renderAccount,
+  };
+
+  const needs = PAGE_DATA[page] ?? [];
+  try {
+    await Promise.all([
+      needs.includes('tasks') ? loadLiveTasks() : Promise.resolve(),
+      needs.includes('timesheets') ? loadLiveTimesheets() : Promise.resolve(),
+      needs.includes('users') ? loadLiveUsers() : Promise.resolve(),
+    ]);
+    const fn = map[page];
+    if (fn) await fn();
+  } catch (err) {
+    handleError('renderPage:' + page, err);
+  }
+}
+
+// ─── REALTIME ────────────────────────────────────────────────────────────────
 function setupRealtime() {
   sb.channel('intern-realtime')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'intern_tasks' }, async () => {
@@ -114,82 +191,12 @@ function setupRealtime() {
     .subscribe();
 }
 
-async function loadLiveUsers() {
-  const result = await fetchUsers();
-  if (result) liveUsers = result;
-}
-
-async function loadLiveTasks() {
-  const result = await fetchTasks(currentUser.role, currentUser.id);
-  if (result) liveTasks = result;
-}
-
-async function loadLiveTimesheets() {
-  const result = await fetchTimesheets(currentUser.role, currentUser.id);
-  if (result) liveTimesheets = result;
-}
-
-async function goPage(page) {
-  document.querySelectorAll('.page').forEach((p) => p.classList.remove('active'));
-  document.getElementById('page-' + page)?.classList.add('active');
-  document.querySelectorAll('.nav-btn').forEach((b) => {
-    b.classList.toggle('active', b.dataset.page === page);
-    const pip = b.querySelector('.pip');
-    if (pip) pip.style.display = b.classList.contains('active') ? 'block' : 'none';
+// ─── EVENT DELEGATION ────────────────────────────────────────────────────────
+document.querySelectorAll('.modal-overlay').forEach((m) => {
+  m.addEventListener('click', (e) => {
+    if (e.target === m) m.classList.remove('open');
   });
-  activePage = page;
-  const titles = {
-    dashboard: 'Dashboard',
-    tasks: 'Tasks',
-    timesheets: 'Timesheets',
-    outputs: 'Output Portfolio',
-    approvals: 'Approvals',
-    interns: 'Interns',
-    reports: 'Reports',
-    account: 'Account Settings',
-  };
-  document.getElementById('topbar-title').textContent = titles[page] || page;
-  await renderPage(page);
-}
-
-const PAGE_DATA = {
-  dashboard: ['tasks', 'timesheets'],
-  tasks: ['tasks'],
-  timesheets: ['timesheets'],
-  outputs: ['tasks'],
-  approvals: ['timesheets'],
-  interns: ['users', 'tasks', 'timesheets'],
-  reports: ['users', 'tasks', 'timesheets'],
-  account: [],
-};
-
-async function renderPage(page) {
-  if (!currentUser.id) return;
-
-  const map = {
-    dashboard: renderDashboard,
-    tasks: renderTasks,
-    timesheets: renderTimesheets,
-    outputs: renderOutputs,
-    approvals: renderApprovals,
-    interns: renderInterns,
-    reports: renderReports,
-    account: renderAccount,
-  };
-
-  const needs = PAGE_DATA[page] ?? [];
-  try {
-    await Promise.all([
-      needs.includes('tasks') ? loadLiveTasks() : Promise.resolve(),
-      needs.includes('timesheets') ? loadLiveTimesheets() : Promise.resolve(),
-      needs.includes('users') ? loadLiveUsers() : Promise.resolve(),
-    ]);
-    const fn = map[page];
-    if (fn) await fn();
-  } catch (err) {
-    handleError('renderPage:' + page, err);
-  }
-}
+});
 
 document.getElementById('sidebar-nav').addEventListener('click', async (e) => {
   const btn = e.target.closest('.nav-btn');
@@ -271,6 +278,7 @@ document.addEventListener('click', async (e) => {
   }
 });
 
+// ─── INITIALIZATION ───────────────────────────────────────────────────────────
 async function handleSignOut() {
   await signOut();
   window.location.href = 'login.html';
