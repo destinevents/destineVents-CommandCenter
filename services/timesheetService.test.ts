@@ -31,8 +31,8 @@ const makeSheet = (overrides: Partial<Timesheet> = {}): Timesheet => ({
 });
 
 describe('fetchTimesheets', () => {
-  it('returns timesheets on success', async () => {
-    const sheets = [makeSheet()];
+  it('returns all timesheets for admin without filtering', async () => {
+    const sheets = [makeSheet(), makeSheet({ intern_id: 'u2' })];
     const chain = {
       select: vi.fn().mockReturnThis(),
       order: vi.fn().mockResolvedValue({ data: sheets, error: null }),
@@ -40,11 +40,26 @@ describe('fetchTimesheets', () => {
     mockFrom.mockReturnValue(chain);
     const result = await fetchTimesheets('admin', 'u1');
     expect(result).toEqual(sheets);
+    expect(chain.select).toHaveBeenCalledWith('*');
+  });
+
+  it('applies eq filter for intern role', async () => {
+    const sheets = [makeSheet()];
+    const chain = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({ data: sheets, error: null }),
+    };
+    mockFrom.mockReturnValue(chain);
+    const result = await fetchTimesheets('intern', 'u1');
+    expect(chain.eq).toHaveBeenCalledWith('intern_id', 'u1');
+    expect(result).toEqual(sheets);
   });
 
   it('returns empty array on error', async () => {
     const chain = {
       select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
       order: vi.fn().mockResolvedValue({ data: null, error: { message: 'fail' } }),
     };
     mockFrom.mockReturnValue(chain);

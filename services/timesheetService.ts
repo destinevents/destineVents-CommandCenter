@@ -3,16 +3,14 @@ import { logger } from '../utils/logger.js';
 import type { Timesheet, TimesheetStats, SkillFrequency, UserRole } from '../js/shared/types';
 
 export async function fetchTimesheets(role: UserRole, userId: string): Promise<Timesheet[]> {
-  const { data, error } = await sb
-    .from('intern_timesheets')
-    .select('*')
-    .order('date', { ascending: false });
+  const base = sb.from('intern_timesheets').select('*');
+  const query = role === 'intern' ? base.eq('intern_id', userId) : base;
+  const { data, error } = await query.order('date', { ascending: false });
   if (error) {
     logger.error('fetchTimesheets', error.message, error);
     return [];
   }
-  const rows = (data ?? []) as Timesheet[];
-  return role === 'intern' ? rows.filter((t) => t.intern_id === userId) : rows;
+  return (data ?? []) as Timesheet[];
 }
 
 export async function createTimesheet(data: Partial<Timesheet>): Promise<Timesheet | null> {
