@@ -99,8 +99,14 @@ describe('getCurrentUser', () => {
       data: { session: { user: { id: 'u1', user_metadata: { role: 'intern' } } } },
     });
     const fakeProfile = {
-      id: 'u1', name: 'Bob', email: 'b@b.com', role: 'intern',
-      avatar: 'BO', school: null, program: null, created_at: '2025-01-01',
+      id: 'u1',
+      name: 'Bob',
+      email: 'b@b.com',
+      role: 'intern',
+      avatar: 'BO',
+      school: null,
+      program: null,
+      created_at: '2025-01-01',
     };
     const chain = {
       select: vi.fn().mockReturnThis(),
@@ -116,7 +122,10 @@ describe('getCurrentUser', () => {
 
 describe('updateProfile', () => {
   it('returns null error on full success', async () => {
-    const chain = { update: vi.fn().mockReturnThis(), eq: vi.fn().mockResolvedValue({ error: null }) };
+    const chain = {
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({ error: null }),
+    };
     mockSb.from.mockReturnValue(chain);
     mockSb.auth.updateUser.mockResolvedValue({ error: null });
     const result = await updateProfile('u1', { name: 'New Name', school: 'BSU', program: 'IT' });
@@ -125,7 +134,10 @@ describe('updateProfile', () => {
 
   it('returns error when DB update fails', async () => {
     const dbError = { message: 'DB error' };
-    const chain = { update: vi.fn().mockReturnThis(), eq: vi.fn().mockResolvedValue({ error: dbError }) };
+    const chain = {
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({ error: dbError }),
+    };
     mockSb.from.mockReturnValue(chain);
     const result = await updateProfile('u1', { name: 'x', school: null, program: null });
     expect(result.error).toEqual(dbError);
@@ -133,7 +145,10 @@ describe('updateProfile', () => {
 
   it('returns error when auth metadata update fails but DB succeeded', async () => {
     const metaError = { message: 'Meta error' };
-    const chain = { update: vi.fn().mockReturnThis(), eq: vi.fn().mockResolvedValue({ error: null }) };
+    const chain = {
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({ error: null }),
+    };
     mockSb.from.mockReturnValue(chain);
     mockSb.auth.updateUser.mockResolvedValue({ error: metaError });
     const result = await updateProfile('u1', { name: 'x', school: null, program: null });

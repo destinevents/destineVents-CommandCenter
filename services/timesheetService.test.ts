@@ -19,9 +19,15 @@ const mockFrom = sb.from as ReturnType<typeof vi.fn>;
 beforeEach(() => vi.clearAllMocks());
 
 const makeSheet = (overrides: Partial<Timesheet> = {}): Timesheet => ({
-  id: 's1', intern_id: 'u1', date: '2025-06-01', hours: 4,
-  description: 'Worked on feature', skills: ['TypeScript'],
-  status: 'pending', created_at: '2025-06-01', ...overrides,
+  id: 's1',
+  intern_id: 'u1',
+  date: '2025-06-01',
+  hours: 4,
+  description: 'Worked on feature',
+  skills: ['TypeScript'],
+  status: 'pending',
+  created_at: '2025-06-01',
+  ...overrides,
 });
 
 describe('fetchTimesheets', () => {
@@ -55,7 +61,13 @@ describe('createTimesheet', () => {
       select: vi.fn().mockResolvedValue({ data: [sheet], error: null }),
     };
     mockFrom.mockReturnValue(chain);
-    const result = await createTimesheet({ intern_id: 'u1', date: '2025-06-01', hours: 4, description: 'x', skills: [] });
+    const result = await createTimesheet({
+      intern_id: 'u1',
+      date: '2025-06-01',
+      hours: 4,
+      description: 'x',
+      skills: [],
+    });
     expect(result).toEqual(sheet);
   });
 });
@@ -93,10 +105,10 @@ describe('buildSkillFrequency', () => {
     const sheets = [
       makeSheet({ status: 'approved', skills: ['TypeScript', 'React'] }),
       makeSheet({ status: 'approved', skills: ['TypeScript'] }),
-      makeSheet({ status: 'pending',  skills: ['Python'] }),
+      makeSheet({ status: 'pending', skills: ['Python'] }),
     ];
     const freq = buildSkillFrequency(sheets);
     expect(freq[0]).toEqual({ skill: 'TypeScript', count: 2 });
-    expect(freq.find(f => f.skill === 'Python')).toBeUndefined();
+    expect(freq.find((f) => f.skill === 'Python')).toBeUndefined();
   });
 });

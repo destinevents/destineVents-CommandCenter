@@ -20,7 +20,12 @@ export function validatePassword(value: string): string | null {
   return null;
 }
 
-export function validateNumber(value: string, fieldName: string, min?: number, max?: number): string | null {
+export function validateNumber(
+  value: string,
+  fieldName: string,
+  min?: number,
+  max?: number
+): string | null {
   const n = parseFloat(value);
   if (isNaN(n)) return `${fieldName} must be a number.`;
   if (min !== undefined && n < min) return `${fieldName} must be at least ${min}.`;
@@ -38,10 +43,16 @@ export function validateForm(fields: [unknown, string, ...ValidatorFn[]][]): str
   const errors: string[] = [];
   for (const [value, fieldName, ...validators] of fields) {
     const err = validateRequired(value, fieldName);
-    if (err) { errors.push(err); continue; }
+    if (err) {
+      errors.push(err);
+      continue;
+    }
     for (const vFn of validators) {
       const e = vFn(value as string);
-      if (e) { errors.push(e); break; }
+      if (e) {
+        errors.push(e);
+        break;
+      }
     }
   }
   return errors.length ? errors.join(' ') : null;
@@ -49,17 +60,22 @@ export function validateForm(fields: [unknown, string, ...ValidatorFn[]][]): str
 
 export function validateTaskStatusTransition(current: TaskStatus, next: TaskStatus): boolean {
   const allowed: Record<TaskStatus, TaskStatus[]> = {
-    assigned:     ['acknowledged'],
+    assigned: ['acknowledged'],
     acknowledged: ['in_progress'],
-    in_progress:  ['completed'],
-    completed:    ['reviewed'],
-    reviewed:     [],
+    in_progress: ['completed'],
+    completed: ['reviewed'],
+    reviewed: [],
   };
   return (allowed[current] ?? []).includes(next);
 }
 
-export function validateDailyHours(existingHours: number, newHours: number, max = 8): string | null {
+export function validateDailyHours(
+  existingHours: number,
+  newHours: number,
+  max = 8
+): string | null {
   const total = existingHours + newHours;
-  if (total > max) return `Cannot log ${newHours}h — total would be ${total}h (max is ${max}h per day).`;
+  if (total > max)
+    return `Cannot log ${newHours}h — total would be ${total}h (max is ${max}h per day).`;
   return null;
 }

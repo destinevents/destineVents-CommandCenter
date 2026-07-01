@@ -20,9 +20,16 @@ const mockFrom = sb.from as ReturnType<typeof vi.fn>;
 beforeEach(() => vi.clearAllMocks());
 
 const makeTask = (overrides: Partial<Task> = {}): Task => ({
-  id: 't1', title: 'Test task', description: null, status: 'assigned',
-  assigned_to: 'u1', created_by: 'admin1', output_type: null,
-  output_link: null, created_at: '2025-01-01', ...overrides,
+  id: 't1',
+  title: 'Test task',
+  description: null,
+  status: 'assigned',
+  assigned_to: 'u1',
+  created_by: 'admin1',
+  output_type: null,
+  output_link: null,
+  created_at: '2025-01-01',
+  ...overrides,
 });
 
 describe('fetchTasks', () => {
@@ -86,8 +93,7 @@ describe('updateTask', () => {
 });
 
 describe('getNextTaskAction', () => {
-  it('returns null when task is null', () =>
-    expect(getNextTaskAction(null, 'intern')).toBeNull());
+  it('returns null when task is null', () => expect(getNextTaskAction(null, 'intern')).toBeNull());
   it('returns null for reviewed tasks', () =>
     expect(getNextTaskAction(makeTask({ status: 'reviewed' }), 'admin')).toBeNull());
   it('returns acknowledge action for assigned intern', () => {
