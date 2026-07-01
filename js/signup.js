@@ -23,8 +23,12 @@ async function handleSignUp() {
   if (!email)   { errEl.textContent = 'Email is required.'; return; }
   if (!school)  { errEl.textContent = 'School is required.'; return; }
   if (!program) { errEl.textContent = 'Program / Course is required.'; return; }
-  if (!pass)    { errEl.textContent = 'Password is required.'; return; }
-  if (pass.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; return; }
+  if (!pass)                       { errEl.textContent = 'Password is required.'; return; }
+  if (pass.length < 8)             { errEl.textContent = 'Password must be at least 8 characters.'; return; }
+  if (!/[A-Z]/.test(pass))         { errEl.textContent = 'Password must contain at least one uppercase letter.'; return; }
+  if (!/[a-z]/.test(pass))         { errEl.textContent = 'Password must contain at least one lowercase letter.'; return; }
+  if (!/[0-9]/.test(pass))         { errEl.textContent = 'Password must contain at least one number.'; return; }
+  if (!/[^A-Za-z0-9]/.test(pass))  { errEl.textContent = 'Password must contain at least one special character.'; return; }
 
   setLoading(true);
   try {

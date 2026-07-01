@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   validateRequired,
   validateEmail,
+  validatePassword,
   validateNumber,
   validateDate,
   validateForm,
@@ -18,6 +19,23 @@ describe('validateRequired', () => {
     expect(validateRequired(null, 'Name')).toBe('Name is required.'));
   it('returns error for whitespace only', () =>
     expect(validateRequired('   ', 'Name')).toBe('Name is required.'));
+});
+
+describe('validatePassword', () => {
+  it('returns null for a strong password', () =>
+    expect(validatePassword('Secure@123')).toBeNull());
+  it('returns error for empty string', () =>
+    expect(validatePassword('')).toBeTruthy());
+  it('returns error when shorter than 8 characters', () =>
+    expect(validatePassword('Ab1@xyz')).toBeTruthy());
+  it('returns error when missing uppercase', () =>
+    expect(validatePassword('secure@123')).toBeTruthy());
+  it('returns error when missing lowercase', () =>
+    expect(validatePassword('SECURE@123')).toBeTruthy());
+  it('returns error when missing number', () =>
+    expect(validatePassword('Secure@abc')).toBeTruthy());
+  it('returns error when missing special character', () =>
+    expect(validatePassword('Secure123')).toBeTruthy());
 });
 
 describe('validateEmail', () => {
