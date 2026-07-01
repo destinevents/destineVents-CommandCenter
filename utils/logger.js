@@ -23,5 +23,5 @@ const logger = {
   error: (ctx, msg, data) => _log(LOG_LEVELS.ERROR, 'ERROR', ctx, msg, data),
 };
 
-// ESM export so TypeScript services can import it
-export { logger };
+// Attach to window so TypeScript services can also declare it as a global
+if (typeof window !== 'undefined') window.logger = logger;
