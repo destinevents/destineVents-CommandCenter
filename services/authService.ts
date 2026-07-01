@@ -1,9 +1,32 @@
-async function signUp(email, password, meta = {}) {
+import { sb } from './supabase';
+import type { InternUser } from '../js/shared/types';
+
+interface AuthMeta {
+  name?: string;
+  school?: string | null;
+  program?: string | null;
+  role?: string;
+  [key: string]: unknown;
+}
+
+interface ProfileUpdates {
+  name: string;
+  school: string | null;
+  program: string | null;
+}
+
+interface AuthResult {
+  error: { message: string } | null;
+}
+
+const logger = {
+  error: (ctx: string, msg: string, err?: unknown) => console.error(`[${ctx}]`, msg, err),
+  warn:  (ctx: string, msg: string) => console.warn(`[${ctx}]`, msg),
+};
+
+export async function signUp(email: string, password: string, meta: AuthMeta = {}) {
   try {
-    const { data, error } = await sb.auth.signUp({
-      email, password,
-      options: { data: meta }
-    });
+    const { data, error } = await sb.auth.signUp({ email, password, options: { data: meta } });
     if (error) return { data: null, error };
     return { data, error: null };
   } catch (err) {
@@ -11,7 +34,7 @@ async function signUp(email, password, meta = {}) {
   }
 }
 
-async function signIn(email, password) {
+export async function signIn(email: string, password: string) {
   try {
     const { data, error } = await sb.auth.signInWithPassword({ email, password });
     if (error) return { data: null, error };
@@ -21,39 +44,28 @@ async function signIn(email, password) {
   }
 }
 
-async function signOut() {
+export async function signOut(): Promise<void> {
   const { error } = await sb.auth.signOut();
   if (error) logger.error('authService.signOut', error.message, error);
 }
 
-async function getSession() {
+export async function getSession() {
   try {
     const { data: { session } } = await sb.auth.getSession();
     return session;
   } catch (err) {
-    logger.error('authService.getSession', err.message, err);
+    logger.error('authService.getSession', (err as Error).message, err);
     return null;
   }
 }
 
-async function refreshSession() {
-  try {
-    const { data, error } = await sb.auth.refreshSession();
-    if (error) logger.warn('authService.refreshSession', error.message);
-    return data;
-  } catch (err) {
-    logger.error('authService.refreshSession', err.message, err);
-    return null;
-  }
-}
-
-async function getProfile(userId) {
+export async function getProfile(userId: string): Promise<InternUser | null> {
   const { data, error } = await sb.from('intern_users').select('*').eq('id', userId).single();
   if (error) { logger.warn('authService.getProfile', error.message); return null; }
-  return data;
+  return data as InternUser;
 }
 
-async function getCurrentUser() {
+export async function getCurrentUser(): Promise<InternUser | null> {
   const session = await getSession();
   if (!session?.user) return null;
   const profile = await getProfile(session.user.id);
@@ -62,48 +74,46 @@ async function getCurrentUser() {
     ...(profile || {}),
     id: session.user.id,
     name: profile?.name || session.user.user_metadata?.name || null,
-    role: session.user.user_metadata?.role || profile?.role || ROLES.INTERN,
-  };
+    role: session.user.user_metadata?.role || profile?.role || 'intern',
+  } as InternUser;
 }
 
-async function getAuthUser() {
+export async function getAuthUser() {
   try {
     const { data: { user } } = await sb.auth.getUser();
     return user;
   } catch (err) {
-    logger.error('authService.getAuthUser', err.message, err);
+    logger.error('authService.getAuthUser', (err as Error).message, err);
     return null;
   }
 }
 
-async function updateProfile(userId, updates) {
+export async function updateProfile(userId: string, updates: ProfileUpdates): Promise<AuthResult> {
   try {
-    const { error: dbErr } = await sb.from('intern_users')
-      .update(updates)
-      .eq('id', userId);
+    const { error: dbErr } = await sb.from('intern_users').update(updates).eq('id', userId);
     if (dbErr) return { error: dbErr };
-
     const { error: metaErr } = await sb.auth.updateUser({ data: updates });
     if (metaErr) return { error: metaErr };
-
     return { error: null };
   } catch (err) {
-    return { error: err };
+    return { error: err as { message: string } };
   }
 }
 
-async function updatePassword(email, currentPassword, newPassword) {
+export async function updatePassword(
+  email: string,
+  currentPassword: string,
+  newPassword: string
+): Promise<AuthResult> {
   if (!email) return { error: { message: 'Session expired. Please sign in again.' } };
   try {
     const { error: authErr } = await sb.auth.signInWithPassword({ email, password: currentPassword });
     if (authErr) return { error: { message: 'Current password is incorrect.' } };
-
     const { error: updateErr } = await sb.auth.updateUser({ password: newPassword });
     if (updateErr) return { error: updateErr };
-
     return { error: null };
   } catch (err) {
-    logger.error('authService.updatePassword', err.message, err);
-    return { error: err };
+    logger.error('authService.updatePassword', (err as Error).message, err);
+    return { error: err as { message: string } };
   }
 }
