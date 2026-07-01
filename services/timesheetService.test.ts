@@ -8,10 +8,11 @@ import { sb } from './supabase';
 import {
   fetchTimesheets,
   createTimesheet,
+  updateTimesheet,
   calcTimesheetStats,
   getExistingHoursForDate,
   buildSkillFrequency,
-} from './timesheetService';
+} from './timesheetService.ts';
 import type { Timesheet } from '../js/shared/types';
 
 const mockFrom = sb.from as ReturnType<typeof vi.fn>;
@@ -84,6 +85,42 @@ describe('createTimesheet', () => {
       skills: [],
     });
     expect(result).toEqual(sheet);
+  });
+
+  it('returns null on Supabase error', async () => {
+    const chain = {
+      insert: vi.fn().mockReturnThis(),
+      select: vi.fn().mockResolvedValue({ data: null, error: { message: 'db error' } }),
+    };
+    mockFrom.mockReturnValue(chain);
+    const result = await createTimesheet({ intern_id: 'u1', hours: 4 });
+    expect(result).toBeNull();
+  });
+});
+
+describe('updateTimesheet', () => {
+  it('returns updated sheet on success', async () => {
+    const sheet = makeSheet({ status: 'approved' });
+    const chain = {
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      select: vi.fn().mockResolvedValue({ data: [sheet], error: null }),
+    };
+    mockFrom.mockReturnValue(chain);
+    const result = await updateTimesheet('s1', { status: 'approved' });
+    expect(result).toEqual(sheet);
+    expect(chain.eq).toHaveBeenCalledWith('id', 's1');
+  });
+
+  it('returns null on Supabase error', async () => {
+    const chain = {
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      select: vi.fn().mockResolvedValue({ data: null, error: { message: 'fail' } }),
+    };
+    mockFrom.mockReturnValue(chain);
+    const result = await updateTimesheet('s1', { status: 'approved' });
+    expect(result).toBeNull();
   });
 });
 

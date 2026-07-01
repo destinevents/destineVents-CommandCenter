@@ -12,7 +12,7 @@ import {
   getNextTaskAction,
   requiresOutputLink,
   calcTaskStats,
-} from './taskService';
+} from './taskService.ts';
 import type { Task } from '../js/shared/types';
 
 const mockFrom = sb.from as ReturnType<typeof vi.fn>;
