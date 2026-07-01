@@ -8,18 +8,18 @@ A dual-portal operations management platform for **DestineVents Collective OPC**
 
 | Layer | Technology |
 |-------|-----------|
-| **Frontend** | Vanilla HTML5, CSS3, JavaScript (ES6+) |
+| **Frontend** | Vanilla HTML5, CSS3, JavaScript (ES6+) + TypeScript (services/utils) |
 | **Backend** | Supabase (PostgreSQL, Auth, Realtime, Storage) |
-| **Deployment** | Vercel (static SPA) |
-| **CDN** | `@supabase/supabase-js@2` (via jsdelivr) |
+| **Bundler** | Vite (dev server + production build) |
+| **Testing** | Vitest (57 unit tests across services, utils, config) |
+| **Deployment** | Vercel (`npm run build` → `dist/`) |
 | **Fonts** | Google Fonts (DM Sans, Cormorant Garamond, Dancing Script) |
 
 ### Principles
 
-- No frameworks (no React, Vue, Angular, TypeScript)
-- No bundlers or build step
-- CDN-only dependencies
-- All business logic in plain JS
+- No UI framework (no React, Vue, Angular)
+- Incremental TypeScript migration — services and utils are `.ts`, page modules are `.js`
+- All business logic in JS/TS modules
 - Event delegation for UI interactions
 
 ---
@@ -28,94 +28,71 @@ A dual-portal operations management platform for **DestineVents Collective OPC**
 
 ```
 destineVents-CommandCenter/
-├── config/                    # App configuration (gitignored)
-│   ├── config.js             # Supabase credentials (NOT in git)
-│   ├── config.example.js     # Template for credentials
-│   ├── roles.js              # Role hierarchy, permissions, routes
+├── config/                    # App configuration
+│   ├── config.js             # Supabase credentials — NOT in git (gitignored)
+│   ├── config.example.js     # Template showing required credential format
+│   ├── roles.ts              # Role hierarchy, permissions, routes (TypeScript)
 │   └── settings.js           # App constants (brands, rates, statuses)
 │
 ├── services/                  # Domain service layer (Supabase queries)
-│   ├── supabase.js           # Supabase client singleton
-│   ├── authService.js        # signIn, signOut, getSession, getCurrentUser
-│   ├── clientService.js      # Clients CRUD
-│   ├── proposalService.js    # Proposals CRUD + win rate calc
-│   ├── partnerService.js     # Partners CRUD + filtering
-│   ├── financeService.js     # Invoices, bills, payroll CRUD + summaries
-│   ├── documentService.js    # Document upload, metadata, public URLs
+│   ├── supabase.ts           # Supabase client singleton (reads from import.meta.env)
+│   ├── authService.ts        # signIn, signOut, getSession, getCurrentUser
+│   ├── taskService.ts        # Tasks CRUD + status transitions
+│   ├── timesheetService.ts   # Timesheets CRUD + stats
+│   ├── clientService.js      # Clients CRUD (HQ)
+│   ├── proposalService.js    # Proposals CRUD + win rate calc (HQ)
+│   ├── partnerService.js     # Partners CRUD + filtering (HQ)
+│   ├── financeService.js     # Invoices, bills, payroll CRUD + summaries (HQ)
+│   ├── documentService.js    # Document upload, metadata, public URLs (HQ)
 │   ├── userService.js        # User queries (interns, staff)
-│   ├── taskService.js        # Tasks CRUD + status transitions
-│   ├── timesheetService.js   # Timesheets CRUD + stats
 │   └── auditService.js       # Audit logging
 │
 ├── utils/                     # Shared utility functions
 │   ├── logger.js             # Structured logging (debug/info/warn/error)
-│   ├── validators.js         # Input validation helpers
+│   ├── validators.ts         # Input validation helpers (TypeScript)
 │   ├── errorHandler.js       # Error handling wrappers
 │   ├── date.js               # Date formatting and period helpers
 │   ├── format.js             # Currency, number, bytes formatting
 │   └── storage.js            # localStorage convenience wrappers
+│
+├── js/shared/                 # Shared types and UI logic
+│   ├── types.ts              # All domain interfaces (TypeScript)
+│   ├── constants.js          # SKILL_LIST, STATUS_LABELS, KANBAN_COLS
+│   ├── utils.js              # escapeHtml, badge, avatar, etc.
+│   └── components/           # Reusable component renderers
+│
+├── hq/                        # HQ portal page modules (admin/supervisor)
+│   ├── app.js                # HQ app shell, routing, realtime
+│   ├── crm.js                # Clients & proposals pages
+│   ├── operations.js         # Partners, documents, new project wizard
+│   ├── finance.js            # Finance overview, AR, AP, payroll, BIR
+│   ├── ai.js                 # AI assistant (Anthropic Claude)
+│   └── hq.css                # HQ portal styles
+│
+├── ICC/                       # Intern Command Center page modules
+│   ├── app.js                # ICC app shell, routing, realtime
+│   ├── dashboard.js          # Dashboard stat cards, activity feed
+│   ├── tasks.js              # Kanban board, task CRUD, status transitions
+│   ├── timesheets.js         # Timesheet entry, approval workflow
+│   ├── outputs.js            # Output portfolio grid
+│   ├── admin.js              # Approvals, intern overview, reports, exports
+│   ├── account.js            # Account settings
+│   └── intern.css            # ICC portal styles
 │
 ├── lib/business/              # Business logic modules
 │   ├── dashboardStats.js     # HQ + Intern dashboard stat builders
 │   ├── ndaGenerator.js       # NDA document HTML generation
 │   └── reportGenerator.js    # CSV/PDF report generation
 │
-├── js/                        # Application code
-│   ├── login.js              # Login page logic
-│   ├── hq/                   # HQ portal (admin/supervisor)
-│   │   ├── app.js            # HQ app shell, routing, realtime
-│   │   ├── crm.js            # Clients & proposals pages
-│   │   ├── operations.js     # Partners, documents, new project wizard
-│   │   ├── finance.js        # Finance overview, AR, AP, payroll, BIR
-│   │   └── ai.js             # AI assistant (Anthropic Claude)
-│   ├── intern/               # Intern portal
-│   │   ├── app.js            # Intern app shell, routing, realtime
-│   │   ├── dashboard.js      # Dashboard stat cards, activity feed
-│   │   ├── tasks.js          # Kanban board, task CRUD, status transitions
-│   │   ├── timesheets.js     # Timesheet entry, approval workflow
-│   │   ├── outputs.js        # Output portfolio grid
-│   │   └── admin.js          # Approvals, intern overview, reports, exports
-│   └── shared/               # Shared UI logic
-│       ├── constants.js      # SKILL_LIST, STATUS_LABELS, KANBAN_COLS
-│       ├── utils.js          # escapeHtml, badge, avatar, etc.
-│       └── components/       # Reusable component renderers
-│           ├── toast.js      # Toast notifications
-│           ├── modal.js      # Modal dialog management
-│           ├── statCard.js   # Stat card grid
-│           ├── badge.js      # Status/priority badges
-│           ├── table.js      # Table renderer
-│           ├── filterTabs.js # Filter tab bar
-│           ├── emptyState.js # Empty state placeholder
-│           ├── loadingSpinner.js
-│           └── userChip.js   # User avatar + name chip
-│
-├── css/                       # Stylesheets
-│   ├── hq.css                # HQ portal styles
-│   ├── intern.css            # Intern portal styles
-│   ├── login.css             # Login page styles
-│   └── components/           # Shared component styles
-│       ├── avatar.css        # Avatar circles
-│       ├── badge.css         # Status and priority badges
-│       ├── button.css        # Button system
-│       ├── empty-state.css   # Empty state placeholders
-│       ├── form.css          # Form inputs, selects, textareas
-│       ├── layout.css        # Grid, flex helpers
-│       ├── login.css         # Login screen layout
-│       ├── modal.css         # Dialog overlay + box
-│       ├── stat-card.css     # Stat card grid items
-│       ├── surface.css       # Card/surface containers
-│       ├── table.css         # Table styles
-│       └── toast.css         # Toast notification styles
-│
-├── database/schema/           # Database schema files
-│   ├── supabase-setup.sql    # Full schema setup
-│   └── intern-schema.sql     # Intern-specific tables
-│
+├── css/                       # Shared component stylesheets
+├── database/schema/           # Database schema SQL files
 ├── index.html                 # HQ portal entry point
-├── intern.html                # Intern portal entry point
+├── intern.html                # Intern Command Center entry point
 ├── login.html                 # Shared login page
-├── vercel.json                # Vercel deployment config
-└── config.example.js          # Template for root config (gitignored)
+├── signup.html                # Intern signup page
+├── vite.config.ts             # Vite bundler + Vitest config
+├── tsconfig.json              # TypeScript config (allowJs: true, strict: false)
+└── vercel.json                # Vercel deployment config
 ```
 
 ---
@@ -127,26 +104,25 @@ destineVents-CommandCenter/
 ```bash
 git clone <repo-url>
 cd destineVents-CommandCenter
+npm install
 ```
-
-No package manager needed — the only dependency (`@supabase/supabase-js`) is loaded via CDN in the HTML files.
 
 ### 2. Configure Supabase
 
-Copy the example config and fill in your Supabase credentials:
+Create a `.env.local` file in the project root:
 
 ```bash
-cp config/config.example.js config/config.js
+cp .env.example .env.local   # if example exists, otherwise create manually
 ```
 
-Edit `config/config.js`:
+Add your Supabase credentials:
 
-```js
-const SUPABASE_URL      = 'https://YOUR_PROJECT.supabase.co';
-const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY';
+```
+VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+VITE_SUPABASE_ANON_KEY=YOUR_ANON_KEY
 ```
 
-**Security:** `config/config.js` is in `.gitignore` and will NOT be committed.
+**Security:** `.env.local` is in `.gitignore` and will NOT be committed. For Vercel, add these same two variables under **Project Settings → Environment Variables**.
 
 ### 3. Database Setup
 
@@ -161,15 +137,18 @@ const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY';
 
 ### 4. Run Locally
 
-Open any of the HTML files directly in a browser, or serve with a local HTTP server:
-
 ```bash
-npx serve .
-# or
-python3 -m http.server 8080
+npm run dev
 ```
 
-Then navigate to `http://localhost:8080/login.html` to sign in.
+Navigate to `http://localhost:5173/login.html` to sign in.
+
+Other dev commands:
+```bash
+npm run build   # production build → dist/
+npm test        # run Vitest unit tests
+npm run lint    # ESLint
+```
 
 ---
 
@@ -291,11 +270,11 @@ if (!result) return; // error already shown via toast
 
 ## Known Limitations
 
-- No unit tests or integration tests
-- No TypeScript types or JSDoc annotations
-- Supabase client is global (`window.supabase`)
+- HQ portal page modules are plain JS globals (no TypeScript, no module imports)
+- `strict: false` in tsconfig — full strict mode is a future migration step
 - Realtime self-notifications not filtered (user sees own changes)
-- AI assistant requires manual Anthropic API key entry
+- AI assistant requires manual Anthropic API key entry (stored in localStorage)
+- No CI pipeline — tests run manually via `npm test`
 - No offline support
 - No dark mode
 - Mobile experience is functional but not optimized
@@ -304,8 +283,9 @@ if (!result) return; // error already shown via toast
 
 ## Future Improvements
 
-- Add automated tests (Playwright for E2E, Vitest for unit)
-- Add TypeScript with JSDoc type annotations
+- Convert HQ portal page modules to TypeScript
+- Enable `strict: true` once all files are `.ts`
+- Add Playwright E2E tests for critical user journeys
 - Implement proper focus trapping in modals
 - Add push notifications for approvals
 - Implement data export for all tables
