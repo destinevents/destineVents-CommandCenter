@@ -50,8 +50,7 @@ function toggleSidebar() {
   document.querySelector('.sb-collapse').textContent = sidebarOpen ? '◀' : '▶';
 }
 
-async function updateBadges() {
-  await loadLiveTimesheets();
+function updateBadges() {
   const count = pendingApprovals().length;
   document.getElementById('approval-badge').textContent = count;
   document.getElementById('approval-badge').style.display = count>0?'inline':'none';
@@ -114,6 +113,17 @@ async function goPage(page) {
   await renderPage(page);
 }
 
+const PAGE_DATA = {
+  dashboard:  ['tasks', 'timesheets'],
+  tasks:      ['tasks'],
+  timesheets: ['timesheets'],
+  outputs:    ['tasks'],
+  approvals:  ['timesheets'],
+  interns:    ['users', 'tasks', 'timesheets'],
+  reports:    ['users', 'tasks', 'timesheets'],
+  account:    [],
+};
+
 async function renderPage(page) {
   if (!currentUser.id) return;
 
@@ -128,10 +138,13 @@ async function renderPage(page) {
     account:   renderAccount,
   };
 
+  const needs = PAGE_DATA[page] ?? [];
   try {
-    await loadLiveTasks();
-    await loadLiveTimesheets();
-    await loadLiveUsers();
+    await Promise.all([
+      needs.includes('tasks')      ? loadLiveTasks()      : Promise.resolve(),
+      needs.includes('timesheets') ? loadLiveTimesheets() : Promise.resolve(),
+      needs.includes('users')      ? loadLiveUsers()      : Promise.resolve(),
+    ]);
     const fn = map[page];
     if (fn) await fn();
   } catch (err) {
