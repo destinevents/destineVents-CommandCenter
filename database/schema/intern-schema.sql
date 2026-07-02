@@ -77,7 +77,11 @@ begin
   insert into intern_users (id, name, email, role)
   values (
     new.id,
-    coalesce(new.raw_user_meta_data ->> 'full_name', split_part(new.email, '@', 1)),
+    coalesce(
+      new.raw_user_meta_data ->> 'name',
+      new.raw_user_meta_data ->> 'full_name',
+      split_part(new.email, '@', 1)
+    ),
     new.email,
     coalesce(new.raw_user_meta_data ->> 'role', 'intern')
   )
