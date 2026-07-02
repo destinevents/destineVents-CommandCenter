@@ -100,12 +100,10 @@ create policy "read_all_users" on intern_users for select to authenticated using
 drop policy if exists "admin_write_users" on intern_users;
 create policy "admin_write_users" on intern_users for all to authenticated
   using (
-    (auth.jwt() -> 'user_metadata' ->> 'role') in ('admin', 'supervisor')
-    or (select role from intern_users where id = auth.uid()) in ('admin', 'supervisor')
+    (select role from intern_users where id = auth.uid()) in ('admin', 'supervisor')
   )
   with check (
-    (auth.jwt() -> 'user_metadata' ->> 'role') in ('admin', 'supervisor')
-    or (select role from intern_users where id = auth.uid()) in ('admin', 'supervisor')
+    (select role from intern_users where id = auth.uid()) in ('admin', 'supervisor')
   );
 
 create policy "intern_update_own_profile" on intern_users
