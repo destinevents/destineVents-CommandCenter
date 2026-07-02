@@ -31,7 +31,8 @@ function saveModal() { if (_onSave) _onSave(); }
 async function init() {
   const session = await getSession();
   if (session) {
-    const role = session.user.user_metadata?.role || 'intern';
+    const { data: profile } = await sb.from('intern_users').select('role').eq('id', session.user.id).single();
+    const role = profile?.role || 'intern';
     if (role !== 'admin') {
       window.location.href = 'intern.html';
       return;

@@ -39,7 +39,8 @@ async function handleSignIn() {
       errEl.textContent = error.message || 'Sign in failed. Please try again.';
       return;
     }
-    const role = data?.user?.user_metadata?.role || 'intern';
+    const { data: profile } = await sb.from('intern_users').select('role').eq('id', data.user.id).single();
+    const role = profile?.role || 'intern';
     routeByRole(role);
   } finally {
     setLoading(false);
@@ -56,7 +57,8 @@ async function handleSignOut() {
 async function init() {
   const session = await getSession();
   if (session) {
-    const role = session.user.user_metadata?.role || 'intern';
+    const { data: profile } = await sb.from('intern_users').select('role').eq('id', session.user.id).single();
+    const role = profile?.role || 'intern';
     routeByRole(role);
   }
 }
