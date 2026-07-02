@@ -108,6 +108,14 @@ create policy "admin_write_users" on intern_users for all to authenticated
     or (select role from intern_users where id = auth.uid()) in ('admin', 'supervisor')
   );
 
+create policy "intern_update_own_profile" on intern_users
+  for update to authenticated
+  using (id = auth.uid())
+  with check (
+    id = auth.uid()
+    and role = (select role from intern_users where id = auth.uid())
+  );
+
 -- intern_tasks policies
 drop policy if exists "intern_own_tasks" on intern_tasks;
 create policy "intern_own_tasks" on intern_tasks for select to authenticated
