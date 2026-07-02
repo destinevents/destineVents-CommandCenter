@@ -4,3 +4,8 @@ node_modules/
 dist/
 .env.local
 config/config.js
+coverage/
+.env*.local
+__MACOSX/
+*.tsbuildinfo
+.vite/

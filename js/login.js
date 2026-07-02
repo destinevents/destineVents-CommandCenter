@@ -31,7 +31,10 @@ async function handleSignIn() {
   const pass = document.getElementById('login-pass').value;
   const errEl = document.getElementById('login-error');
   errEl.textContent = '';
-  if (!email || !pass) { errEl.textContent = 'Email and password required.'; return; }
+  if (!email || !pass) {
+    errEl.textContent = 'Email and password required.';
+    return;
+  }
   setLoading(true);
   try {
     const { data, error } = await signIn(email, pass);
@@ -39,7 +42,11 @@ async function handleSignIn() {
       errEl.textContent = error.message || 'Sign in failed. Please try again.';
       return;
     }
-    const { data: profile } = await sb.from('intern_users').select('role').eq('id', data.user.id).single();
+    const { data: profile } = await sb
+      .from('intern_users')
+      .select('role')
+      .eq('id', data.user.id)
+      .single();
     const role = profile?.role || 'intern';
     routeByRole(role);
   } finally {
@@ -57,7 +64,11 @@ async function handleSignOut() {
 async function init() {
   const session = await getSession();
   if (session) {
-    const { data: profile } = await sb.from('intern_users').select('role').eq('id', session.user.id).single();
+    const { data: profile } = await sb
+      .from('intern_users')
+      .select('role')
+      .eq('id', session.user.id)
+      .single();
     const role = profile?.role || 'intern';
     routeByRole(role);
   }

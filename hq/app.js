@@ -1,10 +1,10 @@
-let _clients   = [];
+let _clients = [];
 let _proposals = [];
-let _partners  = [];
+let _partners = [];
 let _documents = [];
-let _invoices  = [];
-let _bills     = [];
-let _payroll   = [];
+let _invoices = [];
+let _bills = [];
+let _payroll = [];
 
 let _onSave = null;
 
@@ -26,12 +26,18 @@ function closeModal() {
   _onSave = null;
 }
 
-function saveModal() { if (_onSave) _onSave(); }
+function saveModal() {
+  if (_onSave) _onSave();
+}
 
 async function init() {
   const session = await getSession();
   if (session) {
-    const { data: profile } = await sb.from('intern_users').select('role').eq('id', session.user.id).single();
+    const { data: profile } = await sb
+      .from('intern_users')
+      .select('role')
+      .eq('id', session.user.id)
+      .single();
     const role = profile?.role || 'intern';
     if (role !== 'admin') {
       window.location.href = 'intern.html';
@@ -48,13 +54,20 @@ function enterApp(email, name) {
   document.getElementById('login-screen').style.display = 'none';
   const hour = new Date().getHours();
   const timeOfDay = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
-  document.getElementById('dashboard-greeting').textContent = name ? `${timeOfDay}, ${name}.` : `${timeOfDay}.`;
+  document.getElementById('dashboard-greeting').textContent = name
+    ? `${timeOfDay}, ${name}.`
+    : `${timeOfDay}.`;
   const now = new Date();
-  const dateFmt = now.toLocaleDateString('en-PH', { weekday:'short', month:'long', day:'numeric', year:'numeric' });
+  const dateFmt = now.toLocaleDateString('en-PH', {
+    weekday: 'short',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
   const dateEl = document.getElementById('topbar-date');
   if (dateEl) dateEl.textContent = dateFmt;
   if (email) {
-    const initials = email.split('@')[0].slice(0,2).toUpperCase();
+    const initials = email.split('@')[0].slice(0, 2).toUpperCase();
     const av = document.getElementById('topbar-avatar');
     const sav = document.getElementById('sidebar-avatar');
     const sem = document.getElementById('sidebar-email');
@@ -63,7 +76,10 @@ function enterApp(email, name) {
     if (sem) sem.textContent = email;
   }
   const savedKey = '';
-  if (savedKey) { const k = document.getElementById('ai-api-key'); if (k) k.value = savedKey; }
+  if (savedKey) {
+    const k = document.getElementById('ai-api-key');
+    if (k) k.value = savedKey;
+  }
   setupRealtime();
   showPage('dashboard');
 }
@@ -71,13 +87,13 @@ function enterApp(email, name) {
 function setupRealtime() {
   if (!sb) return;
   const pageMap = {
-    clients:      { page: 'clients',   reload: () => loadClients() },
-    proposals:    { page: 'proposals', reload: () => loadProposals() },
-    partners:     { page: 'partners',  reload: () => loadPartners() },
-    invoices:     { page: 'finance',   reload: () => loadFinance() },
-    bills:        { page: 'finance',   reload: () => loadFinance() },
-    payroll_runs: { page: 'finance',   reload: () => loadFinance() },
-    documents:    { page: 'documents', reload: () => loadDocuments() },
+    clients: { page: 'clients', reload: () => loadClients() },
+    proposals: { page: 'proposals', reload: () => loadProposals() },
+    partners: { page: 'partners', reload: () => loadPartners() },
+    invoices: { page: 'finance', reload: () => loadFinance() },
+    bills: { page: 'finance', reload: () => loadFinance() },
+    payroll_runs: { page: 'finance', reload: () => loadFinance() },
+    documents: { page: 'documents', reload: () => loadDocuments() },
   };
   const ch = sb.channel('db-realtime');
   Object.entries(pageMap).forEach(([table, { page, reload }]) => {
@@ -100,12 +116,18 @@ function setupRealtime() {
 
 async function handleSignIn() {
   const email = document.getElementById('login-email').value.trim();
-  const pass  = document.getElementById('login-pass').value;
+  const pass = document.getElementById('login-pass').value;
   const errEl = document.getElementById('login-error');
   errEl.textContent = '';
-  if (!email || !pass) { errEl.textContent = 'Email and password required.'; return; }
+  if (!email || !pass) {
+    errEl.textContent = 'Email and password required.';
+    return;
+  }
   const { data, error } = await signIn(email, pass);
-  if (error) { errEl.textContent = error.message; return; }
+  if (error) {
+    errEl.textContent = error.message;
+    return;
+  }
   const name = data.user.user_metadata?.full_name || data.user.user_metadata?.name || '';
   enterApp(data.user.email, name);
 }
@@ -116,32 +138,48 @@ async function handleSignOut() {
 }
 
 function showPage(name) {
-  document.querySelectorAll('.page').forEach(p =>p.classList.remove('active'));
+  document.querySelectorAll('.page').forEach((p) => p.classList.remove('active'));
   const page = document.getElementById('page-' + name);
-  if (page) { page.classList.add('active'); loadPage(name); }
-  document.querySelectorAll('.nav-item').forEach(n =>n.classList.remove('active'));
+  if (page) {
+    page.classList.add('active');
+    loadPage(name);
+  }
+  document.querySelectorAll('.nav-item').forEach((n) => n.classList.remove('active'));
   const activeNav = document.querySelector(`.nav-item[data-page="${name}"]`);
   if (activeNav) activeNav.classList.add('active');
-  document.querySelectorAll('.tab').forEach(t =>t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
   const activeTab = document.querySelector(`.tab[data-page="${name}"]`);
   if (activeTab) activeTab.classList.add('active');
 }
 
 function loadPage(name) {
-  switch(name) {
-    case 'clients':     loadClients();      break;
-    case 'proposals':   loadProposals();    break;
-    case 'partners':    loadPartners();     break;
-    case 'documents':   loadDocuments();    break;
-    case 'finance':     loadFinance();      break;
-    case 'ai':          break;
-    case 'new-project': resetNewProject();  break;
+  switch (name) {
+    case 'clients':
+      loadClients();
+      break;
+    case 'proposals':
+      loadProposals();
+      break;
+    case 'partners':
+      loadPartners();
+      break;
+    case 'documents':
+      loadDocuments();
+      break;
+    case 'finance':
+      loadFinance();
+      break;
+    case 'ai':
+      break;
+    case 'new-project':
+      resetNewProject();
+      break;
   }
 }
 
 function filterTable(input, tbodyId) {
   const q = input.value.toLowerCase();
-  document.querySelectorAll('#' + tbodyId + ' tr').forEach(tr =>{
+  document.querySelectorAll('#' + tbodyId + ' tr').forEach((tr) => {
     tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
   });
 }

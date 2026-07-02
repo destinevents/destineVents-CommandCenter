@@ -16,9 +16,9 @@
     "type": "git",
     "url": "git+https://github.com/destinevents/destineVents-CommandCenter.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": ["events", "crm", "intern-management", "operations", "supabase"],
+  "author": "DestineVents Collective OPC",
+  "license": "UNLICENSED",
   "bugs": {
     "url": "https://github.com/destinevents/destineVents-CommandCenter/issues"
   },
