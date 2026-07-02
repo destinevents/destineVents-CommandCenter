@@ -75,7 +75,7 @@ export async function getCurrentUser(): Promise<InternUser | null> {
     ...(profile || {}),
     id: session.user.id,
     name: profile?.name || session.user.user_metadata?.name || null,
-    role: session.user.user_metadata?.role || profile?.role || 'intern',
+    role: profile?.role || 'intern',
   } as InternUser;
 }
 

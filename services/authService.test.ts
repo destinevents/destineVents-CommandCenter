@@ -96,7 +96,7 @@ describe('getCurrentUser', () => {
 
   it('returns merged user+profile when session exists', async () => {
     mockSb.auth.getSession.mockResolvedValue({
-      data: { session: { user: { id: 'u1', user_metadata: { role: 'intern' } } } },
+      data: { session: { user: { id: 'u1', user_metadata: {} } } },
     });
     const fakeProfile = {
       id: 'u1',
@@ -117,6 +117,34 @@ describe('getCurrentUser', () => {
     const result = await getCurrentUser();
     expect(result?.name).toBe('Bob');
     expect(result?.role).toBe('intern');
+  });
+
+  it('uses profile.role from the database, ignoring a higher role set in user_metadata', async () => {
+    mockSb.auth.getSession.mockResolvedValue({
+      data: {
+        session: {
+          user: { id: 'u1', user_metadata: { role: 'admin' } }, // attacker-set claim
+        },
+      },
+    });
+    const fakeProfile = {
+      id: 'u1',
+      name: 'Eve',
+      email: 'e@e.com',
+      role: 'intern', // what the database actually says
+      avatar: null,
+      school: null,
+      program: null,
+      created_at: '2025-01-01',
+    };
+    const chain = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: fakeProfile, error: null }),
+    };
+    mockSb.from.mockReturnValue(chain);
+    const result = await getCurrentUser();
+    expect(result?.role).toBe('intern'); // must NOT be 'admin'
   });
 });
 
