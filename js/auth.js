@@ -20,10 +20,13 @@
 
   window.signUp = async function (email, password, meta) {
     try {
+      // Strip role to prevent self-assignment via the handle_new_intern_user trigger.
+      // Keep this in sync with authService.ts::signUp().
+      const { role: _role, ...safeMeta } = meta || {};
       const { data, error } = await sb.auth.signUp({
         email,
         password,
-        options: { data: meta || {} },
+        options: { data: safeMeta },
       });
       if (error) return { data: null, error };
       return { data, error: null };
@@ -47,6 +50,8 @@
     }
   };
 
+  // SYNC WARNING: keep this in lockstep with services/authService.ts::getCurrentUser().
+  // That version is the tested canonical implementation. Any logic change must be made in both.
   window.getCurrentUser = async function () {
     try {
       const {
@@ -58,12 +63,13 @@
         .select('*')
         .eq('id', session.user.id)
         .single();
+      if (!profile) return null;
       return {
         ...session.user,
-        ...(profile || {}),
+        ...profile,
         id: session.user.id,
-        name: profile?.name || session.user.user_metadata?.name || null,
-        role: profile?.role || 'intern',
+        name: profile.name || session.user.user_metadata?.name || null,
+        role: profile.role,
       };
     } catch (err) {
       return null;

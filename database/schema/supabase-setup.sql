@@ -97,41 +97,48 @@ alter table payroll_runs enable row level security;
 alter table documents    enable row level security;
 
 -- Admin-only access — interns/supervisors should not query HQ tables
-drop policy if exists "auth_all" on clients;
-drop policy if exists "auth_all" on proposals;
-drop policy if exists "auth_all" on partners;
-drop policy if exists "auth_all" on invoices;
-drop policy if exists "auth_all" on bills;
-drop policy if exists "auth_all" on payroll_runs;
-drop policy if exists "auth_all" on documents;
+drop policy if exists "auth_all"   on clients;
+drop policy if exists "auth_all"   on proposals;
+drop policy if exists "auth_all"   on partners;
+drop policy if exists "auth_all"   on invoices;
+drop policy if exists "auth_all"   on bills;
+drop policy if exists "auth_all"   on payroll_runs;
+drop policy if exists "auth_all"   on documents;
+drop policy if exists "admin_only" on clients;
+drop policy if exists "admin_only" on proposals;
+drop policy if exists "admin_only" on partners;
+drop policy if exists "admin_only" on invoices;
+drop policy if exists "admin_only" on bills;
+drop policy if exists "admin_only" on payroll_runs;
+drop policy if exists "admin_only" on documents;
 
 create policy "admin_only" on clients      for all to authenticated
-  using ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
-  with check ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+  using ((select role from intern_users where id = auth.uid()) = 'admin')
+  with check ((select role from intern_users where id = auth.uid()) = 'admin');
 
 create policy "admin_only" on proposals    for all to authenticated
-  using ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
-  with check ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+  using ((select role from intern_users where id = auth.uid()) = 'admin')
+  with check ((select role from intern_users where id = auth.uid()) = 'admin');
 
 create policy "admin_only" on partners     for all to authenticated
-  using ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
-  with check ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+  using ((select role from intern_users where id = auth.uid()) = 'admin')
+  with check ((select role from intern_users where id = auth.uid()) = 'admin');
 
 create policy "admin_only" on invoices     for all to authenticated
-  using ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
-  with check ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+  using ((select role from intern_users where id = auth.uid()) = 'admin')
+  with check ((select role from intern_users where id = auth.uid()) = 'admin');
 
 create policy "admin_only" on bills        for all to authenticated
-  using ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
-  with check ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+  using ((select role from intern_users where id = auth.uid()) = 'admin')
+  with check ((select role from intern_users where id = auth.uid()) = 'admin');
 
 create policy "admin_only" on payroll_runs for all to authenticated
-  using ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
-  with check ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+  using ((select role from intern_users where id = auth.uid()) = 'admin')
+  with check ((select role from intern_users where id = auth.uid()) = 'admin');
 
 create policy "admin_only" on documents    for all to authenticated
-  using ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
-  with check ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+  using ((select role from intern_users where id = auth.uid()) = 'admin')
+  with check ((select role from intern_users where id = auth.uid()) = 'admin');
 
 -- ─── REALTIME ────────────────────────────────────────────────────────────────
 -- Enable real-time updates for all tables (run this in SQL Editor)

@@ -42,6 +42,10 @@ async function handleSignIn() {
       errEl.textContent = error.message || 'Sign in failed. Please try again.';
       return;
     }
+    if (!data.user) {
+      errEl.textContent = 'Sign in failed. Please verify your email and try again.';
+      return;
+    }
     const { data: profile } = await sb
       .from('intern_users')
       .select('role')
@@ -64,13 +68,17 @@ async function handleSignOut() {
 async function init() {
   const session = await getSession();
   if (session) {
-    const { data: profile } = await sb
+    const { data: profile, error: profileError } = await sb
       .from('intern_users')
       .select('role')
       .eq('id', session.user.id)
       .single();
-    const role = profile?.role || 'intern';
-    routeByRole(role);
+    if (profileError || !profile) {
+      document.getElementById('login-error').textContent =
+        'Could not verify your account. Please sign in again.';
+      return;
+    }
+    routeByRole(profile.role);
   }
 }
 

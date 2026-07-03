@@ -6,7 +6,6 @@ interface AuthMeta {
   name?: string;
   school?: string | null;
   program?: string | null;
-  role?: string;
   [key: string]: unknown;
 }
 
@@ -22,7 +21,9 @@ interface AuthResult {
 
 export async function signUp(email: string, password: string, meta: AuthMeta = {}) {
   try {
-    const { data, error } = await sb.auth.signUp({ email, password, options: { data: meta } });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { role: _role, ...safeMeta } = meta as AuthMeta & { role?: unknown };
+    const { data, error } = await sb.auth.signUp({ email, password, options: { data: safeMeta } });
     if (error) return { data: null, error };
     return { data, error: null };
   } catch (err) {

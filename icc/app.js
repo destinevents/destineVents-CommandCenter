@@ -182,12 +182,26 @@ function setupRealtime() {
         }
       }
     )
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'intern_users' }, async () => {
-      await loadLiveUsers();
-      if (activePage === 'interns' || activePage === 'reports') {
-        await renderPage(activePage);
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'intern_users' },
+      async (payload) => {
+        await loadLiveUsers();
+        if (payload.new?.id === currentUser?.id) {
+          const freshUser = await getCurrentUser();
+          if (freshUser) {
+            currentUser.role = freshUser.role;
+            currentUser.name = freshUser.name;
+            document.getElementById('topbar-role').textContent = freshUser.role;
+            document.getElementById('sb-role').textContent = freshUser.role;
+            applyRoleVisibility();
+          }
+        }
+        if (activePage === 'interns' || activePage === 'reports') {
+          await renderPage(activePage);
+        }
       }
-    })
+    )
     .subscribe();
 }
 

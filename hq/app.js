@@ -33,13 +33,18 @@ function saveModal() {
 async function init() {
   const session = await getSession();
   if (session) {
-    const { data: profile } = await sb
+    const { data: profile, error: profileError } = await sb
       .from('intern_users')
       .select('role')
       .eq('id', session.user.id)
       .single();
-    const role = profile?.role || 'intern';
-    if (role !== 'admin') {
+    if (profileError || !profile) {
+      document.getElementById('login-screen').style.display = 'flex';
+      document.getElementById('login-error').textContent =
+        'Could not verify your account. Please sign in again.';
+      return;
+    }
+    if (profile.role !== 'admin') {
       window.location.href = 'intern.html';
       return;
     }
@@ -126,6 +131,20 @@ async function handleSignIn() {
   const { data, error } = await signIn(email, pass);
   if (error) {
     errEl.textContent = error.message;
+    return;
+  }
+  if (!data.user) {
+    errEl.textContent = 'Sign in failed. Please try again.';
+    return;
+  }
+  const { data: profile } = await sb
+    .from('intern_users')
+    .select('role')
+    .eq('id', data.user.id)
+    .single();
+  const role = profile?.role || 'intern';
+  if (role !== 'admin') {
+    window.location.href = 'intern.html';
     return;
   }
   const name = data.user.user_metadata?.full_name || data.user.user_metadata?.name || '';

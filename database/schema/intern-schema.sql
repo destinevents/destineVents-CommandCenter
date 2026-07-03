@@ -83,7 +83,7 @@ begin
       split_part(new.email, '@', 1)
     ),
     new.email,
-    coalesce(new.raw_user_meta_data ->> 'role', 'intern')
+    'intern'
   )
   on conflict (id) do update set email = excluded.email;
   return new;
@@ -106,12 +106,14 @@ create policy "admin_write_users" on intern_users for all to authenticated
     (select role from intern_users where id = auth.uid()) in ('admin', 'supervisor')
   );
 
+drop policy if exists "intern_update_own_profile" on intern_users;
 create policy "intern_update_own_profile" on intern_users
   for update to authenticated
   using (id = auth.uid())
   with check (
     id = auth.uid()
-    and role = (select role from intern_users where id = auth.uid())
+    and role  = (select role  from intern_users where id = auth.uid())
+    and email = (select email from intern_users where id = auth.uid())
   );
 
 -- intern_tasks policies
