@@ -154,13 +154,13 @@ npm run lint    # ESLint
 
 ## Deployment
 
-The project deploys to Vercel as a static SPA:
+The project deploys to Vercel as a static site. No build step — Vercel serves files directly from the repo root:
 
 ```bash
 npx vercel --prod
 ```
 
-The `vercel.json` routes all 404s to `login.html` for SPA-like behavior.
+`vercel.json` sets `buildCommand: ""` and `outputDirectory: "."`, so Vite is not invoked during deployment. The `/` → `/login.html` redirect handles the root URL.
 
 ---
 
