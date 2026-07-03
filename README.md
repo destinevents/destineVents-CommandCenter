@@ -11,7 +11,7 @@ A dual-portal operations management platform for **DestineVents Collective OPC**
 | **Frontend** | Vanilla HTML5, CSS3, JavaScript (ES6+) + TypeScript (services/utils) |
 | **Backend** | Supabase (PostgreSQL, Auth, Realtime, Storage) |
 | **Bundler** | Vite (dev server + production build) |
-| **Testing** | Vitest (57 unit tests across services, utils, config) |
+| **Testing** | Vitest (130 unit tests across services, utils, config) |
 | **Deployment** | Vercel (`npm run build` → `dist/`) |
 | **Fonts** | Google Fonts (DM Sans, Cormorant Garamond, Dancing Script) |
 
@@ -69,7 +69,7 @@ destineVents-CommandCenter/
 │   ├── ai.js                 # AI assistant (Anthropic Claude)
 │   └── hq.css                # HQ portal styles
 │
-├── ICC/                       # Intern Command Center page modules
+├── icc/                       # Intern Command Center page modules
 │   ├── app.js                # ICC app shell, routing, realtime
 │   ├── dashboard.js          # Dashboard stat cards, activity feed
 │   ├── tasks.js              # Kanban board, task CRUD, status transitions
@@ -178,7 +178,7 @@ The `vercel.json` routes all 404s to `login.html` for SPA-like behavior.
 ```
 login.html → signIn() → supabase.auth.signInWithPassword()
     ↓
-session.user.user_metadata.role
+getProfile(user.id) → intern_users.role  (DB is the source of truth)
     ↓
 admin? → role-picker (HQ or Intern)
 other? → intern.html redirect
@@ -260,7 +260,7 @@ if (!result) return; // error already shown via toast
 
 ## Security Notes
 
-- **Supabase anon key**: Stored in `config/config.js` (gitignored). The key is public by design (Supabase Row-Level Security protects data)
+- **Supabase credentials**: Loaded from `.env.local` via `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (gitignored). The anon key is public by design — Supabase Row-Level Security protects all data
 - **XSS prevention**: All user-rendered data passes through `escapeHtml()` before `innerHTML` assignment
 - **Auth**: Supabase Auth with Row-Level Security policies on all tables
 - **File uploads**: Supabase Storage with bucket-level security
@@ -283,8 +283,6 @@ if (!result) return; // error already shown via toast
 
 ## Future Improvements
 
-- Convert HQ portal page modules to TypeScript
-- Enable `strict: true` once all files are `.ts`
 - Add Playwright E2E tests for critical user journeys
 - Implement proper focus trapping in modals
 - Add push notifications for approvals
