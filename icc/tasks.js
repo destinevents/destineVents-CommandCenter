@@ -21,12 +21,7 @@ function applyTaskFilters(tasks) {
   return out;
 }
 
-// Re-render when any toolbar control changes (toolbar is static HTML, so
-// re-rendering the board doesn't steal focus from the search input)
-['task-search', 'task-priority-filter', 'task-type-filter', 'task-sort'].forEach(id => {
-  const el = document.getElementById(id);
-  if (el) el.addEventListener(id === 'task-search' ? 'input' : 'change', () => renderTasks());
-});
+attachFilterToolbar(['task-search', 'task-priority-filter', 'task-type-filter', 'task-sort'], renderTasks);
 
 function isOverdue(t) {
   return !!t.due_date && !['completed', 'reviewed'].includes(t.status) && t.due_date < todayISO();
@@ -57,10 +52,15 @@ async function renderTasks() {
       ? `${allTasks.length} total tasks`
       : `${tasks.length} of ${allTasks.length} tasks`;
 
+  // Group once; tab counts, columns, and the single-status view all read this
+  const byStatus = {};
+  KANBAN_COLS.forEach(col => { byStatus[col] = []; });
+  tasks.forEach(t => { byStatus[t.status]?.push(t); });
+
   const tabs = ['all', ...KANBAN_COLS];
   document.getElementById('task-filters').innerHTML = tabs.map(t => {
     const label = t === 'all' ? 'All' : STATUS_LABELS[t];
-    const count = t === 'all' ? tasks.length : tasks.filter(x => x.status === t).length;
+    const count = t === 'all' ? tasks.length : byStatus[t].length;
     return `<button class="filter-tab${taskFilter===t ? ' active' : ''}" data-action="set-task-filter" data-filter="${t}">${label} (${count})</button>`;
   }).join('');
 
@@ -70,7 +70,7 @@ async function renderTasks() {
     // Overview: one section per status, previewing a few tasks each
     board.className = 'kanban';
     board.innerHTML = KANBAN_COLS.map(col => {
-      const colTasks = tasks.filter(t => t.status === col);
+      const colTasks = byStatus[col];
       const hiddenCount = colTasks.length - TASK_PREVIEW_COUNT;
       return `<div class="kan-col">
         <div class="kan-col-header">
@@ -84,7 +84,7 @@ async function renderTasks() {
     }).join('');
   } else {
     // Single status: full-width grid of task cards
-    const colTasks = tasks.filter(t => t.status === taskFilter);
+    const colTasks = byStatus[taskFilter] ?? [];
     board.className = colTasks.length ? 'task-grid' : '';
     board.innerHTML = colTasks.length
       ? colTasks.map(taskCard).join('')
@@ -177,7 +177,8 @@ async function taskAction(id, action) {
   const result = await updateTask(id, { status: newStatus, updated_at: new Date().toISOString() });
   if (!result) return;
 
-  await logAudit('task_status_changed', 'task', id, { new_status: newStatus, action }, currentUser.id);
+  // fire-and-forget: logAudit handles its own errors; don't stall the UI on it
+  logAudit('task_status_changed', 'task', id, { new_status: newStatus, action }, currentUser.id);
 
   closeModal('modal-view-task');
   toast('Task updated!');
@@ -265,7 +266,7 @@ async function handleCreateTask() {
   if (wasEditing) {
     const result = await updateTask(editingTaskId, { ...fields, updated_at: new Date().toISOString() });
     if (!result) return;
-    await logAudit('task_edited', 'task', editingTaskId, { title }, currentUser.id);
+    logAudit('task_edited', 'task', editingTaskId, { title }, currentUser.id);
     editingTaskId = null;
   } else {
     const result = await createTask({
@@ -275,7 +276,7 @@ async function handleCreateTask() {
       output_link: '',
     });
     if (!result) return;
-    await logAudit('task_created', 'task', result.id, { title, assigned_to: user(assignee).name || assignee }, currentUser.id);
+    logAudit('task_created', 'task', result.id, { title, assigned_to: user(assignee).name || assignee }, currentUser.id);
   }
 
   closeModal('modal-add-task');

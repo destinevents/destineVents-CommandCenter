@@ -13,7 +13,9 @@ async function handleReset() {
   const confirm = document.getElementById('reset-confirm').value;
   setResetError('');
 
-  if (pwd.length < 8) { setResetError('Password must be at least 8 characters.'); return; }
+  // Same 5-rule policy as signup and the account page (utils/validators.js)
+  const pwErr = validatePassword(pwd);
+  if (pwErr) { setResetError(pwErr); return; }
   if (pwd !== confirm) { setResetError('Passwords do not match.'); return; }
 
   const btn = document.getElementById('reset-btn');
@@ -34,11 +36,21 @@ async function handleReset() {
   }
 }
 
-// Warn early if the page was opened without a valid recovery link. The token
-// exchange is async, so give supabase-js a moment before judging.
+// Warn if the page was opened without a valid recovery link. The token
+// exchange is async and can be slow on a bad connection, so listen for the
+// session instead of racing a short timer — and clear the warning if the
+// session shows up late.
+let recoverySessionSeen = false;
+sb.auth.onAuthStateChange((_event, session) => {
+  if (session) {
+    recoverySessionSeen = true;
+    setResetError('');
+  }
+});
 setTimeout(async () => {
+  if (recoverySessionSeen) return;
   const session = await getSession();
   if (!session) {
     setResetError('This reset link is invalid or has expired. Request a new one from the sign-in page.');
   }
-}, 1500);
+}, 5000);

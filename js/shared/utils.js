@@ -45,6 +45,36 @@ function avatarEl(initials, size=32, color="#252f27"){
   return `<div class="avatar" style="width:${size}px;height:${size}px;font-size:${Math.round(size*0.34)}px;background:${color}">${initials}</div>`;
 }
 
+function debounce(fn, wait = 200) {
+  let t;
+  return (...args) => {
+    clearTimeout(t);
+    t = setTimeout(() => fn(...args), wait);
+  };
+}
+
+// Wires a static filter toolbar to a render function: text inputs re-render
+// debounced as the user types; selects and date inputs re-render on change.
+function attachFilterToolbar(ids, renderFn) {
+  const debounced = debounce(() => renderFn(), 200);
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const isTextInput = el.tagName === 'INPUT' && el.type === 'text';
+    el.addEventListener(isTextInput ? 'input' : 'change', isTextInput ? debounced : () => renderFn());
+  });
+}
+
+// Appends the shared OUTPUT_TYPES options after the select's placeholder option
+function populateOutputTypeSelect(id) {
+  const sel = document.getElementById(id);
+  if (!sel) return;
+  sel.insertAdjacentHTML(
+    'beforeend',
+    Object.entries(OUTPUT_TYPES).map(([v, label]) => `<option value="${v}">${label}</option>`).join('')
+  );
+}
+
 function skillPill(s){ return `<span class="skill-pill">${s}</span>`; }
 
 function skillPillGreen(s){ return `<span class="skill-pill-green">${s}</span>`; }

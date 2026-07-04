@@ -234,10 +234,18 @@ function exportPDF(uid) {
 }
 
 // ── Audit Log ─────────────────────────────────────────────
+// Cache the page between visits — the log rarely changes minute to minute
+let auditLogCache = { logs: null, at: 0 };
+const AUDIT_CACHE_MS = 60000;
+
 async function renderAuditLog() {
-  const logs = await fetchAuditLogs();
+  if (!auditLogCache.logs || Date.now() - auditLogCache.at > AUDIT_CACHE_MS) {
+    auditLogCache = { logs: await fetchAuditLogs(), at: Date.now() };
+  }
+  const logs = auditLogCache.logs;
+  const userById = new Map(liveUsers.map(u => [u.id, u]));
   document.getElementById('audit-tbody').innerHTML = logs.map(l => {
-    const who = user(l.performed_by);
+    const who = userById.get(l.performed_by) || {};
     const details = l.metadata && Object.keys(l.metadata).length
       ? Object.entries(l.metadata)
           .map(([k, v]) => `${k.replace(/_/g, ' ')}: ${typeof v === 'object' ? JSON.stringify(v) : v}`)

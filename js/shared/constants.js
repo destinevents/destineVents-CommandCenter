@@ -10,4 +10,8 @@ const STATUS_COLORS = { assigned:"#6366f1", acknowledged:"#f59e0b", in_progress:
 
 const OUTPUT_ICONS  = { code:"💻", design:"🎨", video:"🎬", document:"📄", automation:"⚙️", landing_page:"🌐" };
 
+// Single source for output-type <select>s (filters + task modal) — keep keys
+// in sync with OUTPUT_ICONS and the intern_tasks.output_type DB check.
+const OUTPUT_TYPES  = { code:"Code", design:"Design", video:"Video", document:"Document", automation:"Automation", landing_page:"Landing Page" };
+
 const KANBAN_COLS   = ["assigned","acknowledged","in_progress","completed","reviewed"];

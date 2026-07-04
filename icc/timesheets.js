@@ -1,11 +1,6 @@
-// Re-render when any toolbar control changes (toolbar is static HTML, so
-// re-rendering the table doesn't steal focus from the search input)
-['sheet-search', 'sheet-from', 'sheet-to'].forEach(id => {
-  const el = document.getElementById(id);
-  if (el) el.addEventListener(id === 'sheet-search' ? 'input' : 'change', () => renderTimesheets());
-});
+attachFilterToolbar(['sheet-search', 'sheet-from', 'sheet-to'], renderTimesheets);
 
-function applySheetFilters(sheets) {
+function applySheetFilters(sheets, taskById, userById) {
   const q    = document.getElementById('sheet-search').value.trim().toLowerCase();
   const from = document.getElementById('sheet-from').value;
   const to   = document.getElementById('sheet-to').value;
@@ -14,8 +9,8 @@ function applySheetFilters(sheets) {
   if (from) out = out.filter(ts => ts.date >= from);
   if (to)   out = out.filter(ts => ts.date <= to);
   if (q) out = out.filter(ts => {
-    const task   = liveTasks.find(t => t.id === ts.task_id);
-    const intern = liveUsers.find(u => u.id === ts.intern_id);
+    const task   = taskById.get(ts.task_id);
+    const intern = userById.get(ts.intern_id);
     return (ts.activity_description || '').toLowerCase().includes(q) ||
       (ts.industry_category || '').toLowerCase().includes(q) ||
       (task?.title || '').toLowerCase().includes(q) ||
@@ -27,6 +22,8 @@ function applySheetFilters(sheets) {
 async function renderTimesheets() {
   const sheets = mySheets();
   const isAdmin = currentUser.role!=='intern';
+  const taskById = new Map(liveTasks.map(t => [t.id, t]));
+  const userById = new Map(liveUsers.map(u => [u.id, u]));
 
   const approvedH = sheets.filter(t=>t.status==='approved').reduce((s,t)=>s+t.hours,0);
   const pendingH  = sheets.filter(t=>t.status==='pending').reduce((s,t)=>s+t.hours,0);
@@ -38,15 +35,15 @@ async function renderTimesheets() {
 
   renderFilterTabs('sheet-filters', ['all','pending','approved','rejected'], sheetFilter, 'set-sheet-filter', 'filter');
 
-  const filtered = applySheetFilters(sheetFilter==='all' ? sheets : sheets.filter(t=>t.status===sheetFilter));
+  const filtered = applySheetFilters(sheetFilter==='all' ? sheets : sheets.filter(t=>t.status===sheetFilter), taskById, userById);
 
   const adminCols = isAdmin ? ['<th>Intern</th>','<th>Date</th>','<th>Task</th>','<th>Activity</th>','<th>Hours</th>','<th>Category</th>','<th>Skills</th>','<th>Status</th>','<th></th>'] :
                               ['<th>Date</th>','<th>Task</th>','<th>Activity</th>','<th>Hours</th>','<th>Category</th>','<th>Skills</th>','<th>Status</th>'];
   document.getElementById('sheet-thead').innerHTML = `<tr>${adminCols.join('')}</tr>`;
 
   document.getElementById('sheet-tbody').innerHTML = filtered.map(ts=>{
-    const task = liveTasks.find(t=>t.id===ts.task_id);
-    const intern = liveUsers.find(u=>u.id===ts.intern_id);
+    const task = taskById.get(ts.task_id);
+    const intern = userById.get(ts.intern_id);
     const approveBtn = ts.status==='pending' ? `<div style="display:flex;gap:5px"><button class="btn-sm-approve" data-action="approve-sheet" data-id="${ts.id}">✓ Approve</button><button class="btn-sm-reject" data-action="reject-sheet" data-id="${ts.id}">✕ Reject</button></div>` : '';
     const skillHtml = (ts.skills||[]).slice(0,2).map(skillPillGreen).join(' ')+((ts.skills||[]).length>2?`<span style="font-size:10px;color:var(--faint)">+${ts.skills.length-2}</span>`:'');
     return `<tr>
@@ -80,7 +77,7 @@ async function approveSheet(id) {
   });
   if (!result) return;
 
-  await logAudit('approved_timesheet', 'timesheet', id, { approved_by: currentUser.id }, currentUser.id);
+  logAudit('approved_timesheet', 'timesheet', id, { approved_by: currentUser.id }, currentUser.id);
 
   toast('Entry approved ✓');
   await updateBadges();
@@ -106,7 +103,7 @@ async function confirmReject() {
     rejection_reason: reason
   });
   if (result) {
-    await logAudit('rejected_timesheet', 'timesheet', pendingRejectId, { reason }, currentUser.id);
+    logAudit('rejected_timesheet', 'timesheet', pendingRejectId, { reason }, currentUser.id);
     closeModal('modal-reject-reason');
     pendingRejectId = null;
     await updateBadges();
@@ -165,7 +162,7 @@ async function logHours() {
     return;
   }
 
-  await logAudit('hours_logged', 'timesheet', result.id, { date, hours }, currentUser.id);
+  logAudit('hours_logged', 'timesheet', result.id, { date, hours }, currentUser.id);
 
   closeModal('modal-log-hours');
   if (logBtn) { logBtn.disabled = false; logBtn.textContent = 'Save Entry'; }

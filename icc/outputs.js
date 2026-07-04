@@ -1,18 +1,14 @@
-// Re-render when any toolbar control changes (toolbar is static HTML, so
-// re-rendering the grid doesn't steal focus from the search input)
-['output-search', 'output-type-filter', 'output-sort'].forEach(id => {
-  const el = document.getElementById(id);
-  if (el) el.addEventListener(id === 'output-search' ? 'input' : 'change', () => renderOutputs());
-});
+attachFilterToolbar(['output-search', 'output-type-filter', 'output-sort'], renderOutputs);
 
 async function renderOutputs() {
   const q    = document.getElementById('output-search').value.trim().toLowerCase();
   const type = document.getElementById('output-type-filter').value;
   const sort = document.getElementById('output-sort').value;
+  const userById = new Map(liveUsers.map(u => [u.id, u]));
 
   let tasks = myTasks().filter(t=>t.output_type);
   if (q) tasks = tasks.filter(t => {
-    const intern = user(t.assigned_to);
+    const intern = userById.get(t.assigned_to) || {};
     return (t.title || '').toLowerCase().includes(q) ||
       (t.industry_category || '').toLowerCase().includes(q) ||
       (intern.name || '').toLowerCase().includes(q);
@@ -22,7 +18,7 @@ async function renderOutputs() {
   tasks = [...tasks].sort(sort === 'oldest' ? (a, b) => byNewest(b, a) : byNewest);
 
   document.getElementById('outputs-grid').innerHTML = tasks.map(t=>{
-    const intern = user(t.assigned_to);
+    const intern = userById.get(t.assigned_to) || {};
     return `<div class="out-card">
       <div class="out-card-head">
         <span style="font-size:26px">${OUTPUT_ICONS[t.output_type]||'📦'}</span>

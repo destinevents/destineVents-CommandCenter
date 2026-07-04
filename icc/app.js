@@ -42,6 +42,13 @@ function openModal(id) {
 
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
+  // Closing the task modal by ANY path (Cancel, overlay, save) must clear
+  // edit mode — a stale editingTaskId would make a later submit update the
+  // wrong task. editingTaskId lives in icc/tasks.js.
+  if (id === 'modal-add-task' && typeof editingTaskId !== 'undefined' && editingTaskId) {
+    editingTaskId = null;
+    setTaskModalMode(false);
+  }
 }
 
 // ─── UI HELPERS ──────────────────────────────────────────────────────────────
@@ -203,20 +210,30 @@ function notifySheetChange(payload) {
   }
 }
 
+// Events are processed strictly in arrival order: each notify* compares the
+// payload against the cache as it stood BEFORE that event, so a later event
+// must not run until the previous one has finished reloading the cache.
+let realtimeChain = Promise.resolve();
+function queueRealtime(handler) {
+  realtimeChain = realtimeChain
+    .then(handler)
+    .catch((err) => logger.error('realtime', err?.message || 'handler failed', err));
+}
+
 function setupRealtime() {
   sb.channel('intern-realtime')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'intern_tasks' }, async (payload) => {
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'intern_tasks' }, (payload) => queueRealtime(async () => {
       notifyTaskChange(payload);
       await loadLiveTasks();
       await updateBadges();
       if (activePage === 'tasks' || activePage === 'dashboard' || activePage === 'outputs') {
         await renderPage(activePage);
       }
-    })
+    }))
     .on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'intern_timesheets' },
-      async (payload) => {
+      (payload) => queueRealtime(async () => {
         notifySheetChange(payload);
         await loadLiveTimesheets();
         await updateBadges();
@@ -227,7 +244,7 @@ function setupRealtime() {
         ) {
           await renderPage(activePage);
         }
-      }
+      })
     )
     .on(
       'postgres_changes',
@@ -255,7 +272,7 @@ function setupRealtime() {
 // ─── EVENT DELEGATION ────────────────────────────────────────────────────────
 document.querySelectorAll('.modal-overlay').forEach((m) => {
   m.addEventListener('click', (e) => {
-    if (e.target === m) m.classList.remove('open');
+    if (e.target === m) closeModal(m.id);
   });
 });
 
@@ -399,6 +416,7 @@ async function init() {
     document.getElementById('sb-role').textContent = currentUser.role;
 
     applyRoleVisibility();
+    ['task-type-filter', 'output-type-filter', 'nt-outtype'].forEach(populateOutputTypeSelect);
     await loadLiveUsers();
     await loadLiveTasks();
     await loadLiveTimesheets();
