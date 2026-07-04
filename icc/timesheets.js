@@ -1,3 +1,29 @@
+// Re-render when any toolbar control changes (toolbar is static HTML, so
+// re-rendering the table doesn't steal focus from the search input)
+['sheet-search', 'sheet-from', 'sheet-to'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener(id === 'sheet-search' ? 'input' : 'change', () => renderTimesheets());
+});
+
+function applySheetFilters(sheets) {
+  const q    = document.getElementById('sheet-search').value.trim().toLowerCase();
+  const from = document.getElementById('sheet-from').value;
+  const to   = document.getElementById('sheet-to').value;
+
+  let out = sheets;
+  if (from) out = out.filter(ts => ts.date >= from);
+  if (to)   out = out.filter(ts => ts.date <= to);
+  if (q) out = out.filter(ts => {
+    const task   = liveTasks.find(t => t.id === ts.task_id);
+    const intern = liveUsers.find(u => u.id === ts.intern_id);
+    return (ts.activity_description || '').toLowerCase().includes(q) ||
+      (ts.industry_category || '').toLowerCase().includes(q) ||
+      (task?.title || '').toLowerCase().includes(q) ||
+      (intern?.name || '').toLowerCase().includes(q);
+  });
+  return out;
+}
+
 async function renderTimesheets() {
   const sheets = mySheets();
   const isAdmin = currentUser.role!=='intern';
@@ -12,7 +38,7 @@ async function renderTimesheets() {
 
   renderFilterTabs('sheet-filters', ['all','pending','approved','rejected'], sheetFilter, 'set-sheet-filter', 'filter');
 
-  const filtered = sheetFilter==='all' ? sheets : sheets.filter(t=>t.status===sheetFilter);
+  const filtered = applySheetFilters(sheetFilter==='all' ? sheets : sheets.filter(t=>t.status===sheetFilter));
 
   const adminCols = isAdmin ? ['<th>Intern</th>','<th>Date</th>','<th>Task</th>','<th>Activity</th>','<th>Hours</th>','<th>Category</th>','<th>Skills</th>','<th>Status</th>','<th></th>'] :
                               ['<th>Date</th>','<th>Task</th>','<th>Activity</th>','<th>Hours</th>','<th>Category</th>','<th>Skills</th>','<th>Status</th>'];
@@ -138,6 +164,8 @@ async function logHours() {
     if (logBtn) { logBtn.disabled = false; logBtn.textContent = 'Save Entry'; }
     return;
   }
+
+  await logAudit('hours_logged', 'timesheet', result.id, { date, hours }, currentUser.id);
 
   closeModal('modal-log-hours');
   if (logBtn) { logBtn.disabled = false; logBtn.textContent = 'Save Entry'; }

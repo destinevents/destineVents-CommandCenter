@@ -232,3 +232,23 @@ function exportPDF(uid) {
   w.print();
   toast('PDF report opened for printing!');
 }
+
+// ── Audit Log ─────────────────────────────────────────────
+async function renderAuditLog() {
+  const logs = await fetchAuditLogs();
+  document.getElementById('audit-tbody').innerHTML = logs.map(l => {
+    const who = user(l.performed_by);
+    const details = l.metadata && Object.keys(l.metadata).length
+      ? Object.entries(l.metadata)
+          .map(([k, v]) => `${k.replace(/_/g, ' ')}: ${typeof v === 'object' ? JSON.stringify(v) : v}`)
+          .join(' · ')
+      : '—';
+    return `<tr>
+      <td style="white-space:nowrap;color:#374151">${formatDateShort(l.created_at?.slice(0, 10))} · ${formatTime(l.created_at)}</td>
+      <td><div class="flex-gap-8">${avatarEl(who.avatar || '?', 24)}<span class="text-bold">${escapeHtml(who.name) || '—'}</span></div></td>
+      <td class="text-ink">${escapeHtml((l.action || '').replace(/_/g, ' '))}</td>
+      <td class="text-muted">${escapeHtml(l.target_type) || '—'}</td>
+      <td class="truncate text-muted">${escapeHtml(details)}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="5" class="no-data-center">No activity logged yet.</td></tr>';
+}

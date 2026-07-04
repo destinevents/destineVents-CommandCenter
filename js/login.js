@@ -46,15 +46,50 @@ async function handleSignIn() {
       errEl.textContent = 'Sign in failed. Please verify your email and try again.';
       return;
     }
-    const { data: profile } = await sb
+    const { data: profile, error: profileError } = await sb
       .from('intern_users')
       .select('role')
       .eq('id', data.user.id)
       .single();
-    const role = profile?.role || 'intern';
-    routeByRole(role);
+    if (profileError || !profile) {
+      errEl.textContent = 'Could not verify your account. Please try again.';
+      return;
+    }
+    routeByRole(profile.role);
   } finally {
     setLoading(false);
+  }
+}
+
+function showForgot(show) {
+  document.getElementById('login-form').style.display = show ? 'none' : 'block';
+  document.getElementById('forgot-form').style.display = show ? 'block' : 'none';
+  document.getElementById('login-error').textContent = '';
+  document.getElementById('forgot-error').textContent = '';
+}
+
+async function handleForgot() {
+  const email = document.getElementById('forgot-email').value.trim();
+  const errEl = document.getElementById('forgot-error');
+  errEl.textContent = '';
+  if (!email) {
+    errEl.textContent = 'Email is required.';
+    return;
+  }
+  const btn = document.getElementById('forgot-btn');
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+  try {
+    await sb.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password.html`,
+    });
+    // Always show the same message so the form can't be used to probe
+    // which emails have accounts
+    errEl.style.color = 'var(--green, #10b981)';
+    errEl.textContent = 'If that email has an account, a reset link is on its way. Check your inbox.';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Send Reset Link';
   }
 }
 

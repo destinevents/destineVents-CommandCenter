@@ -40,13 +40,31 @@
         <label class="form-label" for="login-email">Email</label>
         <input class="form-input" id="login-email" type="email" placeholder="you@destinevents.biz" autocomplete="email"/>
       </div>
-      <div class="form-group" style="margin-bottom:22px">
+      <div class="form-group" style="margin-bottom:8px">
         <label class="form-label" for="login-pass">Password</label>
         <input class="form-input" id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')handleSignIn()"/>
+      </div>
+      <div style="margin-bottom:22px;text-align:right">
+        <a href="#" style="font-size:11px;color:var(--ink-3,#8a8a8a);text-decoration:none" onclick="showForgot(true);return false">Forgot password?</a>
       </div>
       <div style="display:flex;gap:10px">
         <button class="btn btn-primary" id="login-btn" onclick="handleSignIn()">Sign In</button>
         <button class="btn btn-primary" id="signup-btn" onclick="window.location.href='signup.html'">Sign Up</button>
+      </div>
+    </div>
+
+    <!-- Forgot Password -->
+    <div class="login-box" id="forgot-form" style="display:none">
+      <div class="login-greeting">Reset password.</div>
+      <div class="login-sub">Enter your email and we'll send you a reset link</div>
+      <div class="login-error" id="forgot-error"></div>
+      <div class="form-group" style="margin-bottom:22px">
+        <label class="form-label" for="forgot-email">Email</label>
+        <input class="form-input" id="forgot-email" type="email" placeholder="you@destinevents.biz" autocomplete="email" onkeydown="if(event.key==='Enter')handleForgot()"/>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-primary" id="forgot-btn" onclick="handleForgot()">Send Reset Link</button>
+        <button class="btn btn-ghost" onclick="showForgot(false)">Back</button>
       </div>
     </div>
 

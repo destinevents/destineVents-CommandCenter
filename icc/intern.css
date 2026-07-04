@@ -208,6 +208,47 @@ nav { flex: 1; padding: 10px 8px; display: flex; flex-direction: column; gap: 2p
 .filter-tab:hover { border-color: var(--forest); color: var(--forest); }
 .filter-tab.active { background: var(--forest); border-color: var(--forest); color: var(--cream); }
 
+/* ─── FILTER TOOLBAR (search + dropdowns) ─── */
+.filter-toolbar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.filter-search {
+  flex: 1;
+  min-width: 180px;
+  padding: 7px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: var(--white);
+  font-size: 12px;
+  font-family: inherit;
+  color: var(--text);
+}
+.filter-search:focus { outline: none; border-color: var(--forest); }
+.filter-select {
+  padding: 7px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: var(--white);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--muted);
+  cursor: pointer;
+}
+.filter-select:focus { outline: none; border-color: var(--forest); }
+.filter-date {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
 /* ─── SKILL PILLS ─── */
 .skill-pill { background: #eef2ff; color: #6366f1; border-radius: 999px; padding: 2px 9px; font-size: 10px; font-weight: 600; }
 .skill-pill-green { background: #f0fdf4; color: #16a34a; border-radius: 999px; padding: 2px 9px; font-size: 10px; font-weight: 600; }
@@ -285,6 +326,15 @@ textarea.form-input { resize: vertical; min-height: 100px; }
 .kan-card-title { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 5px; }
 .kan-card-desc { font-size: 11px; color: var(--faint); margin-bottom: 7px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .kan-card-meta { font-size: 10px; color: var(--faint); margin-top: 5px; }
+.kan-overdue { color: #ef4444; font-weight: 700; }
+.kan-more-btn {
+  width: 100%; padding: 8px; margin-top: 2px; border: 1px dashed var(--border);
+  background: transparent; border-radius: 8px; font-size: 11px; font-weight: 600;
+  color: var(--muted); cursor: pointer; font-family: inherit; transition: background 0.14s;
+}
+.kan-more-btn:hover { background: #f3f4f6; }
+.task-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.task-grid .kan-card { margin-bottom: 0; }
 
 /* ─── OUTPUT CARD ─── */
 .out-card { background: var(--white); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }

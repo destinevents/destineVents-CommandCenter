@@ -55,6 +55,9 @@
     <button class="nav-btn admin-only" data-page="reports">
       <span class="icon">📊</span><span class="label">Reports</span>
     </button>
+    <button class="nav-btn admin-only" data-page="audit">
+      <span class="icon">🧾</span><span class="label">Audit Log</span>
+    </button>
     <button class="nav-btn" data-page="account">
       <span class="icon">⚙️</span><span class="label">Account</span>
       <div class="pip"></div>
@@ -147,9 +150,32 @@
           <h2 style="font-size:20px;font-weight:800;color:var(--forest)">Tasks</h2>
           <p style="font-size:12px;color:var(--muted);margin-top:2px" id="task-count-label"></p>
         </div>
-        <button class="btn-primary admin-only" data-action="open-modal" data-modal="modal-add-task">+ New Task</button>
+        <button class="btn-primary admin-only" data-action="new-task">+ New Task</button>
       </div>
       <div class="filter-row" id="task-filters"></div>
+      <div class="filter-toolbar">
+        <input class="filter-search" id="task-search" type="text" placeholder="Search tasks…"/>
+        <select class="filter-select" id="task-priority-filter">
+          <option value="all">All priorities</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+        <select class="filter-select" id="task-type-filter">
+          <option value="all">All output types</option>
+          <option value="code">Code</option>
+          <option value="design">Design</option>
+          <option value="video">Video</option>
+          <option value="document">Document</option>
+          <option value="automation">Automation</option>
+          <option value="landing_page">Landing Page</option>
+        </select>
+        <select class="filter-select" id="task-sort">
+          <option value="newest">Newest first</option>
+          <option value="oldest">Oldest first</option>
+          <option value="due">Due date</option>
+        </select>
+      </div>
       <div class="kanban" id="kanban-board"></div>
     </div>
 
@@ -164,6 +190,11 @@
       </div>
       <div class="grid3" style="margin-bottom:20px" id="sheet-stats"></div>
       <div class="filter-row" id="sheet-filters"></div>
+      <div class="filter-toolbar">
+        <input class="filter-search" id="sheet-search" type="text" placeholder="Search timesheets…"/>
+        <label class="filter-date">From <input class="filter-select" id="sheet-from" type="date"/></label>
+        <label class="filter-date">To <input class="filter-select" id="sheet-to" type="date"/></label>
+      </div>
       <div class="surface" style="overflow:hidden;overflow-x:auto">
         <table class="tbl" id="sheet-table">
           <thead id="sheet-thead"></thead>
@@ -178,6 +209,22 @@
       <div class="page-head">
         <h2>Output Portfolio</h2>
         <p>All task outputs and deliverables</p>
+      </div>
+      <div class="filter-toolbar">
+        <input class="filter-search" id="output-search" type="text" placeholder="Search outputs…"/>
+        <select class="filter-select" id="output-type-filter">
+          <option value="all">All output types</option>
+          <option value="code">Code</option>
+          <option value="design">Design</option>
+          <option value="video">Video</option>
+          <option value="document">Document</option>
+          <option value="automation">Automation</option>
+          <option value="landing_page">Landing Page</option>
+        </select>
+        <select class="filter-select" id="output-sort">
+          <option value="newest">Newest first</option>
+          <option value="oldest">Oldest first</option>
+        </select>
       </div>
       <div class="grid-auto" id="outputs-grid"></div>
     </div>
@@ -209,6 +256,20 @@
         <table class="tbl">
           <thead><tr><th>Intern</th><th>School</th><th>Program</th><th>Approved Hrs</th><th>Tasks Done</th><th>Skills</th><th>Export</th></tr></thead>
           <tbody id="reports-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══ AUDIT LOG ══ -->
+    <div class="page" id="page-audit">
+      <div class="page-head">
+        <h2>Audit Log</h2>
+        <p>Recent activity across tasks and timesheets</p>
+      </div>
+      <div class="surface" style="overflow:hidden;overflow-x:auto">
+        <table class="tbl">
+          <thead><tr><th>When</th><th>Who</th><th>Action</th><th>Target</th><th>Details</th></tr></thead>
+          <tbody id="audit-tbody"></tbody>
         </table>
       </div>
     </div>
@@ -283,7 +344,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn-ghost" data-action="close-modal" data-modal="modal-add-task">Cancel</button>
-      <button class="btn-primary" data-action="create-task">Create Task</button>
+      <button class="btn-primary" id="nt-submit-btn" data-action="create-task">Create Task</button>
     </div>
   </div>
 </div>

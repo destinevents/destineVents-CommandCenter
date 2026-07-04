@@ -1,5 +1,26 @@
+// Re-render when any toolbar control changes (toolbar is static HTML, so
+// re-rendering the grid doesn't steal focus from the search input)
+['output-search', 'output-type-filter', 'output-sort'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener(id === 'output-search' ? 'input' : 'change', () => renderOutputs());
+});
+
 async function renderOutputs() {
-  const tasks = myTasks().filter(t=>t.output_type);
+  const q    = document.getElementById('output-search').value.trim().toLowerCase();
+  const type = document.getElementById('output-type-filter').value;
+  const sort = document.getElementById('output-sort').value;
+
+  let tasks = myTasks().filter(t=>t.output_type);
+  if (q) tasks = tasks.filter(t => {
+    const intern = user(t.assigned_to);
+    return (t.title || '').toLowerCase().includes(q) ||
+      (t.industry_category || '').toLowerCase().includes(q) ||
+      (intern.name || '').toLowerCase().includes(q);
+  });
+  if (type !== 'all') tasks = tasks.filter(t => t.output_type === type);
+  const byNewest = (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0);
+  tasks = [...tasks].sort(sort === 'oldest' ? (a, b) => byNewest(b, a) : byNewest);
+
   document.getElementById('outputs-grid').innerHTML = tasks.map(t=>{
     const intern = user(t.assigned_to);
     return `<div class="out-card">
@@ -20,5 +41,5 @@ async function renderOutputs() {
         </div>
       </div>
     </div>`;
-  }).join('') || `<div class="empty-state"><div class="empty-icon">📦</div>No outputs yet.</div>`;
+  }).join('') || `<div class="empty-state"><div class="empty-icon">📦</div>${(q || type !== 'all') ? 'No outputs match your filters.' : 'No outputs yet.'}</div>`;
 }

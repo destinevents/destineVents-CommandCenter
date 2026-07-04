@@ -1,6 +1,61 @@
+const TASK_PREVIEW_COUNT = 3;
+
+function applyTaskFilters(tasks) {
+  const q        = document.getElementById('task-search').value.trim().toLowerCase();
+  const priority = document.getElementById('task-priority-filter').value;
+  const type     = document.getElementById('task-type-filter').value;
+  const sort     = document.getElementById('task-sort').value;
+
+  let out = tasks;
+  if (q) out = out.filter(t =>
+    (t.title || '').toLowerCase().includes(q) ||
+    (t.description || '').toLowerCase().includes(q)
+  );
+  if (priority !== 'all') out = out.filter(t => t.priority === priority);
+  if (type !== 'all') out = out.filter(t => t.output_type === type);
+
+  const byNewest = (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0);
+  if (sort === 'newest')      out = [...out].sort(byNewest);
+  else if (sort === 'oldest') out = [...out].sort((a, b) => byNewest(b, a));
+  else if (sort === 'due')    out = [...out].sort((a, b) => (a.due_date || '9999').localeCompare(b.due_date || '9999'));
+  return out;
+}
+
+// Re-render when any toolbar control changes (toolbar is static HTML, so
+// re-rendering the board doesn't steal focus from the search input)
+['task-search', 'task-priority-filter', 'task-type-filter', 'task-sort'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener(id === 'task-search' ? 'input' : 'change', () => renderTasks());
+});
+
+function isOverdue(t) {
+  return !!t.due_date && !['completed', 'reviewed'].includes(t.status) && t.due_date < todayISO();
+}
+
+function dueLabel(t) {
+  if (!t.due_date) return '<div class="kan-card-meta">No due date</div>';
+  return isOverdue(t)
+    ? `<div class="kan-card-meta kan-overdue">⚠ Overdue — was due ${formatDateShort(t.due_date)}</div>`
+    : `<div class="kan-card-meta">Due ${formatDateShort(t.due_date)}</div>`;
+}
+
+function taskCard(t) {
+  return `
+    <div class="kan-card" data-action="open-task" data-id="${t.id}">
+      <div class="kan-card-title">${escapeHtml(t.title)}</div>
+      <div class="kan-card-desc">${escapeHtml(t.description)}</div>
+      <div>${pBadge(t.priority)}</div>
+      ${dueLabel(t)}
+    </div>`;
+}
+
 async function renderTasks() {
-  const tasks = myTasks();
-  document.getElementById('task-count-label').textContent = `${tasks.length} total tasks`;
+  const allTasks = myTasks();
+  const tasks = applyTaskFilters(allTasks);
+  document.getElementById('task-count-label').textContent =
+    tasks.length === allTasks.length
+      ? `${allTasks.length} total tasks`
+      : `${tasks.length} of ${allTasks.length} tasks`;
 
   const tabs = ['all', ...KANBAN_COLS];
   document.getElementById('task-filters').innerHTML = tabs.map(t => {
@@ -9,25 +64,32 @@ async function renderTasks() {
     return `<button class="filter-tab${taskFilter===t ? ' active' : ''}" data-action="set-task-filter" data-filter="${t}">${label} (${count})</button>`;
   }).join('');
 
-  const visibleCols = taskFilter === 'all' ? KANBAN_COLS : [taskFilter];
+  const board = document.getElementById('kanban-board');
 
-  document.getElementById('kanban-board').innerHTML = visibleCols.map(col=>{
-    const colTasks = tasks.filter(t=>t.status===col);
-    return `<div class="kan-col">
-      <div class="kan-col-header">
-        <div class="kan-dot" style="background:${STATUS_COLORS[col]}"></div>
-        <span class="kan-col-title">${STATUS_LABELS[col]}</span>
-        <span class="kan-count">${colTasks.length}</span>
-      </div>
-      ${colTasks.map(t=>`
-        <div class="kan-card" data-action="open-task" data-id="${t.id}">
-          <div class="kan-card-title">${escapeHtml(t.title)}</div>
-          <div class="kan-card-desc">${escapeHtml(t.description)}</div>
-          <div>${pBadge(t.priority)}</div>
-          <div class="kan-card-meta">Due ${t.due_date}</div>
-        </div>`).join('')}
-    </div>`;
-  }).join('');
+  if (taskFilter === 'all') {
+    // Overview: one section per status, previewing a few tasks each
+    board.className = 'kanban';
+    board.innerHTML = KANBAN_COLS.map(col => {
+      const colTasks = tasks.filter(t => t.status === col);
+      const hiddenCount = colTasks.length - TASK_PREVIEW_COUNT;
+      return `<div class="kan-col">
+        <div class="kan-col-header">
+          <div class="kan-dot" style="background:${STATUS_COLORS[col]}"></div>
+          <span class="kan-col-title">${STATUS_LABELS[col]}</span>
+          <span class="kan-count">${colTasks.length}</span>
+        </div>
+        ${colTasks.slice(0, TASK_PREVIEW_COUNT).map(taskCard).join('')}
+        ${hiddenCount > 0 ? `<button class="kan-more-btn" data-action="set-task-filter" data-filter="${col}">View more (${hiddenCount})</button>` : ''}
+      </div>`;
+    }).join('');
+  } else {
+    // Single status: full-width grid of task cards
+    const colTasks = tasks.filter(t => t.status === taskFilter);
+    board.className = colTasks.length ? 'task-grid' : '';
+    board.innerHTML = colTasks.length
+      ? colTasks.map(taskCard).join('')
+      : emptyStateHTML('', `No ${STATUS_LABELS[taskFilter].toLowerCase()} tasks yet.`);
+  }
 }
 
 async function setTaskFilter(f) {
@@ -45,10 +107,13 @@ function openTaskDetail(id) {
   const isSup = currentUser.role==='supervisor'||currentUser.role==='admin';
 
   let actions = '';
+  if(currentUser.role==='admin' && t.status!=='reviewed'){
+    actions += `<button class="btn-action" style="background:#f3f4f6;color:#374151" data-action="edit-task" data-id="${id}">✎ Edit Task</button>`;
+  }
   if(isIntern && isMyTask){
-    if(t.status==='assigned') actions = `<button class="btn-action" style="background:#fffbeb;color:#f59e0b" data-action="task-action" data-id="${id}" data-task-action="acknowledge">Acknowledge Task</button>`;
-    if(t.status==='acknowledged') actions = `<button class="btn-action" style="background:#eff6ff;color:#3b82f6" data-action="task-action" data-id="${id}" data-task-action="start">Start Task</button>`;
-    if(t.status==='in_progress') actions = `<button class="btn-action" style="background:#ecfdf5;color:#10b981" data-action="task-action" data-id="${id}" data-task-action="complete">Mark Complete</button>`;
+    if(t.status==='assigned') actions += `<button class="btn-action" style="background:#fffbeb;color:#f59e0b" data-action="task-action" data-id="${id}" data-task-action="acknowledge">Acknowledge Task</button>`;
+    if(t.status==='acknowledged') actions += `<button class="btn-action" style="background:#eff6ff;color:#3b82f6" data-action="task-action" data-id="${id}" data-task-action="start">Start Task</button>`;
+    if(t.status==='in_progress') actions += `<button class="btn-action" style="background:#ecfdf5;color:#10b981" data-action="task-action" data-id="${id}" data-task-action="complete">Mark Complete</button>`;
   }
   if(isSup && t.status==='completed'){
     actions += `<button class="btn-action" style="background:#f5f3ff;color:#8b5cf6;margin-left:8px" data-action="task-action" data-id="${id}" data-task-action="review">Mark Reviewed</button>`;
@@ -62,7 +127,7 @@ function openTaskDetail(id) {
     <h3 style="margin:0 0 10px;font-size:18px;font-weight:800;color:#252f27">${escapeHtml(t.title)}</h3>
     <p style="margin:0 0 14px;color:#374151;font-size:13px;line-height:1.6">${escapeHtml(t.description)}</p>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;background:#f9fafb;border-radius:8px;padding:14px;margin-bottom:14px">
-      ${[['Assigned to',intern.name||'—'],['Due Date',t.due_date],['Category',t.industry_category],['Output Type',t.output_type||'—']].map(([k,v])=>`
+      ${[['Assigned to',intern.name||'—'],['Assigned by',user(t.assigned_by).name||'—'],['Due Date',formatDateShort(t.due_date)],['Created',formatDateShort(t.created_at?.slice(0,10))],['Category',t.industry_category],['Output Type',t.output_type||'—']].map(([k,v])=>`
         <div><div style="font-size:11px;color:var(--faint);font-weight:600;margin-bottom:2px">${k}</div><div class="text-base text-bold text-ink">${v}</div></div>`).join('')}
     </div>
     ${(t.skills||[]).length ? `<div style="margin-bottom:12px"><div class="meta-label">SKILLS TAGGED</div><div class="flex-wrap">${t.skills.map(skillPill).join('')}</div></div>` : ''}
@@ -120,6 +185,54 @@ async function taskAction(id, action) {
   await renderDashboard();
 }
 
+// ── Create / Edit Task modal ──────────────────────────────
+let editingTaskId = null;
+
+function setTaskModalMode(editing) {
+  document.getElementById('modal-add-task-title').textContent = editing ? 'Edit Task' : 'Create New Task';
+  document.getElementById('nt-submit-btn').textContent = editing ? 'Save Changes' : 'Create Task';
+}
+
+function clearTaskModal() {
+  ['nt-title','nt-desc','nt-due'].forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('nt-assignee').value = '';
+  document.getElementById('nt-priority').value = 'medium';
+  document.getElementById('nt-cat').value = '';
+  document.getElementById('nt-outtype').value = '';
+  resetSkillPicker('nt-skills-picker');
+  [...document.getElementById('nt-skills').options].forEach(o => { o.selected = false; });
+}
+
+function openCreateTask() {
+  editingTaskId = null;
+  setTaskModalMode(false);
+  clearTaskModal();
+  openModal('modal-add-task');
+}
+
+function openEditTask(id) {
+  const t = liveTasks.find(x => x.id === id);
+  if (!t) return;
+  editingTaskId = id;
+  setTaskModalMode(true);
+  clearTaskModal();
+  document.getElementById('nt-title').value    = t.title || '';
+  document.getElementById('nt-desc').value     = t.description || '';
+  document.getElementById('nt-assignee').value = t.assigned_to || '';
+  document.getElementById('nt-priority').value = t.priority || 'medium';
+  document.getElementById('nt-due').value      = t.due_date || '';
+  document.getElementById('nt-cat').value      = t.industry_category || '';
+  document.getElementById('nt-outtype').value  = t.output_type || '';
+  const picker = document.getElementById('nt-skills-picker');
+  const select = document.getElementById('nt-skills');
+  (t.skills || []).forEach(s => {
+    picker.querySelector(`.skill-tag[data-value="${s}"]`)?.classList.add('selected');
+    [...select.options].forEach(o => { if (o.value === s) o.selected = true; });
+  });
+  closeModal('modal-view-task');
+  openModal('modal-add-task');
+}
+
 async function populateAddTaskModal() {
   if (liveUsers.length === 0) await loadLiveUsers();
   const intern_select = document.getElementById('nt-assignee');
@@ -137,27 +250,38 @@ async function handleCreateTask() {
   const skillsEl = document.getElementById('nt-skills');
   const skills = [...skillsEl.selectedOptions].map(o=>o.value);
 
-  const newTask = {
+  const fields = {
     title,
     description:       document.getElementById('nt-desc').value,
     assigned_to:       assignee,
-    assigned_by:       currentUser.id,
     priority:          document.getElementById('nt-priority').value,
-    status:            'assigned',
     due_date:          document.getElementById('nt-due').value || null,
     industry_category: document.getElementById('nt-cat').value,
     output_type:       document.getElementById('nt-outtype').value || null,
     skills,
-    output_link:       ''
   };
 
-  const result = await createTask(newTask);
-  if (!result) return;
+  const wasEditing = !!editingTaskId;
+  if (wasEditing) {
+    const result = await updateTask(editingTaskId, { ...fields, updated_at: new Date().toISOString() });
+    if (!result) return;
+    await logAudit('task_edited', 'task', editingTaskId, { title }, currentUser.id);
+    editingTaskId = null;
+  } else {
+    const result = await createTask({
+      ...fields,
+      assigned_by: currentUser.id,
+      status:      'assigned',
+      output_link: '',
+    });
+    if (!result) return;
+    await logAudit('task_created', 'task', result.id, { title, assigned_to: user(assignee).name || assignee }, currentUser.id);
+  }
 
   closeModal('modal-add-task');
-  toast('Task created!');
-  ['nt-title','nt-desc','nt-due'].forEach(id => document.getElementById(id).value = '');
-  resetSkillPicker('nt-skills-picker');
+  toast(wasEditing ? 'Task updated!' : 'Task created!');
+  setTaskModalMode(false);
+  clearTaskModal();
   await renderTasks();
   await renderDashboard();
 }

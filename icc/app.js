@@ -103,6 +103,7 @@ const PAGE_DATA = {
   approvals: ['timesheets'],
   interns: ['users', 'tasks', 'timesheets'],
   reports: ['users', 'tasks', 'timesheets'],
+  audit: ['users'],
   account: [],
 };
 
@@ -123,6 +124,7 @@ async function goPage(page) {
     approvals: 'Approvals',
     interns: 'Interns',
     reports: 'Reports',
+    audit: 'Audit Log',
     account: 'Account Settings',
   };
   document.getElementById('topbar-title').textContent = titles[page] || page;
@@ -140,6 +142,7 @@ async function renderPage(page) {
     approvals: renderApprovals,
     interns: renderInterns,
     reports: renderReports,
+    audit: renderAuditLog,
     account: renderAccount,
   };
 
@@ -158,9 +161,52 @@ async function renderPage(page) {
 }
 
 // ─── REALTIME ────────────────────────────────────────────────────────────────
+// Compare the incoming row against the not-yet-reloaded cache to tell interns
+// what changed. Must run BEFORE loadLiveTasks/loadLiveTimesheets overwrite it.
+function notifyTaskChange(payload) {
+  const row = payload.new;
+  if (currentUser.role !== 'intern' || !row || row.assigned_to !== currentUser.id) return;
+  if (payload.eventType === 'INSERT') {
+    showToast(`📋 New task assigned to you: “${row.title}”`, '', 6000);
+    return;
+  }
+  if (payload.eventType !== 'UPDATE') return;
+  const prev = liveTasks.find((t) => t.id === row.id);
+  if (!prev) return;
+  if (prev.status !== row.status) {
+    // Status moves the intern makes themselves aren't news; a review is
+    if (row.status === 'reviewed') showToast(`🎉 Your task “${row.title}” was reviewed!`, '', 6000);
+  } else if (
+    prev.title !== row.title ||
+    prev.description !== row.description ||
+    prev.due_date !== row.due_date ||
+    prev.priority !== row.priority
+  ) {
+    showToast(`✏️ Task updated: “${row.title}”`, '', 6000);
+  }
+}
+
+function notifySheetChange(payload) {
+  const row = payload.new;
+  if (currentUser.role !== 'intern' || !row || row.intern_id !== currentUser.id) return;
+  if (payload.eventType !== 'UPDATE') return;
+  const prev = liveTimesheets.find((s) => s.id === row.id);
+  if (!prev || prev.status === row.status) return;
+  if (row.status === 'approved') {
+    showToast(`✅ Your ${row.hours}h entry for ${row.date} was approved!`, '', 6000);
+  } else if (row.status === 'rejected') {
+    showToast(
+      `❌ Your entry for ${row.date} was rejected${row.rejection_reason ? ': ' + row.rejection_reason : '.'}`,
+      '',
+      8000
+    );
+  }
+}
+
 function setupRealtime() {
   sb.channel('intern-realtime')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'intern_tasks' }, async () => {
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'intern_tasks' }, async (payload) => {
+      notifyTaskChange(payload);
       await loadLiveTasks();
       await updateBadges();
       if (activePage === 'tasks' || activePage === 'dashboard' || activePage === 'outputs') {
@@ -170,7 +216,8 @@ function setupRealtime() {
     .on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'intern_timesheets' },
-      async () => {
+      async (payload) => {
+        notifySheetChange(payload);
         await loadLiveTimesheets();
         await updateBadges();
         if (
@@ -244,6 +291,14 @@ document.addEventListener('click', async (e) => {
   }
   if (a === 'create-task') {
     await handleCreateTask();
+    return;
+  }
+  if (a === 'new-task') {
+    openCreateTask();
+    return;
+  }
+  if (a === 'edit-task') {
+    openEditTask(el.dataset.id);
     return;
   }
   if (a === 'log-hours') {

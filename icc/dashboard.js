@@ -8,11 +8,12 @@ async function renderDashboard() {
   const approvedHours = sheets.filter(t=>t.status==='approved').reduce((s,t)=>s+t.hours,0);
   const activeTasks   = tasks.filter(t=>!['completed','reviewed'].includes(t.status)).length;
   const doneTasks     = tasks.filter(t=>['completed','reviewed'].includes(t.status)).length;
+  const overdueTasks  = tasks.filter(isOverdue).length;
   const pending       = pendingApprovals().length;
 
   const statsData = [
     {icon:'⏰', label:'Approved Hours',   value:approvedHours+'h', sub:'Total',      valColor:'#252f27'},
-    {icon:'📋', label:'Active Tasks',     value:activeTasks,       sub:'In progress',valColor:'#C9A84C'},
+    {icon:'📋', label:'Active Tasks',     value:activeTasks,       sub:overdueTasks ? `${overdueTasks} overdue ⚠` : 'In progress', valColor:overdueTasks ? '#ef4444' : '#C9A84C'},
     {icon:'✅', label:'Tasks Completed',  value:doneTasks,         sub:'Done',       valColor:'#10b981'},
     ...(currentUser.role!=='intern'?[{icon:'🔔', label:'Pending Approvals', value:pending, sub:'Queue', valColor:'#f59e0b'}]:[]),
   ];
@@ -23,7 +24,7 @@ async function renderDashboard() {
     <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f3f4f6;">
       <div>
         <div class="text-base text-bold text-ink">${escapeHtml(t.title)}</div>
-        <div class="text-xs text-faint mt-2">${t.industry_category} · Due ${t.due_date}</div>
+        <div class="text-xs text-faint mt-2">${t.industry_category} · ${t.due_date ? `Due ${formatDateShort(t.due_date)}` : 'No due date'}</div>
       </div>
       ${badge(t.status)}
     </div>`).join('') || '<div class="no-data">No tasks yet.</div>';
