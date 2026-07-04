@@ -15,17 +15,16 @@ function pwField(id, placeholder) {
 
 async function renderAccount() {
   const el = document.getElementById('page-account');
-  const joinedDate = currentUser.created_at
-    ? new Date(currentUser.created_at).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })
-    : '—';
+  const isStaff = ['admin', 'supervisor'].includes(currentUser.role);
 
   const infoRows = [
     ['Full Name',    currentUser.name    || '—'],
     ['Email',        currentUser.email   || '—'],
     ['Role',         currentUser.role    || '—'],
-    ['School',       currentUser.school  || '—'],
-    ['Program',      currentUser.program || '—'],
-    ['Member Since', joinedDate],
+    ...(isStaff ? [] : [
+      ['School',     currentUser.school  || '—'],
+      ['Program',    currentUser.program || '—'],
+    ]),
   ];
 
   el.innerHTML = `
@@ -34,7 +33,7 @@ async function renderAccount() {
       <div class="acc-avatar-xl">${currentUser.avatar || '??'}</div>
       <div class="acc-hero-text">
         <div class="acc-hero-name">${currentUser.name || 'Unknown'}</div>
-        <div class="acc-hero-meta">${[currentUser.role, currentUser.school, currentUser.program].filter(Boolean).join(' · ')}</div>
+        <div class="acc-hero-meta">${[currentUser.role, ...(isStaff ? [] : [currentUser.school, currentUser.program])].filter(Boolean).join(' · ')}</div>
       </div>
     </div>
 
@@ -67,6 +66,7 @@ async function renderAccount() {
             <input class="form-input" id="ep-name" type="text"
                    placeholder="Your full name" value="${currentUser.name || ''}"/>
           </div>
+          ${isStaff ? '' : `
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">School</label>
@@ -78,7 +78,7 @@ async function renderAccount() {
               <input class="form-input" id="ep-program" type="text"
                      placeholder="e.g. IT, CS" value="${currentUser.program || ''}"/>
             </div>
-          </div>
+          </div>`}
           <div class="form-group">
             <label class="form-label">Email Address</label>
             <input class="form-input acc-readonly" id="ep-email" type="email"
@@ -147,27 +147,30 @@ async function renderAccount() {
 
 // ── Edit Profile ──────────────────────────────────────────
 async function saveProfile() {
-  const name    = document.getElementById('ep-name').value.trim();
-  const school  = document.getElementById('ep-school').value.trim();
-  const program = document.getElementById('ep-program').value.trim();
+  const name      = document.getElementById('ep-name').value.trim();
+  // School/Program inputs are not rendered for admins and supervisors
+  const schoolEl  = document.getElementById('ep-school');
+  const programEl = document.getElementById('ep-program');
 
   if (!name) { toast('Full name is required.'); return; }
+
+  const updates = { name };
+  if (schoolEl)  updates.school  = schoolEl.value.trim();
+  if (programEl) updates.program = programEl.value.trim();
 
   const btn = document.getElementById('ep-save-btn');
   btn.disabled = true;
   btn.textContent = 'Saving…';
 
   try {
-    const { error } = await updateProfile(currentUser.id, { name, school, program });
+    const { error } = await updateProfile(currentUser.id, updates);
     if (error) {
       toast('Failed to update profile: ' + (error.message || 'Unknown error'));
       return;
     }
 
-    currentUser.name    = name;
-    currentUser.school  = school;
-    currentUser.program = program;
-    currentUser.avatar  = name.slice(0, 2).toUpperCase();
+    Object.assign(currentUser, updates);
+    currentUser.avatar = name.slice(0, 2).toUpperCase();
 
     document.getElementById('sb-name').textContent     = name;
     document.getElementById('sb-avatar').textContent   = currentUser.avatar;
