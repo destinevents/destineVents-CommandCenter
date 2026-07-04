@@ -74,6 +74,17 @@ function toggleSidebar() {
   document.querySelector('.sb-collapse').textContent = sidebarOpen ? '◀' : '▶';
 }
 
+// Phone-width off-canvas nav (hamburger in the topbar, backdrop behind)
+function toggleMobileNav(open) {
+  const sidebar = document.getElementById('sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
+  const next = open ?? !sidebar.classList.contains('mobile-open');
+  sidebar.classList.toggle('mobile-open', next);
+  backdrop.classList.toggle('show', next);
+  // The drawer always shows full labels; desktop collapse state doesn't apply
+  if (next) sidebar.classList.remove('collapsed');
+}
+
 function updateBadges() {
   const count = pendingApprovals().length;
   document.getElementById('approval-badge').textContent = count;
@@ -246,7 +257,10 @@ document.querySelectorAll('.modal-overlay').forEach((m) => {
 
 document.getElementById('sidebar-nav').addEventListener('click', async (e) => {
   const btn = e.target.closest('.nav-btn');
-  if (btn && btn.dataset.page) await goPage(btn.dataset.page);
+  if (btn && btn.dataset.page) {
+    toggleMobileNav(false);
+    await goPage(btn.dataset.page);
+  }
 });
 
 document.addEventListener('click', async (e) => {
@@ -260,6 +274,10 @@ document.addEventListener('click', async (e) => {
   }
   if (a === 'toggle-sidebar') {
     toggleSidebar();
+    return;
+  }
+  if (a === 'toggle-mobile-nav') {
+    toggleMobileNav();
     return;
   }
   if (a === 'go-page') {

@@ -86,12 +86,18 @@
     <button class="sb-collapse" data-action="toggle-sidebar">◀</button>
 </div>
 
+<!-- Backdrop behind the mobile nav drawer -->
+<div id="sidebar-backdrop" data-action="toggle-mobile-nav"></div>
+
 <!-- ═══════════════════════════════ MAIN ═══════════════════════════════════ -->
 <div id="main">
   <div id="topbar">
-    <div>
-      <div class="page-title" id="topbar-title">Dashboard</div>
-      <div class="page-sub" id="topbar-date"></div>
+    <div class="topbar-left">
+      <button id="menu-btn" data-action="toggle-mobile-nav" aria-label="Open menu">☰</button>
+      <div>
+        <div class="page-title" id="topbar-title">Dashboard</div>
+        <div class="page-sub" id="topbar-date"></div>
+      </div>
     </div>
     <div class="topbar-right">
       <div class="nc-wrap">

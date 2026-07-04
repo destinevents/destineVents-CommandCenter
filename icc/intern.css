@@ -159,7 +159,26 @@ nav { flex: 1; padding: 10px 8px; display: flex; flex-direction: column; gap: 2p
 }
 .page-title { font-size: 16px; font-weight: 800; color: var(--forest); text-transform: capitalize; }
 .page-sub { font-size: 11px; color: var(--faint); margin-top: 1px; }
+.topbar-left { display: flex; align-items: center; gap: 10px; }
 .topbar-right { display: flex; align-items: center; gap: 10px; }
+#menu-btn {
+  display: none;
+  border: 1px solid var(--border);
+  background: var(--white);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 16px;
+  color: var(--forest);
+  cursor: pointer;
+}
+#sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 110;
+}
+#sidebar-backdrop.show { display: block; }
 .notif-btn {
   position: relative; background: #fef2f2; border: none; border-radius: 8px;
   padding: 7px 12px; cursor: pointer; display: flex; align-items: center; gap: 5px;
@@ -580,13 +599,57 @@ textarea.form-input { resize: vertical; min-height: 100px; }
 /* Required asterisk */
 .req { color: var(--red); margin-left: 2px; }
 
-@media (max-width: 768px) {
+/* Tablet: shrink the sidebar to an icon rail */
+@media (min-width: 641px) and (max-width: 768px) {
   #sidebar { width: 60px; }
   #sidebar .sb-logo-text, #sidebar .label, #sidebar .nav-badge, #sidebar .sb-section-label, #sidebar .rname, #sidebar .rrole { display: none; }
+  .kanban { grid-template-columns: repeat(5, 200px); }
+}
+
+@media (max-width: 768px) {
   #content { padding: 16px; }
   #topbar { padding: 12px 16px; }
-  .kanban { grid-template-columns: repeat(5, 200px); }
   .grid2, .grid3, .grid4 { grid-template-columns: 1fr; }
   .acc-hero { flex-direction: column; text-align: center; padding: 24px 20px; }
   .acc-info-label { min-width: 90px; }
+}
+
+/* Phone: off-canvas nav drawer + compressed chrome */
+@media (max-width: 640px) {
+  #sidebar, #sidebar.collapsed {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: -240px;
+    width: 228px;
+    z-index: 120;
+    transition: left 0.22s ease;
+  }
+  #sidebar.mobile-open { left: 0; box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sb-collapse { display: none; }
+  #menu-btn { display: inline-flex; }
+
+  #topbar { padding: 10px 12px; gap: 8px; }
+  .page-sub { display: none; }
+  .user-chip { padding: 4px; background: none; }
+  .user-chip .uname, .user-chip .urole { display: none; }
+  #content { padding: 12px; }
+
+  /* Task board: stack the status sections instead of 5 columns */
+  .kanban { display: flex; flex-direction: column; gap: 12px; }
+
+  /* Notification panel: pin to the viewport so it can't clip off-screen */
+  .nc-panel {
+    position: fixed;
+    top: 54px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-height: 70vh;
+  }
+
+  .page-actions { flex-wrap: wrap; gap: 10px; }
+  .filter-row { flex-wrap: wrap; }
+  .acc-info-row { flex-wrap: wrap; }
+  .modal-overlay { padding: 10px; }
 }

@@ -51,3 +51,10 @@ body { background:var(--linen); color:var(--ink); font-family:'DM Sans',sans-ser
 ::-webkit-scrollbar-track { background:transparent; }
 ::-webkit-scrollbar-thumb { background:var(--ink-4); border-radius:99px; }
 ::-webkit-scrollbar-thumb:hover { background:var(--ink-3); }
+
+/* Phone: hide the brand panel, let the form own the screen */
+@media (max-width: 640px) {
+  .login-brand { display: none; }
+  .login-form-wrap { padding: 24px 16px; }
+  .login-box { width: 100%; max-width: 340px; }
+}
