@@ -157,11 +157,15 @@
   </div>
 </aside>
 
+<!-- Backdrop behind the mobile nav drawer -->
+<div id="hq-backdrop" onclick="toggleHqNav(false)"></div>
+
 <!-- MAIN -->
 <main class="main" role="main">
 
   <!-- TOPBAR -->
   <div class="topbar">
+    <button id="hq-menu-btn" onclick="toggleHqNav()" aria-label="Open menu">☰</button>
     <div class="tabs">
       <div class="tab active" data-page="dashboard" onclick="showPage('dashboard')">Dashboard</div>
       <div class="tab" data-page="new-project" onclick="showPage('new-project')">New Project</div>

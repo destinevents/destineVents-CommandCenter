@@ -156,7 +156,17 @@ async function handleSignOut() {
   location.reload();
 }
 
+// Phone-width off-canvas nav (hamburger in the topbar, backdrop behind)
+function toggleHqNav(open) {
+  const sidebar = document.querySelector('.sidebar');
+  const backdrop = document.getElementById('hq-backdrop');
+  const next = open ?? !sidebar.classList.contains('mobile-open');
+  sidebar.classList.toggle('mobile-open', next);
+  backdrop.classList.toggle('show', next);
+}
+
 function showPage(name) {
+  toggleHqNav(false);
   document.querySelectorAll('.page').forEach((p) => p.classList.remove('active'));
   const page = document.getElementById('page-' + name);
   if (page) {

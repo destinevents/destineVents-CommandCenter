@@ -203,3 +203,35 @@
 ::-webkit-scrollbar-track { background:transparent; }
 ::-webkit-scrollbar-thumb { background:var(--ink-4); border-radius:99px; }
 ::-webkit-scrollbar-thumb:hover { background:var(--ink-3); }
+
+/* ─── MOBILE ─── */
+#hq-menu-btn {
+  display:none; border:1px solid var(--ink-4); background:var(--linen);
+  border-radius:6px; padding:5px 10px; font-size:15px; color:var(--ink);
+  cursor:pointer; margin-right:12px; flex-shrink:0;
+}
+#hq-backdrop {
+  display:none; position:fixed; inset:0;
+  background:rgba(26,20,16,0.45); z-index:110;
+}
+#hq-backdrop.show { display:block; }
+
+@media (max-width: 768px) {
+  .finance-stat-grid { grid-template-columns:1fr 1fr; }
+  .page { padding:16px 14px 40px; }
+  .page-title { font-size:24px; }
+}
+
+@media (max-width: 640px) {
+  .sidebar {
+    position:fixed; top:0; bottom:0; left:-240px; width:224px;
+    z-index:120; transition:left 0.22s ease;
+  }
+  .sidebar.mobile-open { left:0; box-shadow:4px 0 24px rgba(26,20,16,0.3); }
+  #hq-menu-btn { display:inline-flex; }
+  .topbar { padding:0 12px; }
+  .tabs { overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+  .tabs::-webkit-scrollbar { display:none; }
+  .tab { white-space:nowrap; padding:0 12px; }
+  .topbar-date { display:none; }
+}
