@@ -23,6 +23,15 @@ async function createTask(data) {
   return result?.[0] ?? null;
 }
 
+async function deleteTask(id) {
+  const { error } = await sb.from('intern_tasks').delete().eq('id', id);
+  if (error) {
+    logger.error('deleteTask', error.message, error);
+    return false;
+  }
+  return true;
+}
+
 async function updateTask(id, data) {
   const { data: result, error } = await sb.from('intern_tasks').update(data).eq('id', id).select();
   if (error) {

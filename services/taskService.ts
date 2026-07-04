@@ -25,6 +25,15 @@ export async function createTask(data: Partial<Task>): Promise<Task | null> {
   return (result as Task[] | null)?.[0] ?? null;
 }
 
+export async function deleteTask(id: string): Promise<boolean> {
+  const { error } = await sb.from('intern_tasks').delete().eq('id', id);
+  if (error) {
+    logger.error('deleteTask', error.message, error);
+    return false;
+  }
+  return true;
+}
+
 export async function updateTask(id: string, data: Partial<Task>): Promise<Task | null> {
   const { data: result, error } = await sb.from('intern_tasks').update(data).eq('id', id).select();
   if (error) {

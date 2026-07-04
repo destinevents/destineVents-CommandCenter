@@ -81,7 +81,7 @@ async function renderTimesheets() {
     : '';
 
   const lhTask = document.getElementById('lh-task');
-  lhTask.innerHTML = '<option value="">None</option>' +
+  lhTask.innerHTML = '<option value="">Not linked to a task</option>' +
     myTasks().map(t=>`<option value="${t.id}">${escapeHtml(t.title)}</option>`).join('');
   renderSkillPicker('lh-skills-picker', 'lh-skills');
 }

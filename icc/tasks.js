@@ -126,6 +126,7 @@ function openTaskDetail(id) {
   let actions = '';
   if(currentUser.role==='admin' && t.status!=='reviewed'){
     actions += `<button class="btn-action" style="background:#f3f4f6;color:#374151" data-action="edit-task" data-id="${id}">✎ Edit Task</button>`;
+    actions += `<button class="btn-action" style="background:#fef2f2;color:#ef4444" data-action="delete-task" data-id="${id}">🗑 Delete Task</button>`;
   }
   if(isIntern && isMyTask){
     if(t.status==='assigned') actions += `<button class="btn-action" style="background:#fffbeb;color:#f59e0b" data-action="task-action" data-id="${id}" data-task-action="acknowledge">Acknowledge Task</button>`;
@@ -159,6 +160,28 @@ function openTaskDetail(id) {
     ${actions ? `<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">${actions}</div>` : ''}
   `;
   openModal('modal-view-task');
+}
+
+async function handleDeleteTask(id) {
+  const t = liveTasks.find(x => x.id === id);
+  if (!t) return;
+  // Timesheets reference tasks by FK — deleting a task with logged hours
+  // would orphan those entries (the DB rejects it anyway)
+  if (liveTimesheets.some(ts => ts.task_id === id)) {
+    toast('Cannot delete — timesheet hours are logged against this task.');
+    return;
+  }
+  if (!confirm(`Delete task “${t.title}”? This cannot be undone.`)) return;
+
+  const ok = await deleteTask(id);
+  if (!ok) { toast('Could not delete the task. Please try again.'); return; }
+
+  logAudit('task_deleted', 'task', id, { title: t.title }, currentUser.id);
+  closeModal('modal-view-task');
+  toast('Task deleted.');
+  await loadLiveTasks();
+  await renderTasks();
+  await renderDashboard();
 }
 
 async function taskAction(id, action) {

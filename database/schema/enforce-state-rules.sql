@@ -44,6 +44,16 @@ begin
     return new;
   end if;
 
+  if tg_op = 'DELETE' then
+    if old.status = 'reviewed' then
+      raise exception 'Reviewed tasks are locked and cannot be deleted.';
+    end if;
+    if actor is not null and actor_role is distinct from 'admin' then
+      raise exception 'Only admins can delete tasks.';
+    end if;
+    return old;
+  end if;
+
   -- UPDATE
   if old.status = 'reviewed' then
     raise exception 'Reviewed tasks are locked.';
@@ -89,7 +99,7 @@ $$;
 
 drop trigger if exists enforce_task_rules on intern_tasks;
 create trigger enforce_task_rules
-  before insert or update on intern_tasks
+  before insert or update or delete on intern_tasks
   for each row execute function public.enforce_task_rules();
 
 -- Step 2: timesheet rules

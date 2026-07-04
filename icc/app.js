@@ -304,6 +304,10 @@ document.addEventListener('click', async (e) => {
     openEditTask(el.dataset.id);
     return;
   }
+  if (a === 'delete-task') {
+    await handleDeleteTask(el.dataset.id);
+    return;
+  }
   if (a === 'log-hours') {
     await logHours();
     return;
