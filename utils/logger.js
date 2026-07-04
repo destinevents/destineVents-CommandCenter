@@ -37,7 +37,7 @@ const logger = {
   error: (ctx, msg, data) => _log(LOG_LEVELS.ERROR, 'ERROR', ctx, msg, data),
 };
 
-// Attach to window so TypeScript services can also declare it as a global
+// Attach to window for the browser pages, which load this as a classic
+// <script src> — module syntax (export) is a SyntaxError there and kills the
+// whole file. Tests/TS services import from loggerUtils.ts instead.
 if (typeof window !== 'undefined') window.logger = logger;
-
-export { logger };

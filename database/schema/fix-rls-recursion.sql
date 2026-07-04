@@ -112,15 +112,26 @@ create policy "admin_only" on documents    for all to authenticated
   using (public.current_user_role() = 'admin')
   with check (public.current_user_role() = 'admin');
 
--- Step 7: verify — simulate Jenn's session (must print 'admin', not an error)
-begin;
-set local role authenticated;
-select set_config(
-  'request.jwt.claims',
-  '{"sub":"73bd1035-1f9b-4012-8324-b99470a86c29","role":"authenticated"}',
-  true
-);
-select role as jenn_role_as_seen_by_app
-from intern_users
-where id = auth.uid();
-rollback;
+-- Step 7: sanity check — lists the policies now in force (read-only)
+select tablename, policyname, cmd
+from pg_policies
+where schemaname = 'public'
+order by tablename, policyname;
+
+-- ─── VERIFICATION — RUN AS A SEPARATE QUERY, NOT WITH THE SCRIPT ABOVE ───────
+-- The SQL Editor executes each run as ONE transaction, so a rollback pasted
+-- together with the fix would undo the fix itself. After the script above has
+-- run on its own, paste ONLY the block below as a new query. It simulates
+-- Jenn's session and must print 'admin' (not an error).
+--
+-- begin;
+-- set local role authenticated;
+-- select set_config(
+--   'request.jwt.claims',
+--   '{"sub":"73bd1035-1f9b-4012-8324-b99470a86c29","role":"authenticated"}',
+--   true
+-- );
+-- select role as jenn_role_as_seen_by_app
+-- from intern_users
+-- where id = auth.uid();
+-- rollback;

@@ -1,5 +1,5 @@
 import { sb } from './supabase';
-import { logger } from '../utils/logger.js';
+import { logger } from '../utils/loggerUtils.ts';
 import type { InternUser } from '../js/shared/types';
 
 interface AuthMeta {
