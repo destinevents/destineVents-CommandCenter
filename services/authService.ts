@@ -104,18 +104,8 @@ export async function updateProfile(userId: string, updates: ProfileUpdates): Pr
   }
 }
 
-export async function updatePassword(
-  email: string,
-  currentPassword: string,
-  newPassword: string
-): Promise<AuthResult> {
-  if (!email) return { error: { message: 'Session expired. Please sign in again.' } };
+export async function updatePassword(newPassword: string): Promise<AuthResult> {
   try {
-    const { error: authErr } = await sb.auth.signInWithPassword({
-      email,
-      password: currentPassword,
-    });
-    if (authErr) return { error: { message: 'Current password is incorrect.' } };
     const { error: updateErr } = await sb.auth.updateUser({ password: newPassword });
     if (updateErr) return { error: updateErr };
     return { error: null };

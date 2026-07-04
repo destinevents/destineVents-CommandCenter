@@ -105,10 +105,6 @@ async function renderAccount() {
         </div>
         <div class="acc-form">
           <div class="form-group">
-            <label class="form-label">Current Password <span class="req">*</span></label>
-            ${pwField('cp-current', 'Enter current password')}
-          </div>
-          <div class="form-group">
             <label class="form-label">New Password <span class="req">*</span></label>
             ${pwField('cp-new', 'Enter new password')}
             <ul class="pw-reqs" id="pw-reqs">
@@ -220,17 +216,15 @@ function checkPasswordReqs() {
 async function changePassword() {
   const btn = document.getElementById('cp-save-btn');
   try {
-    const current = document.getElementById('cp-current').value;
     const newPwd  = document.getElementById('cp-new').value;
     const confirm = document.getElementById('cp-confirm').value;
 
-    if (!current) { toast('Current password is required.'); return; }
     if (!newPwd)  { toast('New password is required.'); return; }
     if (newPwd !== confirm) { toast('Passwords do not match.'); return; }
 
     if (btn) { btn.disabled = true; btn.textContent = 'Updating…'; }
 
-    const { error } = await updatePassword(currentUser.email, current, newPwd);
+    const { error } = await updatePassword(newPwd);
     if (error) {
       toast(error.message || 'Failed to update password.');
       if (btn) { btn.disabled = false; btn.textContent = 'Update Password'; }
@@ -238,7 +232,7 @@ async function changePassword() {
     }
 
     toast('Password updated successfully!');
-    ['cp-current', 'cp-new', 'cp-confirm'].forEach(id => { document.getElementById(id).value = ''; });
+    ['cp-new', 'cp-confirm'].forEach(id => { document.getElementById(id).value = ''; });
     checkPasswordReqs();
     if (btn) btn.textContent = 'Update Password';
   } catch (err) {

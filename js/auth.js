@@ -75,4 +75,28 @@
       return null;
     }
   };
+
+  // SYNC WARNING: keep this in lockstep with services/authService.ts::updateProfile().
+  window.updateProfile = async function (userId, updates) {
+    try {
+      const { error: dbErr } = await sb.from('intern_users').update(updates).eq('id', userId);
+      if (dbErr) return { error: dbErr };
+      const { error: metaErr } = await sb.auth.updateUser({ data: updates });
+      if (metaErr) return { error: metaErr };
+      return { error: null };
+    } catch (err) {
+      return { error: err };
+    }
+  };
+
+  // SYNC WARNING: keep this in lockstep with services/authService.ts::updatePassword().
+  window.updatePassword = async function (newPassword) {
+    try {
+      const { error } = await sb.auth.updateUser({ password: newPassword });
+      if (error) return { error };
+      return { error: null };
+    } catch (err) {
+      return { error: err };
+    }
+  };
 })();

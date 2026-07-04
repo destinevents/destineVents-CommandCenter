@@ -185,21 +185,15 @@ describe('updateProfile', () => {
 });
 
 describe('updatePassword', () => {
-  it('returns session-expired error when email is empty', async () => {
-    const result = await updatePassword('', 'old', 'new');
-    expect(result.error?.message).toContain('Session expired');
+  it('propagates the error when the auth update fails', async () => {
+    mockSb.auth.updateUser.mockResolvedValue({ error: { message: 'weak password' } });
+    const result = await updatePassword('new');
+    expect(result.error?.message).toBe('weak password');
   });
 
-  it('returns incorrect-password error when re-auth fails', async () => {
-    mockSb.auth.signInWithPassword.mockResolvedValue({ error: { message: 'wrong' } });
-    const result = await updatePassword('a@b.com', 'wrong', 'new');
-    expect(result.error?.message).toContain('incorrect');
-  });
-
-  it('returns null error on full success', async () => {
-    mockSb.auth.signInWithPassword.mockResolvedValue({ error: null });
+  it('returns null error on success', async () => {
     mockSb.auth.updateUser.mockResolvedValue({ error: null });
-    const result = await updatePassword('a@b.com', 'old', 'NewPass1!');
+    const result = await updatePassword('NewPass1!');
     expect(result.error).toBeNull();
   });
 });
