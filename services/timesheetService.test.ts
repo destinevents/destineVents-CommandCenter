@@ -36,7 +36,8 @@ describe('fetchTimesheets', () => {
     const sheets = [makeSheet(), makeSheet({ intern_id: 'u2' })];
     const chain = {
       select: vi.fn().mockReturnThis(),
-      order: vi.fn().mockResolvedValue({ data: sheets, error: null }),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({ data: sheets, error: null }),
     };
     mockFrom.mockReturnValue(chain);
     const result = await fetchTimesheets('admin', 'u1');
@@ -49,7 +50,8 @@ describe('fetchTimesheets', () => {
     const chain = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
-      order: vi.fn().mockResolvedValue({ data: sheets, error: null }),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({ data: sheets, error: null }),
     };
     mockFrom.mockReturnValue(chain);
     const result = await fetchTimesheets('intern', 'u1');
@@ -61,7 +63,8 @@ describe('fetchTimesheets', () => {
     const chain = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
-      order: vi.fn().mockResolvedValue({ data: null, error: { message: 'fail' } }),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({ data: null, error: { message: 'fail' } }),
     };
     mockFrom.mockReturnValue(chain);
     const result = await fetchTimesheets('intern', 'u1');

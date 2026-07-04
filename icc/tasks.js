@@ -21,7 +21,19 @@ function applyTaskFilters(tasks) {
   return out;
 }
 
-attachFilterToolbar(['task-search', 'task-priority-filter', 'task-type-filter', 'task-sort'], renderTasks);
+// Single-status grids render in pages so a big backlog never floods the DOM
+const TASK_PAGE_SIZE = 45;
+let taskRenderLimit = TASK_PAGE_SIZE;
+
+function loadMoreTasks() {
+  taskRenderLimit += TASK_PAGE_SIZE;
+  renderTasks();
+}
+
+attachFilterToolbar(['task-search', 'task-priority-filter', 'task-type-filter', 'task-sort'], () => {
+  taskRenderLimit = TASK_PAGE_SIZE;
+  renderTasks();
+});
 
 function isOverdue(t) {
   return !!t.due_date && !['completed', 'reviewed'].includes(t.status) && t.due_date < todayISO();
@@ -83,17 +95,22 @@ async function renderTasks() {
       </div>`;
     }).join('');
   } else {
-    // Single status: full-width grid of task cards
+    // Single status: full-width grid of task cards, paged
     const colTasks = byStatus[taskFilter] ?? [];
+    const visible = colTasks.slice(0, taskRenderLimit);
     board.className = colTasks.length ? 'task-grid' : '';
     board.innerHTML = colTasks.length
-      ? colTasks.map(taskCard).join('')
+      ? visible.map(taskCard).join('') +
+        (colTasks.length > visible.length
+          ? `<button class="kan-more-btn" data-action="task-load-more" style="grid-column:1/-1">Load more (showing ${visible.length} of ${colTasks.length})</button>`
+          : '')
       : emptyStateHTML('', `No ${STATUS_LABELS[taskFilter].toLowerCase()} tasks yet.`);
   }
 }
 
 async function setTaskFilter(f) {
   taskFilter = f;
+  taskRenderLimit = TASK_PAGE_SIZE;
   await renderTasks();
 }
 

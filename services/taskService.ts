@@ -2,10 +2,13 @@ import { sb } from './supabase';
 import { logger } from '../utils/loggerUtils.ts';
 import type { Task, TaskStatus, TaskStats, TaskAction, UserRole } from '../js/shared/types';
 
+// Safety cap: newest rows win — keep in sync with taskService.js
+export const FETCH_CAP = 2000;
+
 export async function fetchTasks(role: UserRole, userId: string): Promise<Task[]> {
   const base = sb.from('intern_tasks').select('*');
   const query = role === 'intern' ? base.eq('assigned_to', userId) : base;
-  const { data, error } = await query.order('created_at', { ascending: false });
+  const { data, error } = await query.order('created_at', { ascending: false }).limit(FETCH_CAP);
   if (error) {
     logger.error('fetchTasks', error.message, error);
     return [];

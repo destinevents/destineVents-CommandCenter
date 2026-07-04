@@ -360,6 +360,18 @@ document.addEventListener('click', async (e) => {
     markAllNotificationsRead();
     return;
   }
+  if (a === 'sheet-load-more') {
+    loadMoreSheets();
+    return;
+  }
+  if (a === 'task-load-more') {
+    loadMoreTasks();
+    return;
+  }
+  if (a === 'output-load-more') {
+    loadMoreOutputs();
+    return;
+  }
 });
 
 // ─── INITIALIZATION ───────────────────────────────────────────────────────────

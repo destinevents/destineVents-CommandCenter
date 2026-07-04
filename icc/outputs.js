@@ -1,4 +1,15 @@
-attachFilterToolbar(['output-search', 'output-type-filter', 'output-sort'], renderOutputs);
+const OUTPUT_PAGE_SIZE = 30;
+let outputRenderLimit = OUTPUT_PAGE_SIZE;
+
+function loadMoreOutputs() {
+  outputRenderLimit += OUTPUT_PAGE_SIZE;
+  renderOutputs();
+}
+
+attachFilterToolbar(['output-search', 'output-type-filter', 'output-sort'], () => {
+  outputRenderLimit = OUTPUT_PAGE_SIZE;
+  renderOutputs();
+});
 
 async function renderOutputs() {
   const q    = document.getElementById('output-search').value.trim().toLowerCase();
@@ -16,8 +27,10 @@ async function renderOutputs() {
   if (type !== 'all') tasks = tasks.filter(t => t.output_type === type);
   const byNewest = (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0);
   tasks = [...tasks].sort(sort === 'oldest' ? (a, b) => byNewest(b, a) : byNewest);
+  const totalCount = tasks.length;
+  const visible = tasks.slice(0, outputRenderLimit);
 
-  document.getElementById('outputs-grid').innerHTML = tasks.map(t=>{
+  document.getElementById('outputs-grid').innerHTML = visible.map(t=>{
     const intern = userById.get(t.assigned_to) || {};
     return `<div class="out-card">
       <div class="out-card-head">
@@ -37,5 +50,7 @@ async function renderOutputs() {
         </div>
       </div>
     </div>`;
-  }).join('') || `<div class="empty-state"><div class="empty-icon">📦</div>${(q || type !== 'all') ? 'No outputs match your filters.' : 'No outputs yet.'}</div>`;
+  }).join('') + (totalCount > visible.length
+    ? `<button class="kan-more-btn" data-action="output-load-more" style="grid-column:1/-1">Load more (showing ${visible.length} of ${totalCount})</button>`
+    : '') || `<div class="empty-state"><div class="empty-icon">📦</div>${(q || type !== 'all') ? 'No outputs match your filters.' : 'No outputs yet.'}</div>`;
 }

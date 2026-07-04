@@ -1,4 +1,16 @@
-attachFilterToolbar(['sheet-search', 'sheet-from', 'sheet-to'], renderTimesheets);
+// Render the table in pages so hundreds of rows never hit the DOM at once
+const SHEET_PAGE_SIZE = 50;
+let sheetRenderLimit = SHEET_PAGE_SIZE;
+
+function loadMoreSheets() {
+  sheetRenderLimit += SHEET_PAGE_SIZE;
+  renderTimesheets();
+}
+
+attachFilterToolbar(['sheet-search', 'sheet-from', 'sheet-to'], () => {
+  sheetRenderLimit = SHEET_PAGE_SIZE;
+  renderTimesheets();
+});
 
 function applySheetFilters(sheets, taskById, userById) {
   const q    = document.getElementById('sheet-search').value.trim().toLowerCase();
@@ -36,12 +48,13 @@ async function renderTimesheets() {
   renderFilterTabs('sheet-filters', ['all','pending','approved','rejected'], sheetFilter, 'set-sheet-filter', 'filter');
 
   const filtered = applySheetFilters(sheetFilter==='all' ? sheets : sheets.filter(t=>t.status===sheetFilter), taskById, userById);
+  const visible = filtered.slice(0, sheetRenderLimit);
 
   const adminCols = isAdmin ? ['<th>Intern</th>','<th>Date</th>','<th>Task</th>','<th>Activity</th>','<th>Hours</th>','<th>Category</th>','<th>Skills</th>','<th>Status</th>','<th></th>'] :
                               ['<th>Date</th>','<th>Task</th>','<th>Activity</th>','<th>Hours</th>','<th>Category</th>','<th>Skills</th>','<th>Status</th>'];
   document.getElementById('sheet-thead').innerHTML = `<tr>${adminCols.join('')}</tr>`;
 
-  document.getElementById('sheet-tbody').innerHTML = filtered.map(ts=>{
+  document.getElementById('sheet-tbody').innerHTML = visible.map(ts=>{
     const task = taskById.get(ts.task_id);
     const intern = userById.get(ts.intern_id);
     const approveBtn = ts.status==='pending' ? `<div style="display:flex;gap:5px"><button class="btn-sm-approve" data-action="approve-sheet" data-id="${ts.id}">✓ Approve</button><button class="btn-sm-reject" data-action="reject-sheet" data-id="${ts.id}">✕ Reject</button></div>` : '';
@@ -60,6 +73,9 @@ async function renderTimesheets() {
   }).join('');
 
   document.getElementById('sheet-empty').style.display = filtered.length ? 'none' : 'block';
+  document.getElementById('sheet-more').innerHTML = filtered.length > visible.length
+    ? `<button class="kan-more-btn" data-action="sheet-load-more" style="width:calc(100% - 20px);margin:10px">Load more (showing ${visible.length} of ${filtered.length})</button>`
+    : '';
 
   const lhTask = document.getElementById('lh-task');
   lhTask.innerHTML = '<option value="">None</option>' +

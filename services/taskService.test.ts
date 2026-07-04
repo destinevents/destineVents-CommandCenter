@@ -37,7 +37,8 @@ describe('fetchTasks', () => {
     const tasks = [makeTask()];
     const chain = {
       select: vi.fn().mockReturnThis(),
-      order: vi.fn().mockResolvedValue({ data: tasks, error: null }),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({ data: tasks, error: null }),
     };
     mockFrom.mockReturnValue(chain);
     const result = await fetchTasks('admin', 'u1');
@@ -47,7 +48,8 @@ describe('fetchTasks', () => {
   it('returns empty array on error', async () => {
     const chain = {
       select: vi.fn().mockReturnThis(),
-      order: vi.fn().mockResolvedValue({ data: null, error: { message: 'fail' } }),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({ data: null, error: { message: 'fail' } }),
     };
     mockFrom.mockReturnValue(chain);
     const result = await fetchTasks('admin', 'u1');

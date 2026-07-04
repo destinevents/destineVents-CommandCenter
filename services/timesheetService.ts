@@ -1,11 +1,12 @@
 import { sb } from './supabase';
 import { logger } from '../utils/loggerUtils.ts';
+import { FETCH_CAP } from './taskService.ts';
 import type { Timesheet, TimesheetStats, SkillFrequency, UserRole } from '../js/shared/types';
 
 export async function fetchTimesheets(role: UserRole, userId: string): Promise<Timesheet[]> {
   const base = sb.from('intern_timesheets').select('*');
   const query = role === 'intern' ? base.eq('intern_id', userId) : base;
-  const { data, error } = await query.order('date', { ascending: false });
+  const { data, error } = await query.order('date', { ascending: false }).limit(FETCH_CAP);
   if (error) {
     logger.error('fetchTimesheets', error.message, error);
     return [];

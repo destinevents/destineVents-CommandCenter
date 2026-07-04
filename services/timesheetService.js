@@ -1,7 +1,8 @@
 async function fetchTimesheets(role, userId) {
   const base = sb.from('intern_timesheets').select('*');
   const query = role === 'intern' ? base.eq('intern_id', userId) : base;
-  const { data, error } = await query.order('date', { ascending: false });
+  // FETCH_CAP comes from taskService.js (loaded first); same rationale
+  const { data, error } = await query.order('date', { ascending: false }).limit(FETCH_CAP);
   if (error) {
     logger.error('fetchTimesheets', error.message, error);
     return [];
