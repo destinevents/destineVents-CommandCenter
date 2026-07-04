@@ -52,9 +52,67 @@ body { background:var(--linen); color:var(--ink); font-family:'DM Sans',sans-ser
 ::-webkit-scrollbar-thumb { background:var(--ink-4); border-radius:99px; }
 ::-webkit-scrollbar-thumb:hover { background:var(--ink-3); }
 
+/* ─── LOGIN REFINEMENTS ───
+   Scoped to .login-screen / .login-brand so app-wide form and button
+   styles stay untouched. */
+.login-eyebrow {
+  font-size:9px; letter-spacing:0.3em; text-transform:uppercase;
+  color:var(--gold, #A8862F); font-weight:700; margin-bottom:12px;
+}
+.login-screen .login-greeting { font-size:38px; }
+.login-screen .login-greeting::after {
+  content:''; display:block; width:44px; height:2px;
+  background:var(--gold, #A8862F); margin:16px 0 0;
+}
+.login-screen .login-sub { margin-top:12px; }
+
+.login-screen .form-group { gap:7px; }
+.login-screen .form-label { font-size:9px; }
+.login-screen .form-input {
+  padding:12px 14px; font-size:14px;
+  background:rgba(255,255,255,0.55);
+}
+.login-screen .form-input:hover { border-color:var(--ink-3); }
+
+.login-screen .btn { width:100%; padding:13px 22px; font-size:11px; }
+.login-actions { display:flex; flex-direction:column; gap:16px; }
+.login-alt { text-align:center; font-size:12px; color:var(--ink-3); }
+.login-alt a {
+  color:var(--ink); font-weight:600; text-decoration:none;
+  border-bottom:1px solid var(--gold, #A8862F); padding-bottom:1px;
+  transition:color 0.15s;
+}
+.login-alt a:hover { color:var(--gold, #A8862F); }
+
+.login-forgot {
+  font-size:11px; color:var(--ink-3); text-decoration:none;
+  border-bottom:1px dotted var(--ink-4); padding-bottom:1px;
+  transition:color 0.15s, border-color 0.15s;
+}
+.login-forgot:hover { color:var(--ink); border-bottom-color:var(--ink); }
+
+/* Error/notice box appears only when it has content; currentColor keeps
+   the accent red for errors and green for the reset-link confirmation */
+.login-screen .login-error { min-height:0; margin-bottom:0; }
+.login-screen .login-error:not(:empty) {
+  border-left:2px solid currentColor;
+  background:var(--linen-2);
+  padding:10px 12px; font-size:12px; line-height:1.5;
+  margin-bottom:18px;
+  animation:fadeIn 0.2s ease;
+}
+
+/* Brand panel: a whisper of gold on the divider */
+.lb-divider { position:relative; }
+.lb-divider::after {
+  content:''; position:absolute; left:0; top:0;
+  width:56px; height:1px; background:var(--gold, #A8862F);
+}
+
 /* Phone: hide the brand panel, let the form own the screen */
 @media (max-width: 640px) {
   .login-brand { display: none; }
   .login-form-wrap { padding: 24px 16px; }
   .login-box { width: 100%; max-width: 340px; }
+  .login-screen .login-greeting { font-size:32px; }
 }
