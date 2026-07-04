@@ -79,15 +79,20 @@ async function renderTimesheets() {
   document.getElementById('sheet-more').innerHTML = filtered.length > visible.length
     ? `<button class="kan-more-btn" data-action="sheet-load-more" style="width:calc(100% - 20px);margin:10px">Load more (showing ${visible.length} of ${filtered.length})</button>`
     : '';
+}
 
+// Populate the Log Hours form when the modal OPENS — never during table
+// renders, or a realtime event / search keystroke would rebuild the skill
+// picker and wipe the intern's in-progress selections mid-form.
+function openLogHours() {
   // Active tasks first; status suffix disambiguates same-titled tasks
   const activeFirst = [...myTasks()].sort((a, b) =>
     (['completed','reviewed'].includes(a.status) ? 1 : 0) - (['completed','reviewed'].includes(b.status) ? 1 : 0)
   );
-  const lhTask = document.getElementById('lh-task');
-  lhTask.innerHTML = '<option value="">Not linked to a task</option>' +
+  document.getElementById('lh-task').innerHTML = '<option value="">Not linked to a task</option>' +
     activeFirst.map(t=>`<option value="${t.id}">${escapeHtml(t.title)} — ${STATUS_LABELS[t.status]}${t.due_date ? ' · due ' + formatDateShort(t.due_date) : ''}</option>`).join('');
   renderSkillPicker('lh-skills-picker', 'lh-skills');
+  openModal('modal-log-hours');
 }
 
 async function setSheetFilter(f) { sheetFilter = f; await renderTimesheets(); }

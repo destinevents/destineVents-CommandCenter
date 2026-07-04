@@ -81,8 +81,10 @@ function toggleMobileNav(open) {
   const next = open ?? !sidebar.classList.contains('mobile-open');
   sidebar.classList.toggle('mobile-open', next);
   backdrop.classList.toggle('show', next);
-  // The drawer always shows full labels; desktop collapse state doesn't apply
-  if (next) sidebar.classList.remove('collapsed');
+  // The drawer always shows full labels. Clear desktop collapse via
+  // toggleSidebar's own state so sidebarOpen and the ◀/▶ arrow stay in sync
+  // when the user returns to desktop width.
+  if (next && !sidebarOpen) toggleSidebar();
 }
 
 function updateBadges() {
@@ -310,6 +312,10 @@ document.addEventListener('click', async (e) => {
   }
   if (a === 'log-hours') {
     await logHours();
+    return;
+  }
+  if (a === 'log-hours-open') {
+    openLogHours();
     return;
   }
   if (a === 'confirm-reject') {

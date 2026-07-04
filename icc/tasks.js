@@ -166,7 +166,9 @@ async function handleDeleteTask(id) {
   const t = liveTasks.find(x => x.id === id);
   if (!t) return;
   // Timesheets reference tasks by FK — deleting a task with logged hours
-  // would orphan those entries (the DB rejects it anyway)
+  // would orphan those entries (the DB rejects it anyway). Refresh the cache
+  // first: the Tasks page doesn't reload timesheets, so it can be stale.
+  await loadLiveTimesheets();
   if (liveTimesheets.some(ts => ts.task_id === id)) {
     toast('Cannot delete — timesheet hours are logged against this task.');
     return;
@@ -174,7 +176,7 @@ async function handleDeleteTask(id) {
   if (!confirm(`Delete task “${t.title}”? This cannot be undone.`)) return;
 
   const ok = await deleteTask(id);
-  if (!ok) { toast('Could not delete the task. Please try again.'); return; }
+  if (!ok) { toast('Could not delete — it may have hours logged against it, or the task is locked.'); return; }
 
   logAudit('task_deleted', 'task', id, { title: t.title }, currentUser.id);
   closeModal('modal-view-task');
