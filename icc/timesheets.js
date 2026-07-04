@@ -80,9 +80,13 @@ async function renderTimesheets() {
     ? `<button class="kan-more-btn" data-action="sheet-load-more" style="width:calc(100% - 20px);margin:10px">Load more (showing ${visible.length} of ${filtered.length})</button>`
     : '';
 
+  // Active tasks first; status suffix disambiguates same-titled tasks
+  const activeFirst = [...myTasks()].sort((a, b) =>
+    (['completed','reviewed'].includes(a.status) ? 1 : 0) - (['completed','reviewed'].includes(b.status) ? 1 : 0)
+  );
   const lhTask = document.getElementById('lh-task');
   lhTask.innerHTML = '<option value="">Not linked to a task</option>' +
-    myTasks().map(t=>`<option value="${t.id}">${escapeHtml(t.title)}</option>`).join('');
+    activeFirst.map(t=>`<option value="${t.id}">${escapeHtml(t.title)} — ${STATUS_LABELS[t.status]}${t.due_date ? ' · due ' + formatDateShort(t.due_date) : ''}</option>`).join('');
   renderSkillPicker('lh-skills-picker', 'lh-skills');
 }
 
