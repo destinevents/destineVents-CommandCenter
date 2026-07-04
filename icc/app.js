@@ -168,51 +168,11 @@ async function renderPage(page) {
 }
 
 // ─── REALTIME ────────────────────────────────────────────────────────────────
-// Compare the incoming row against the not-yet-reloaded cache to tell interns
-// what changed. Must run BEFORE loadLiveTasks/loadLiveTimesheets overwrite it.
-function notifyTaskChange(payload) {
-  const row = payload.new;
-  if (currentUser.role !== 'intern' || !row || row.assigned_to !== currentUser.id) return;
-  if (payload.eventType === 'INSERT') {
-    showToast(`📋 New task assigned to you: “${row.title}”`, '', 6000);
-    return;
-  }
-  if (payload.eventType !== 'UPDATE') return;
-  const prev = liveTasks.find((t) => t.id === row.id);
-  if (!prev) return;
-  if (prev.status !== row.status) {
-    // Status moves the intern makes themselves aren't news; a review is
-    if (row.status === 'reviewed') showToast(`🎉 Your task “${row.title}” was reviewed!`, '', 6000);
-  } else if (
-    prev.title !== row.title ||
-    prev.description !== row.description ||
-    prev.due_date !== row.due_date ||
-    prev.priority !== row.priority
-  ) {
-    showToast(`✏️ Task updated: “${row.title}”`, '', 6000);
-  }
-}
-
-function notifySheetChange(payload) {
-  const row = payload.new;
-  if (currentUser.role !== 'intern' || !row || row.intern_id !== currentUser.id) return;
-  if (payload.eventType !== 'UPDATE') return;
-  const prev = liveTimesheets.find((s) => s.id === row.id);
-  if (!prev || prev.status === row.status) return;
-  if (row.status === 'approved') {
-    showToast(`✅ Your ${row.hours}h entry for ${row.date} was approved!`, '', 6000);
-  } else if (row.status === 'rejected') {
-    showToast(
-      `❌ Your entry for ${row.date} was rejected${row.rejection_reason ? ': ' + row.rejection_reason : '.'}`,
-      '',
-      8000
-    );
-  }
-}
-
-// Events are processed strictly in arrival order: each notify* compares the
-// payload against the cache as it stood BEFORE that event, so a later event
-// must not run until the previous one has finished reloading the cache.
+// User-facing notifications are rows in intern_notifications, created by DB
+// triggers (database/schema/notifications.sql) — the INSERT subscription
+// below toasts them and feeds the bell via handleIncomingNotification.
+// Data events are processed strictly in arrival order so reloads and
+// re-renders never interleave.
 let realtimeChain = Promise.resolve();
 function queueRealtime(handler) {
   realtimeChain = realtimeChain
@@ -222,8 +182,7 @@ function queueRealtime(handler) {
 
 function setupRealtime() {
   sb.channel('intern-realtime')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'intern_tasks' }, (payload) => queueRealtime(async () => {
-      notifyTaskChange(payload);
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'intern_tasks' }, () => queueRealtime(async () => {
       await loadLiveTasks();
       await updateBadges();
       if (activePage === 'tasks' || activePage === 'dashboard' || activePage === 'outputs') {
@@ -233,8 +192,7 @@ function setupRealtime() {
     .on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'intern_timesheets' },
-      (payload) => queueRealtime(async () => {
-        notifySheetChange(payload);
+      () => queueRealtime(async () => {
         await loadLiveTimesheets();
         await updateBadges();
         if (
@@ -265,6 +223,16 @@ function setupRealtime() {
           await renderPage(activePage);
         }
       }
+    )
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'intern_notifications',
+        filter: `user_id=eq.${currentUser.id}`,
+      },
+      (payload) => handleIncomingNotification(payload)
     )
     .subscribe();
 }
@@ -362,6 +330,18 @@ document.addEventListener('click', async (e) => {
     window.location.href = 'index.html';
     return;
   }
+  if (a === 'toggle-notif-center') {
+    toggleNotifCenter();
+    return;
+  }
+  if (a === 'open-notification') {
+    await openNotification(el.dataset.id, el.dataset.page);
+    return;
+  }
+  if (a === 'notif-mark-all') {
+    markAllNotificationsRead();
+    return;
+  }
 });
 
 // ─── INITIALIZATION ───────────────────────────────────────────────────────────
@@ -420,6 +400,7 @@ async function init() {
     await loadLiveUsers();
     await loadLiveTasks();
     await loadLiveTimesheets();
+    await loadNotifications();
     await populateAddTaskModal();
     await updateBadges();
     await renderPage('dashboard');

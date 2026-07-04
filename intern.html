@@ -94,8 +94,20 @@
       <div class="page-sub" id="topbar-date"></div>
     </div>
     <div class="topbar-right">
-      <button class="notif-btn supervisor-only" data-action="go-page" data-page="approvals" id="notif-btn" style="display:none">
-        🔔 <span class="notif-count" id="notif-count">0</span>
+      <div class="nc-wrap">
+        <button class="notif-btn" data-action="toggle-notif-center" id="nc-bell" title="Notifications">
+          🔔 <span class="notif-count" id="nc-count" style="display:none">0</span>
+        </button>
+        <div class="nc-panel" id="nc-panel" style="display:none">
+          <div class="nc-head">
+            <span>Notifications</span>
+            <button class="nc-mark-read" data-action="notif-mark-all">Mark all read</button>
+          </div>
+          <div class="nc-list" id="nc-list"></div>
+        </div>
+      </div>
+      <button class="notif-btn supervisor-only" data-action="go-page" data-page="approvals" id="notif-btn" style="display:none" title="Pending approvals">
+        ⏳ <span class="notif-count" id="notif-count">0</span>
       </button>
       <div class="user-chip">
         <div class="avatar" id="topbar-avatar" style="width:28px;height:28px;font-size:10px;">JC</div>
@@ -426,6 +438,7 @@
 <script src="services/documentService.js"></script>
 <script src="services/userService.js"></script>
 <script src="services/auditService.js"></script>
+<script src="services/notificationService.js"></script>
 <script src="services/taskService.js"></script>
 <script src="services/timesheetService.js"></script>
 <script src="lib/business/dashboardStats.js"></script>
@@ -450,5 +463,6 @@
 <script src="icc/outputs.js"></script>
 <script src="icc/admin.js"></script>
 <script src="icc/account.js"></script>
+<script src="icc/notifications.js"></script>
 </body>
 </html>
