@@ -173,8 +173,8 @@ async function logHours() {
     .filter(ts => ts.date === date && ts.intern_id === currentUser.id)
     .reduce((s, t) => s + t.hours, 0);
   const totalIfAdded = existingHoursToday + hours;
-  if (totalIfAdded > 8) {
-    toast(`⚠️ Cannot log ${hours}h — total for ${date} would be ${totalIfAdded}h (max is 8h per day).`);
+  if (totalIfAdded > 9) {
+    toast(`⚠️ Cannot log ${hours}h — total for ${date} would be ${totalIfAdded}h (max is 9h per day).`);
     return;
   }
 

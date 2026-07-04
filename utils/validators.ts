@@ -77,7 +77,7 @@ export function validateTaskStatusTransition(current: TaskStatus, next: TaskStat
 export function validateDailyHours(
   existingHours: number,
   newHours: number,
-  max = 8
+  max = 9
 ): string | null {
   const total = existingHours + newHours;
   if (total > max)

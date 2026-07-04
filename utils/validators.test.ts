@@ -87,7 +87,10 @@ describe('validateDailyHours', () => {
     expect(validateDailyHours(4, 3, 8)).toBeNull());
   it('returns error when total exceeds limit', () =>
     expect(validateDailyHours(6, 4, 8)).toBeTruthy());
-  it('defaults max to 8 when not provided', () => expect(validateDailyHours(7, 2)).toBeTruthy());
+  it('defaults max to 9 when not provided', () => {
+    expect(validateDailyHours(7, 2)).toBeNull();
+    expect(validateDailyHours(8, 2)).toBeTruthy();
+  });
 });
 
 describe('validateRequired — additional edge cases', () => {

@@ -68,7 +68,7 @@ function validateTaskStatusTransition(current, next) {
   return (allowed[current] ?? []).includes(next);
 }
 
-function validateDailyHours(existingHours, newHours, max = 8) {
+function validateDailyHours(existingHours, newHours, max = 9) {
   const total = existingHours + newHours;
   if (total > max)
     return `Cannot log ${newHours}h — total would be ${total}h (max is ${max}h per day).`;
