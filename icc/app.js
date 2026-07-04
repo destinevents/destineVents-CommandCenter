@@ -336,6 +336,10 @@ document.addEventListener('click', async (e) => {
     rejectSheet(el.dataset.id);
     return;
   }
+  if (a === 'delete-sheet') {
+    await deleteSheet(el.dataset.id);
+    return;
+  }
   if (a === 'export-excel') {
     exportExcel(el.dataset.id);
     return;

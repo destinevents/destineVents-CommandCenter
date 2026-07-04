@@ -19,6 +19,15 @@ async function createTimesheet(data) {
   return result?.[0] ?? null;
 }
 
+async function deleteTimesheet(id) {
+  const { error } = await sb.from('intern_timesheets').delete().eq('id', id);
+  if (error) {
+    logger.error('deleteTimesheet', error.message, error);
+    return false;
+  }
+  return true;
+}
+
 async function updateTimesheet(id, data) {
   const { data: result, error } = await sb
     .from('intern_timesheets')

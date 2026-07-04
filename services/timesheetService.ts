@@ -23,6 +23,15 @@ export async function createTimesheet(data: Partial<Timesheet>): Promise<Timeshe
   return (result as Timesheet[] | null)?.[0] ?? null;
 }
 
+export async function deleteTimesheet(id: string): Promise<boolean> {
+  const { error } = await sb.from('intern_timesheets').delete().eq('id', id);
+  if (error) {
+    logger.error('deleteTimesheet', error.message, error);
+    return false;
+  }
+  return true;
+}
+
 export async function updateTimesheet(
   id: string,
   data: Partial<Timesheet>

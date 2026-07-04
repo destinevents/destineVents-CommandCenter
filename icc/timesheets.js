@@ -51,24 +51,27 @@ async function renderTimesheets() {
   const visible = filtered.slice(0, sheetRenderLimit);
 
   const adminCols = isAdmin ? ['<th>Intern</th>','<th>Date</th>','<th>Task</th>','<th>Activity</th>','<th>Hours</th>','<th>Category</th>','<th>Skills</th>','<th>Status</th>','<th></th>'] :
-                              ['<th>Date</th>','<th>Task</th>','<th>Activity</th>','<th>Hours</th>','<th>Category</th>','<th>Skills</th>','<th>Status</th>'];
+                              ['<th>Date</th>','<th>Task</th>','<th>Activity</th>','<th>Hours</th>','<th>Category</th>','<th>Skills</th>','<th>Status</th>','<th></th>'];
   document.getElementById('sheet-thead').innerHTML = `<tr>${adminCols.join('')}</tr>`;
 
   document.getElementById('sheet-tbody').innerHTML = visible.map(ts=>{
     const task = taskById.get(ts.task_id);
     const intern = userById.get(ts.intern_id);
-    const approveBtn = ts.status==='pending' ? `<div style="display:flex;gap:5px"><button class="btn-sm-approve" data-action="approve-sheet" data-id="${ts.id}">✓ Approve</button><button class="btn-sm-reject" data-action="reject-sheet" data-id="${ts.id}">✕ Reject</button></div>` : '';
+    // Approved entries are locked (spec §4.1); pending/rejected can be removed
+    const canDelete = ['pending','rejected'].includes(ts.status) && (isAdmin || ts.intern_id === currentUser.id);
+    const delBtn = canDelete ? `<button class="btn-sm-reject" data-action="delete-sheet" data-id="${ts.id}" title="Delete entry">🗑</button>` : '';
+    const approveBtn = ts.status==='pending' && isAdmin ? `<button class="btn-sm-approve" data-action="approve-sheet" data-id="${ts.id}">✓ Approve</button><button class="btn-sm-reject" data-action="reject-sheet" data-id="${ts.id}">✕ Reject</button>` : '';
     const skillHtml = (ts.skills||[]).slice(0,2).map(skillPillGreen).join(' ')+((ts.skills||[]).length>2?`<span style="font-size:10px;color:var(--faint)">+${ts.skills.length-2}</span>`:'');
     return `<tr>
       ${isAdmin?`<td><div class="flex-gap-8">${avatarEl(intern?.avatar||'?',24)}<span class="text-bold">${escapeHtml(intern?.name)||'—'}</span></div></td>`:''}
       <td style="white-space:nowrap;color:#374151">${ts.date}</td>
-      <td style="color:#374151">${escapeHtml(task?.title)||'<span style="color:var(--faint)">—</span>'}</td>
+      <td style="color:#374151">${escapeHtml(task?.title)||'<span class="no-task-flag" title="Entry is not linked to a task">⚠ no task</span>'}</td>
       <td class="truncate text-ink">${escapeHtml(ts.activity_description)}</td>
       <td class="hours-display">${ts.hours}h</td>
       <td class="text-muted">${ts.industry_category}</td>
       <td>${skillHtml}</td>
       <td>${badge(ts.status)}${ts.status === 'rejected' && ts.rejection_reason ? `<div style="font-size:10px;color:#ef4444;margin-top:3px;max-width:180px;line-height:1.3">${escapeHtml(ts.rejection_reason)}</div>` : ''}</td>
-      ${isAdmin?`<td>${approveBtn}</td>`:''}
+      <td><div style="display:flex;gap:5px">${approveBtn}${delBtn}</div></td>
     </tr>`;
   }).join('');
 
@@ -129,6 +132,22 @@ async function confirmReject() {
   } else {
     toast('Error rejecting entry. Please try again.');
   }
+}
+
+async function deleteSheet(id) {
+  const ts = liveTimesheets.find(s => s.id === id);
+  if (!ts) return;
+  if (!confirm(`Delete the ${ts.hours}h entry for ${ts.date}? This cannot be undone.`)) return;
+
+  const ok = await deleteTimesheet(id);
+  if (!ok) { toast('Could not delete the entry. Please try again.'); return; }
+
+  logAudit('timesheet_deleted', 'timesheet', id, { date: ts.date, hours: ts.hours }, currentUser.id);
+  toast('Entry deleted.');
+  await loadLiveTimesheets();
+  await updateBadges();
+  await renderTimesheets();
+  await renderDashboard();
 }
 
 async function logHours() {
