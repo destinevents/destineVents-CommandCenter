@@ -84,14 +84,16 @@ on conflict (id) do update set
 
 -- 3. Catch-all: seed any auth user not yet in intern_users
 -- Fixes interns whose real signup email doesn't match a placeholder above.
--- Uses full_name / role from user_metadata when available; falls back to email prefix.
+-- Uses full_name from user_metadata when available; falls back to email prefix.
+-- Role is always 'intern' — user_metadata is user-editable and must not grant
+-- roles; promote admins/supervisors explicitly like the named inserts above.
 -- program/school will be NULL and can be updated manually afterward.
 insert into intern_users (id, name, email, role, avatar)
 select
   au.id,
   coalesce(au.raw_user_meta_data->>'full_name', split_part(au.email,'@',1)),
   au.email,
-  coalesce(au.raw_user_meta_data->>'role', 'intern'),
+  'intern',
   upper(left(coalesce(au.raw_user_meta_data->>'full_name', au.email), 2))
 from auth.users au
 where not exists (

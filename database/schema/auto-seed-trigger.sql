@@ -21,12 +21,14 @@ begin
     split_part(new.email,'@',1)
   );
 
+  -- Role is always 'intern' — never read from user_metadata, which users can
+  -- self-edit (privilege escalation). Admins promote via intern_users directly.
   insert into public.intern_users (id, name, email, role, avatar, program, school)
   values (
     new.id,
     v_name,
     new.email,
-    coalesce(new.raw_user_meta_data->>'role', 'intern'),
+    'intern',
     upper(left(v_name, 2)),
     new.raw_user_meta_data->>'program',
     new.raw_user_meta_data->>'school'
@@ -49,7 +51,7 @@ select
   au.id,
   coalesce(au.raw_user_meta_data->>'full_name', au.raw_user_meta_data->>'name', split_part(au.email,'@',1)),
   au.email,
-  coalesce(au.raw_user_meta_data->>'role', 'intern'),
+  'intern',
   upper(left(coalesce(au.raw_user_meta_data->>'full_name', au.raw_user_meta_data->>'name', split_part(au.email,'@',1)), 2)),
   au.raw_user_meta_data->>'program',
   au.raw_user_meta_data->>'school'

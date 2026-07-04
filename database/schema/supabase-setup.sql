@@ -97,6 +97,9 @@ alter table payroll_runs enable row level security;
 alter table documents    enable row level security;
 
 -- Admin-only access — interns/supervisors should not query HQ tables
+-- Uses public.current_user_role() (defined in intern-schema.sql — run that
+-- first). A raw subquery on intern_users here would hit that table's own
+-- self-referencing policies and raise "infinite recursion detected".
 drop policy if exists "auth_all"   on clients;
 drop policy if exists "auth_all"   on proposals;
 drop policy if exists "auth_all"   on partners;
@@ -113,32 +116,32 @@ drop policy if exists "admin_only" on payroll_runs;
 drop policy if exists "admin_only" on documents;
 
 create policy "admin_only" on clients      for all to authenticated
-  using ((select role from intern_users where id = auth.uid()) = 'admin')
-  with check ((select role from intern_users where id = auth.uid()) = 'admin');
+  using (public.current_user_role() = 'admin')
+  with check (public.current_user_role() = 'admin');
 
 create policy "admin_only" on proposals    for all to authenticated
-  using ((select role from intern_users where id = auth.uid()) = 'admin')
-  with check ((select role from intern_users where id = auth.uid()) = 'admin');
+  using (public.current_user_role() = 'admin')
+  with check (public.current_user_role() = 'admin');
 
 create policy "admin_only" on partners     for all to authenticated
-  using ((select role from intern_users where id = auth.uid()) = 'admin')
-  with check ((select role from intern_users where id = auth.uid()) = 'admin');
+  using (public.current_user_role() = 'admin')
+  with check (public.current_user_role() = 'admin');
 
 create policy "admin_only" on invoices     for all to authenticated
-  using ((select role from intern_users where id = auth.uid()) = 'admin')
-  with check ((select role from intern_users where id = auth.uid()) = 'admin');
+  using (public.current_user_role() = 'admin')
+  with check (public.current_user_role() = 'admin');
 
 create policy "admin_only" on bills        for all to authenticated
-  using ((select role from intern_users where id = auth.uid()) = 'admin')
-  with check ((select role from intern_users where id = auth.uid()) = 'admin');
+  using (public.current_user_role() = 'admin')
+  with check (public.current_user_role() = 'admin');
 
 create policy "admin_only" on payroll_runs for all to authenticated
-  using ((select role from intern_users where id = auth.uid()) = 'admin')
-  with check ((select role from intern_users where id = auth.uid()) = 'admin');
+  using (public.current_user_role() = 'admin')
+  with check (public.current_user_role() = 'admin');
 
 create policy "admin_only" on documents    for all to authenticated
-  using ((select role from intern_users where id = auth.uid()) = 'admin')
-  with check ((select role from intern_users where id = auth.uid()) = 'admin');
+  using (public.current_user_role() = 'admin')
+  with check (public.current_user_role() = 'admin');
 
 -- ─── REALTIME ────────────────────────────────────────────────────────────────
 -- Enable real-time updates for all tables (run this in SQL Editor)
