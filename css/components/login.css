@@ -45,7 +45,7 @@
 .role-btn-wrap .btn { width:100%; }
 
 * { margin:0; padding:0; box-sizing:border-box; }
-body { background:var(--linen); color:var(--ink); font-family:'DM Sans',sans-serif; height:100vh; overflow:hidden; display:flex; }
+body { background:var(--linen); color:var(--ink); font-family:'DM Sans',sans-serif; height:100vh; height:100dvh; overflow:hidden; display:flex; }
 
 ::-webkit-scrollbar { width:4px; height:4px; }
 ::-webkit-scrollbar-track { background:transparent; }
