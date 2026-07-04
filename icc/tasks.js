@@ -22,16 +22,10 @@ function applyTaskFilters(tasks) {
 }
 
 // Single-status grids render in pages so a big backlog never floods the DOM
-const TASK_PAGE_SIZE = 45;
-let taskRenderLimit = TASK_PAGE_SIZE;
-
-function loadMoreTasks() {
-  taskRenderLimit += TASK_PAGE_SIZE;
-  renderTasks();
-}
+const taskPager = createPager(45, () => renderTasks());
 
 attachFilterToolbar(['task-search', 'task-priority-filter', 'task-type-filter', 'task-sort'], () => {
-  taskRenderLimit = TASK_PAGE_SIZE;
+  taskPager.reset();
   renderTasks();
 });
 
@@ -97,7 +91,7 @@ async function renderTasks() {
   } else {
     // Single status: full-width grid of task cards, paged
     const colTasks = byStatus[taskFilter] ?? [];
-    const visible = colTasks.slice(0, taskRenderLimit);
+    const visible = colTasks.slice(0, taskPager.limit);
     board.className = colTasks.length ? 'task-grid' : '';
     board.innerHTML = colTasks.length
       ? visible.map(taskCard).join('') +
@@ -110,7 +104,7 @@ async function renderTasks() {
 
 async function setTaskFilter(f) {
   taskFilter = f;
-  taskRenderLimit = TASK_PAGE_SIZE;
+  taskPager.reset();
   await renderTasks();
 }
 
@@ -230,6 +224,15 @@ async function taskAction(id, action) {
 
 // ── Create / Edit Task modal ──────────────────────────────
 let editingTaskId = null;
+
+// Any close path must clear edit mode — a stale editingTaskId would make a
+// later submit update the wrong task
+MODAL_CLOSE_HOOKS['modal-add-task'] = () => {
+  if (editingTaskId) {
+    editingTaskId = null;
+    setTaskModalMode(false);
+  }
+};
 
 function setTaskModalMode(editing) {
   document.getElementById('modal-add-task-title').textContent = editing ? 'Edit Task' : 'Create New Task';

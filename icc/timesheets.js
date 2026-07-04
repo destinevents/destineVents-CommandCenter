@@ -1,14 +1,8 @@
 // Render the table in pages so hundreds of rows never hit the DOM at once
-const SHEET_PAGE_SIZE = 50;
-let sheetRenderLimit = SHEET_PAGE_SIZE;
-
-function loadMoreSheets() {
-  sheetRenderLimit += SHEET_PAGE_SIZE;
-  renderTimesheets();
-}
+const sheetPager = createPager(50, () => renderTimesheets());
 
 attachFilterToolbar(['sheet-search', 'sheet-from', 'sheet-to'], () => {
-  sheetRenderLimit = SHEET_PAGE_SIZE;
+  sheetPager.reset();
   renderTimesheets();
 });
 
@@ -48,7 +42,7 @@ async function renderTimesheets() {
   renderFilterTabs('sheet-filters', ['all','pending','approved','rejected'], sheetFilter, 'set-sheet-filter', 'filter');
 
   const filtered = applySheetFilters(sheetFilter==='all' ? sheets : sheets.filter(t=>t.status===sheetFilter), taskById, userById);
-  const visible = filtered.slice(0, sheetRenderLimit);
+  const visible = filtered.slice(0, sheetPager.limit);
 
   const adminCols = isAdmin ? ['<th>Intern</th>','<th>Date</th>','<th>Task</th>','<th>Activity</th>','<th>Hours</th>','<th>Category</th>','<th>Skills</th>','<th>Status</th>','<th></th>'] :
                               ['<th>Date</th>','<th>Task</th>','<th>Activity</th>','<th>Hours</th>','<th>Category</th>','<th>Skills</th>','<th>Status</th>','<th></th>'];
@@ -174,12 +168,10 @@ async function logHours() {
     if (!confirmed) return;
   }
 
-  const existingHoursToday = liveTimesheets
-    .filter(ts => ts.date === date && ts.intern_id === currentUser.id)
-    .reduce((s, t) => s + t.hours, 0);
-  const totalIfAdded = existingHoursToday + hours;
-  if (totalIfAdded > 9) {
-    toast(`⚠️ Cannot log ${hours}h — total for ${date} would be ${totalIfAdded}h (max is 9h per day).`);
+  const existingHours = existingEntries.reduce((s, t) => s + t.hours, 0);
+  const dailyErr = validateDailyHours(existingHours, hours, MAX_DAILY_HOURS);
+  if (dailyErr) {
+    toast('⚠️ ' + dailyErr);
     return;
   }
 

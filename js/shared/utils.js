@@ -65,6 +65,20 @@ function attachFilterToolbar(ids, renderFn) {
   });
 }
 
+// Paged-rendering state for "Load more" lists: render list.slice(0, pager.limit),
+// call pager.loadMore() from the button, pager.reset() when filters change.
+function createPager(pageSize, rerender) {
+  return {
+    limit: pageSize,
+    pageSize,
+    reset() { this.limit = this.pageSize; },
+    loadMore() {
+      this.limit += this.pageSize;
+      rerender();
+    },
+  };
+}
+
 // Appends the shared OUTPUT_TYPES options after the select's placeholder option
 function populateOutputTypeSelect(id) {
   const sel = document.getElementById(id);

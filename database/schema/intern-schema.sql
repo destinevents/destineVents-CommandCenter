@@ -1,6 +1,11 @@
 -- INTERN COMMAND CENTER SCHEMA
 -- Run in Supabase → SQL Editor
 -- Same project as HQ tables (clients, proposals, etc.)
+--
+-- NOT SELF-SUFFICIENT: after this file, also run (in order)
+-- fix-rls-recursion.sql, notifications.sql, and enforce-state-rules.sql —
+-- see README "Database Setup". Without them there are no role helper
+-- functions, no notification system, and no state-machine enforcement.
 
 -- INTERN PROFILES (extends auth.users)
 create table if not exists intern_users (

@@ -40,15 +40,14 @@ function openModal(id) {
   document.getElementById(id).classList.add('open');
 }
 
+// Per-modal cleanup run on EVERY close path (Cancel, overlay, save).
+// Modules register their own hook (e.g. icc/tasks.js clears edit mode)
+// instead of closeModal reaching into other files' state.
+const MODAL_CLOSE_HOOKS = {};
+
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
-  // Closing the task modal by ANY path (Cancel, overlay, save) must clear
-  // edit mode — a stale editingTaskId would make a later submit update the
-  // wrong task. editingTaskId lives in icc/tasks.js.
-  if (id === 'modal-add-task' && typeof editingTaskId !== 'undefined' && editingTaskId) {
-    editingTaskId = null;
-    setTaskModalMode(false);
-  }
+  MODAL_CLOSE_HOOKS[id]?.();
 }
 
 // ─── UI HELPERS ──────────────────────────────────────────────────────────────
@@ -185,17 +184,26 @@ async function renderPage(page) {
 // triggers (database/schema/notifications.sql) — the INSERT subscription
 // below toasts them and feeds the bell via handleIncomingNotification.
 // Data events are processed strictly in arrival order so reloads and
-// re-renders never interleave.
+// re-renders never interleave — and bursts COALESCE: while a refresh of the
+// same kind is queued but not yet started, further events of that kind are
+// dropped (the queued refresh fetches their data anyway). Events arriving
+// mid-refresh queue exactly one more round.
 let realtimeChain = Promise.resolve();
-function queueRealtime(handler) {
+const realtimeQueued = {};
+function queueRealtime(kind, handler) {
+  if (realtimeQueued[kind]) return;
+  realtimeQueued[kind] = true;
   realtimeChain = realtimeChain
-    .then(handler)
+    .then(() => {
+      realtimeQueued[kind] = false;
+      return handler();
+    })
     .catch((err) => logger.error('realtime', err?.message || 'handler failed', err));
 }
 
 function setupRealtime() {
   sb.channel('intern-realtime')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'intern_tasks' }, () => queueRealtime(async () => {
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'intern_tasks' }, () => queueRealtime('tasks', async () => {
       await loadLiveTasks();
       await updateBadges();
       if (activePage === 'tasks' || activePage === 'dashboard' || activePage === 'outputs') {
@@ -205,7 +213,7 @@ function setupRealtime() {
     .on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'intern_timesheets' },
-      () => queueRealtime(async () => {
+      () => queueRealtime('timesheets', async () => {
         await loadLiveTimesheets();
         await updateBadges();
         if (
@@ -220,7 +228,7 @@ function setupRealtime() {
     .on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'intern_users' },
-      async (payload) => {
+      (payload) => queueRealtime('users', async () => {
         await loadLiveUsers();
         if (payload.new?.id === currentUser?.id) {
           const freshUser = await getCurrentUser();
@@ -235,7 +243,7 @@ function setupRealtime() {
         if (activePage === 'interns' || activePage === 'reports') {
           await renderPage(activePage);
         }
-      }
+      })
     )
     .on(
       'postgres_changes',
@@ -375,15 +383,15 @@ document.addEventListener('click', async (e) => {
     return;
   }
   if (a === 'sheet-load-more') {
-    loadMoreSheets();
+    sheetPager.loadMore();
     return;
   }
   if (a === 'task-load-more') {
-    loadMoreTasks();
+    taskPager.loadMore();
     return;
   }
   if (a === 'output-load-more') {
-    loadMoreOutputs();
+    outputPager.loadMore();
     return;
   }
 });
@@ -441,10 +449,8 @@ async function init() {
 
     applyRoleVisibility();
     ['task-type-filter', 'output-type-filter', 'nt-outtype'].forEach(populateOutputTypeSelect);
-    await loadLiveUsers();
-    await loadLiveTasks();
-    await loadLiveTimesheets();
-    await loadNotifications();
+    // Independent fetches — load in parallel; populateAddTaskModal needs liveUsers
+    await Promise.all([loadLiveUsers(), loadLiveTasks(), loadLiveTimesheets(), loadNotifications()]);
     await populateAddTaskModal();
     await updateBadges();
     await renderPage('dashboard');

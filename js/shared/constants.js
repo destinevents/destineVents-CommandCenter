@@ -15,3 +15,13 @@ const OUTPUT_ICONS  = { code:"💻", design:"🎨", video:"🎬", document:"📄
 const OUTPUT_TYPES  = { code:"Code", design:"Design", video:"Video", document:"Document", automation:"Automation", landing_page:"Landing Page" };
 
 const KANBAN_COLS   = ["assigned","acknowledged","in_progress","completed","reviewed"];
+
+// Owner-decided caps (July 4 2026): 9h max per day (spec draft said 8, boss
+// said 9); per-entry max 10 lives in the intern_timesheets DB check constraint.
+// Keep in sync with the validateDailyHours default in utils/validators.{js,ts}.
+const MAX_DAILY_HOURS = 9;
+
+// Newest-rows-win safety cap for task/timesheet fetches. Pure guard at this
+// team's scale — stats/reports would undercount beyond it, so revisit with
+// server-side aggregation if ever hit. Sync: services/taskService.ts.
+const FETCH_CAP = 2000;

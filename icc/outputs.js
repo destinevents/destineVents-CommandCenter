@@ -1,13 +1,7 @@
-const OUTPUT_PAGE_SIZE = 30;
-let outputRenderLimit = OUTPUT_PAGE_SIZE;
-
-function loadMoreOutputs() {
-  outputRenderLimit += OUTPUT_PAGE_SIZE;
-  renderOutputs();
-}
+const outputPager = createPager(30, () => renderOutputs());
 
 attachFilterToolbar(['output-search', 'output-type-filter', 'output-sort'], () => {
-  outputRenderLimit = OUTPUT_PAGE_SIZE;
+  outputPager.reset();
   renderOutputs();
 });
 
@@ -28,7 +22,7 @@ async function renderOutputs() {
   const byNewest = (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0);
   tasks = [...tasks].sort(sort === 'oldest' ? (a, b) => byNewest(b, a) : byNewest);
   const totalCount = tasks.length;
-  const visible = tasks.slice(0, outputRenderLimit);
+  const visible = tasks.slice(0, outputPager.limit);
 
   document.getElementById('outputs-grid').innerHTML = visible.map(t=>{
     const intern = userById.get(t.assigned_to) || {};

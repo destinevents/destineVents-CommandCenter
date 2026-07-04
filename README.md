@@ -126,11 +126,19 @@ VITE_SUPABASE_ANON_KEY=YOUR_ANON_KEY
 
 ### 3. Database Setup
 
-1. Go to your [Supabase Dashboard](https://supabase.com/dashboard)
-2. Open the SQL Editor
-3. Run `database/schema/supabase-setup.sql` to create all tables, RLS policies, and indexes
-4. Run `database/schema/intern-schema.sql` for intern-specific tables
-5. Enable the following Supabase features:
+Run the schema scripts in the SQL Editor **in this exact order** — later
+scripts depend on tables, functions, and policies from earlier ones, and a
+database built from only the first two will silently lack the notification
+system and the spec's state-machine enforcement:
+
+1. Go to your [Supabase Dashboard](https://supabase.com/dashboard) and open the SQL Editor
+2. `database/schema/supabase-setup.sql` — HQ tables, RLS, indexes
+3. `database/schema/intern-schema.sql` — ICC tables, RLS, signup trigger
+4. `database/schema/fix-rls-recursion.sql` — security-definer role helpers + final policies (required: policies in the two files above reference `current_user_role()`)
+5. `database/schema/notifications.sql` — notification table, delivery triggers, realtime
+6. `database/schema/enforce-state-rules.sql` — task state machine + timesheet lock triggers
+7. Optional: `database/schema/auto-seed-trigger.sql` (backfill) and `database/schema/setup-users.sql` (seed/promote accounts — edit emails first)
+8. Enable the following Supabase features:
    - **Authentication**: Email/Password sign-in
    - **Realtime**: Enable for `clients`, `proposals`, `partners`, `invoices`, `bills`, `payroll_runs`, `documents`, `intern_tasks`, `intern_timesheets`, `intern_users` tables
    - **Storage**: Create a `documents` bucket for file uploads
