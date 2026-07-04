@@ -101,7 +101,7 @@
 }
 
 html, body { height: 100%; font-family: 'DM Sans', system-ui, sans-serif; background: var(--bg); color: var(--text); }
-body { display: flex; height: 100vh; overflow: hidden; }
+body { display: flex; height: 100vh; height: 100dvh; overflow: hidden; }
 
 /* ─── SIDEBAR ─── */
 #sidebar {
@@ -609,7 +609,7 @@ textarea.form-input { resize: vertical; min-height: 100px; }
 @media (max-width: 768px) {
   #content { padding: 16px; }
   #topbar { padding: 12px 16px; }
-  .grid2, .grid3, .grid4 { grid-template-columns: 1fr; }
+  /* grid2/3/4 breakpoints live in css/components/layout.css (loads later) */
   .acc-hero { flex-direction: column; text-align: center; padding: 24px 20px; }
   .acc-info-label { min-width: 90px; }
 }
