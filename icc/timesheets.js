@@ -205,6 +205,7 @@ async function logHours() {
   toast('Hours logged! Pending approval.');
   ['lh-date','lh-hours','lh-activity'].forEach(id => document.getElementById(id).value = '');
   resetSkillPicker('lh-skills-picker');
+  await loadLiveTimesheets();
   await updateBadges();
   await renderTimesheets();
   await renderDashboard();

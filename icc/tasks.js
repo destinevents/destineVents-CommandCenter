@@ -218,6 +218,7 @@ async function taskAction(id, action) {
 
   closeModal('modal-view-task');
   toast('Task updated!');
+  await loadLiveTasks();
   await renderTasks();
   await renderDashboard();
 }
@@ -328,6 +329,7 @@ async function handleCreateTask() {
   toast(wasEditing ? 'Task updated!' : 'Task created!');
   setTaskModalMode(false);
   clearTaskModal();
+  await loadLiveTasks();
   await renderTasks();
   await renderDashboard();
 }
