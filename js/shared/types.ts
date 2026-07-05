@@ -17,6 +17,7 @@ export interface InternUser {
   avatar: string;
   school: string | null;
   program: string | null;
+  required_hours: number | null;
   created_at: string;
 }
 

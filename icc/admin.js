@@ -77,7 +77,7 @@ async function renderInterns() {
         </div>
       </div>
       <div class="intern-stats">
-        <div class="intern-stat"><div class="sv">${approved}h</div><div class="sl">Approved hrs</div></div>
+        <div class="intern-stat"><div class="sv">${intern.required_hours ? `${approved} / ${intern.required_hours}h` : approved + 'h'}</div><div class="sl">${intern.required_hours ? `Rendered (${Math.max(0, intern.required_hours - approved)}h left)` : 'Approved hrs'}</div></div>
         <div class="intern-stat"><div class="sv">${done}</div><div class="sl">Tasks done</div></div>
         <div class="intern-stat"><div class="sv">${pending}</div><div class="sl">Pending</div></div>
       </div>
@@ -134,7 +134,7 @@ async function renderReports() {
       <td><div class="flex-gap-8">${avatarEl(intern.avatar, 28)}<span class="text-bold">${escapeHtml(intern.name)}</span></div></td>
       <td style="color:#374151">${intern.school}</td>
       <td style="color:#374151">${intern.program}</td>
-      <td style="font-weight:800;color:#252f27">${iHours}h</td>
+      <td style="font-weight:800;color:#252f27">${iHours}h${intern.required_hours ? `<span style="font-weight:500;color:var(--muted)"> / ${intern.required_hours}h</span>` : ''}</td>
       <td style="color:#374151">${iDone} completed</td>
       <td><div style="display:flex;gap:4px;flex-wrap:wrap">${skillArr.slice(0, 2).map(skillPill).join('')}${skillArr.length > 2 ? `<span style="font-size:10px;color:var(--faint)">+${skillArr.length - 2}</span>` : ''}</div></td>
       <td><div style="display:flex;gap:5px">

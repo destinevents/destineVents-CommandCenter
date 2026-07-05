@@ -431,6 +431,7 @@ async function init() {
       avatar: user.avatar || user.name.slice(0, 2).toUpperCase(),
       program: user.program,
       school: user.school,
+      required_hours: user.required_hours,
     };
 
     document.getElementById('topbar-name').textContent = user.name;
