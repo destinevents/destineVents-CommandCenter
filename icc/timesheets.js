@@ -102,6 +102,7 @@ async function approveSheet(id) {
   logAudit('approved_timesheet', 'timesheet', id, { approved_by: currentUser.id }, currentUser.id);
 
   toast('Entry approved ✓');
+  await loadLiveTimesheets();
   await updateBadges();
   await renderTimesheets();
   await renderDashboard();

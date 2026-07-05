@@ -24,9 +24,9 @@ update intern_users iu
 set required_hours = v.req
 from (values
   ('%mercado%', 350),
-  ('%ante%',    350),
+  ('% ante',    350),
   ('%miranda%', 250),
-  ('%carlos%',  350),
+  ('% carlos',  350),
   ('%ocampo%',  200),
   ('%bernabe%', 200)
 ) as v(pat, req)
@@ -37,13 +37,13 @@ do $$
 declare
   pat text;
 begin
-  foreach pat in array array['%mercado%','%ante%','%miranda%','%carlos%','%ocampo%','%bernabe%'] loop
+  foreach pat in array array['%mercado%','% ante','%miranda%','% carlos','%ocampo%','%bernabe%'] loop
     if not exists (select 1 from intern_users where role = 'intern' and name ilike pat) then
       raise notice 'No intern account matching "%": their rows are SKIPPED — re-run this script after they sign up.', pat;
     end if;
   end loop;
   if not exists (select 1 from intern_users where email = 'jenncastro@destinevents.biz') then
-    raise notice 'Admin jenncastro@destinevents.biz not found — approved_by will be NULL.';
+    raise exception 'Admin jenncastro@destinevents.biz not found — run this script after Jenn has signed in at least once.';
   end if;
 end $$;
 
@@ -65,15 +65,15 @@ entries(pat, date, hours, activity, category, skills) as (values
   ('%mercado%', date '2026-07-01', 2.5, 'Off with excuse (partial hours)', 'Operations', array['Communication']),
 
   -- Mary Keirstin Marzie Ante — total 74
-  ('%ante%', date '2026-06-20', 9.0, 'Weekend at asyouare Baguio Event [Moved from Jun 11: Onboarding at UC Library / DOST]', 'Events', array['Communication']),
-  ('%ante%', date '2026-06-21', 9.0, 'Sunday work for Edits [Moved from Jun 12: Onboarding Emails / Comms]', 'Marketing', array['Content Creation','Communication']),
-  ('%ante%', date '2026-06-22', 9.0, 'asyouare Baguio Landing page [Moved from Jun 15: Tasks 1 Activated]', 'Technology', array['Web Development']),
-  ('%ante%', date '2026-06-23', 9.0, 'Individual challenge of tasks [Moved from Jun 16: Team tasks at DOST]', 'Operations', array['Problem Solving','Communication']),
-  ('%ante%', date '2026-06-24', 9.0, 'DOST Meet up [Moved from Jun 17: asyouare Baguio site / ticketing] — Review of Analytics (IG & FB), Bot Automation (Meta), and Content Planning', 'Marketing', array['Automation','Content Creation']),
-  ('%ante%', date '2026-06-25', 9.0, '30min discussion with JFC [Moved from Jun 18: asyouare Baguio site / ticketing] — Session Groceries Reel 1, Storyboard for AI Reel Concept, Friday''s Content Preparation + 20 mins Audio Call with Ms. Jenn; additional task aside from SMM: AYA Landing Page and Creatives'' Portfolio', 'Marketing', array['Content Creation','Video Editing']),
-  ('%ante%', date '2026-06-26', 4.0, 'Session Groceries Reels [Moved from Jun 19: asyouare Baguio site / ticketing] — Finalization on AYA Landing Page, Content Creators + Student Leader''s Portfolio V1, and Digital ID (+1 hour)', 'Design', array['Graphic Design','Web Development']),
-  ('%ante%', date '2026-06-29', 8.0, 'DICT + IPPOHL', 'Events', array['Communication']),
-  ('%ante%', date '2026-06-30', 8.0, 'DICT + Session Groceries', 'Events', array['Communication','Content Creation']),
+  ('% ante', date '2026-06-20', 9.0, 'Weekend at asyouare Baguio Event [Moved from Jun 11: Onboarding at UC Library / DOST]', 'Events', array['Communication']),
+  ('% ante', date '2026-06-21', 9.0, 'Sunday work for Edits [Moved from Jun 12: Onboarding Emails / Comms]', 'Marketing', array['Content Creation','Communication']),
+  ('% ante', date '2026-06-22', 9.0, 'asyouare Baguio Landing page [Moved from Jun 15: Tasks 1 Activated]', 'Technology', array['Web Development']),
+  ('% ante', date '2026-06-23', 9.0, 'Individual challenge of tasks [Moved from Jun 16: Team tasks at DOST]', 'Operations', array['Problem Solving','Communication']),
+  ('% ante', date '2026-06-24', 9.0, 'DOST Meet up [Moved from Jun 17: asyouare Baguio site / ticketing] — Review of Analytics (IG & FB), Bot Automation (Meta), and Content Planning', 'Marketing', array['Automation','Content Creation']),
+  ('% ante', date '2026-06-25', 9.0, '30min discussion with JFC [Moved from Jun 18: asyouare Baguio site / ticketing] — Session Groceries Reel 1, Storyboard for AI Reel Concept, Friday''s Content Preparation + 20 mins Audio Call with Ms. Jenn; additional task aside from SMM: AYA Landing Page and Creatives'' Portfolio', 'Marketing', array['Content Creation','Video Editing']),
+  ('% ante', date '2026-06-26', 4.0, 'Session Groceries Reels [Moved from Jun 19: asyouare Baguio site / ticketing] — Finalization on AYA Landing Page, Content Creators + Student Leader''s Portfolio V1, and Digital ID (+1 hour)', 'Design', array['Graphic Design','Web Development']),
+  ('% ante', date '2026-06-29', 8.0, 'DICT + IPPOHL', 'Events', array['Communication']),
+  ('% ante', date '2026-06-30', 8.0, 'DICT + Session Groceries', 'Events', array['Communication','Content Creation']),
 
   -- Christian Joseph Miranda — total 77
   ('%miranda%', date '2026-06-20', 9.0, 'Weekend at asyouare Baguio Event [Moved from Jun 11: Onboarding at UC Library / DOST]', 'Events', array['Communication']),
@@ -87,15 +87,15 @@ entries(pat, date, hours, activity, category, skills) as (values
   ('%miranda%', date '2026-06-30', 8.0, 'DICT + Session Groceries', 'Events', array['Communication','Content Creation']),
 
   -- Jhon Gabriel Carlos — total 69
-  ('%carlos%', date '2026-06-20', 9.0, 'Weekend at asyouare Baguio Event [Moved from Jun 11: Onboarding at UC Library / DOST]', 'Events', array['Communication']),
-  ('%carlos%', date '2026-06-21', 9.0, 'Sunday work for Edits [Moved from Jun 12: Onboarding Emails / Comms]', 'Marketing', array['Content Creation','Communication']),
-  ('%carlos%', date '2026-06-22', 6.0, 'asyouare Baguio Landing page [Moved from Jun 15: Tasks 1 Activated] — Deployed the new landing page of AYA', 'Technology', array['Web Development','Problem Solving']),
-  ('%carlos%', date '2026-06-23', 7.0, 'Individual challenge of tasks [Moved from Jun 16: Team tasks at DOST] — Worked on my assigned task. MVP Planning', 'Technology', array['Problem Solving','Communication']),
-  ('%carlos%', date '2026-06-24', 6.0, 'DOST Meet up [Moved from Jun 17: asyouare Baguio site / ticketing]', 'Technology', array['Web Development','Communication']),
-  ('%carlos%', date '2026-06-25', 8.0, '30min discussion with JFC [Moved from Jun 18: asyouare Baguio site / ticketing] — Worked on the paymongo integration', 'Technology', array['Backend Development','Problem Solving']),
-  ('%carlos%', date '2026-06-26', 8.0, 'Timesheet backend with Gab [Moved from Jun 19: asyouare Baguio site / ticketing] — Debugged and worked on the HQ Command Center; Sorted the sponsors to put on the Database', 'Technology', array['Backend Development','Debugging','Database Design']),
-  ('%carlos%', date '2026-06-29', 8.0, 'DICT + IPPOHL', 'Events', array['Communication']),
-  ('%carlos%', date '2026-06-30', 8.0, 'DICT + Session Groceries', 'Events', array['Communication','Content Creation']),
+  ('% carlos', date '2026-06-20', 9.0, 'Weekend at asyouare Baguio Event [Moved from Jun 11: Onboarding at UC Library / DOST]', 'Events', array['Communication']),
+  ('% carlos', date '2026-06-21', 9.0, 'Sunday work for Edits [Moved from Jun 12: Onboarding Emails / Comms]', 'Marketing', array['Content Creation','Communication']),
+  ('% carlos', date '2026-06-22', 6.0, 'asyouare Baguio Landing page [Moved from Jun 15: Tasks 1 Activated] — Deployed the new landing page of AYA', 'Technology', array['Web Development','Problem Solving']),
+  ('% carlos', date '2026-06-23', 7.0, 'Individual challenge of tasks [Moved from Jun 16: Team tasks at DOST] — Worked on my assigned task. MVP Planning', 'Technology', array['Problem Solving','Communication']),
+  ('% carlos', date '2026-06-24', 6.0, 'DOST Meet up [Moved from Jun 17: asyouare Baguio site / ticketing]', 'Technology', array['Web Development','Communication']),
+  ('% carlos', date '2026-06-25', 8.0, '30min discussion with JFC [Moved from Jun 18: asyouare Baguio site / ticketing] — Worked on the paymongo integration', 'Technology', array['Backend Development','Problem Solving']),
+  ('% carlos', date '2026-06-26', 8.0, 'Timesheet backend with Gab [Moved from Jun 19: asyouare Baguio site / ticketing] — Debugged and worked on the HQ Command Center; Sorted the sponsors to put on the Database', 'Technology', array['Backend Development','Debugging','Database Design']),
+  ('% carlos', date '2026-06-29', 8.0, 'DICT + IPPOHL', 'Events', array['Communication']),
+  ('% carlos', date '2026-06-30', 8.0, 'DICT + Session Groceries', 'Events', array['Communication','Content Creation']),
 
   -- Jose Allan De Ocampo — total 56 (Jun 25 was 0h in the sheet: omitted)
   ('%ocampo%', date '2026-06-20', 9.0, 'Weekend at asyouare Baguio Event [Moved from Jun 11: Onboarding at UC Library / DOST]', 'Events', array['Communication']),
@@ -135,10 +135,10 @@ tasks(pat, title, description, priority, due_date, category, output_type, skills
   ('%mercado%', 'AYA website re-brand + Chimichanga data entry',
    'Quick edit of the AYA website — use Ms Monica''s branding kit, remove the dark green feels. Then continue Chimichanga right away: input all 3 pages from the xls (HO to be given; pull in Gab if you need an extra hand).',
    'high', date '2026-07-08', 'Technology', 'landing_page', array['Web Development','Graphic Design']),
-  ('%ante%', 'SOCMED calendar + asyouare profiles',
+  ('% ante', 'SOCMED calendar + asyouare profiles',
    'Insta call Monday to walk through the SOCMED calendar (discuss if it should be endorsed to CJ). Work on the asyouare profiles — make sure Mon, Josh and Jan''s profiles are complete.',
    'high', date '2026-07-07', 'Marketing', 'design', array['Content Creation','Communication']),
-  ('%carlos%', 'Lead ICC Timesheet rollout',
+  ('% carlos', 'Lead ICC Timesheet rollout',
    'Lead the Timesheet: test your own Timelog input on July 6 using the Timesheet xls / given HO and ensure everyone can use it starting Tuesday. Lead the progress of this. May pick up the affiliate marketing plan from Kei.',
    'high', date '2026-07-07', 'Technology', 'code', array['Web Development','Backend Development','Communication']),
   ('%ocampo%', 'Session Groceries 6-minute video',

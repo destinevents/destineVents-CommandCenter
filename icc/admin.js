@@ -77,7 +77,7 @@ async function renderInterns() {
         </div>
       </div>
       <div class="intern-stats">
-        <div class="intern-stat"><div class="sv">${intern.required_hours ? `${approved} / ${intern.required_hours}h` : approved + 'h'}</div><div class="sl">${intern.required_hours ? `Rendered (${Math.max(0, intern.required_hours - approved)}h left)` : 'Approved hrs'}</div></div>
+        <div class="intern-stat"><div class="sv">${intern.required_hours ? `${approved} / ${intern.required_hours}h` : approved + 'h'}</div><div class="sl">${intern.required_hours ? `Approved (${Math.max(0, intern.required_hours - approved)}h left)` : 'Approved hrs'}</div></div>
         <div class="intern-stat"><div class="sv">${done}</div><div class="sl">Tasks done</div></div>
         <div class="intern-stat"><div class="sv">${pending}</div><div class="sl">Pending</div></div>
       </div>

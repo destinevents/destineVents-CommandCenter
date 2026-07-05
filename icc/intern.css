@@ -429,8 +429,8 @@ textarea.form-input { resize: vertical; min-height: 100px; }
 .intern-card-sub { color: var(--gold); font-size: 11px; margin-top: 2px; }
 .intern-stats { padding: 12px 16px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; border-bottom: 1px solid #f3f4f6; }
 .intern-stat { text-align: center; }
-.intern-stat .sv { font-weight: 800; font-size: 15px; color: var(--forest); }
-.intern-stat .sl { font-size: 10px; color: var(--faint); margin-top: 2px; }
+.intern-stat .sv { font-weight: 800; font-size: 15px; color: var(--forest); word-break: break-word; }
+.intern-stat .sl { font-size: 10px; color: var(--faint); margin-top: 2px; word-break: break-word; }
 .intern-skills { padding: 12px 16px; }
 
 /* ─── APPROVAL CARD ─── */

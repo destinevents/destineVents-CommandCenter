@@ -21,6 +21,8 @@ async function renderDashboard() {
     {icon:'✅', label:'Tasks Completed',  value:doneTasks,         sub:'Done',       valColor:'#10b981'},
     ...(currentUser.role!=='intern'?[{icon:'🔔', label:'Pending Approvals', value:pending, sub:'Queue', valColor:'#f59e0b'}]:[]),
   ];
+  const dashStatsEl = document.getElementById('dash-stats');
+  if (dashStatsEl) dashStatsEl.className = statsData.length >= 4 ? 'grid4' : 'grid3';
   renderStatCards('dash-stats', statsData);
 
   const recentTasks = tasks.slice(0,4);

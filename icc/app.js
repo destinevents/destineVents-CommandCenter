@@ -235,6 +235,7 @@ function setupRealtime() {
           if (freshUser) {
             currentUser.role = freshUser.role;
             currentUser.name = freshUser.name;
+            currentUser.required_hours = freshUser.required_hours;
             document.getElementById('topbar-role').textContent = freshUser.role;
             document.getElementById('sb-role').textContent = freshUser.role;
             applyRoleVisibility();
