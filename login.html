@@ -3,93 +3,99 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Sign In — DestineVents</title>
-<link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg" />
+<title>Sign In — Intern Command Center</title>
+<link rel="icon" type="image/svg+xml" href="assets/icons/favicon-intern.svg" />
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&family=Dancing+Script:wght@600;700&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="css/login.css"/>
-<link rel="stylesheet" href="css/components/login.css"/>
-<link rel="stylesheet" href="css/components/form.css"/>
-<link rel="stylesheet" href="css/components/button.css"/>
-<link rel="stylesheet" href="css/components/layout.css"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="css/auth.css"/>
 </head>
 <body>
 
-<div class="login-screen" id="login-screen">
-  <div class="login-brand">
-    <div class="lb-logo">
-      <div style="display:flex;align-items:baseline;gap:0;line-height:1">
-        <span class="lb-script">destine</span>
-        <span class="lb-sans">vents</span>
-      </div>
-      <div class="lb-divider"></div>
-      <div class="lb-tagline">Collective OPC · Baguio City</div>
-    </div>
-    <div class="lb-quote">
-      One login.<br>
-      <strong>Your workspace awaits.</strong>
-    </div>
-    <div class="lb-footer">DestineVents Collective OPC · Internal Tool</div>
-  </div>
-  <div class="login-form-wrap">
-    <!-- Login Form -->
-    <div class="login-box" id="login-form">
-      <div class="login-eyebrow">DestineVents · Internal</div>
-      <div class="login-greeting">Welcome back.</div>
-      <div class="login-sub">Sign in to your workspace</div>
-      <div class="login-error" id="login-error"></div>
-      <div class="form-group" style="margin-bottom:12px">
-        <label class="form-label" for="login-email">Email</label>
-        <input class="form-input" id="login-email" type="email" placeholder="you@destinevents.biz" autocomplete="email"/>
-      </div>
-      <div class="form-group" style="margin-bottom:8px">
-        <label class="form-label" for="login-pass">Password</label>
-        <input class="form-input" id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')handleSignIn()"/>
-      </div>
-      <div style="margin-bottom:24px;text-align:right">
-        <a href="#" class="login-forgot" onclick="showForgot(true);return false">Forgot password?</a>
-      </div>
-      <div class="login-actions">
-        <button class="btn btn-primary" id="login-btn" onclick="handleSignIn()">Sign In</button>
-        <div class="login-alt">New intern? <a href="signup.html">Create an account</a></div>
+<div class="auth-screen" id="login-screen">
+  <header class="auth-top">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">🎓</div>
+      <div class="auth-logo-text">
+        <div class="t1">Intern CMD</div>
+        <div class="t2">Command Center</div>
       </div>
     </div>
+    <div class="auth-clock">
+      <div class="time" id="auth-clock-time">--:--:--</div>
+      <div class="zone">PHT · Baguio City</div>
+    </div>
+  </header>
 
-    <!-- Forgot Password -->
-    <div class="login-box" id="forgot-form" style="display:none">
-      <div class="login-eyebrow">DestineVents · Internal</div>
-      <div class="login-greeting">Reset password.</div>
-      <div class="login-sub">Enter your email and we'll send you a reset link</div>
-      <div class="login-error" id="forgot-error"></div>
-      <div class="form-group" style="margin-bottom:24px">
-        <label class="form-label" for="forgot-email">Email</label>
-        <input class="form-input" id="forgot-email" type="email" placeholder="you@destinevents.biz" autocomplete="email" onkeydown="if(event.key==='Enter')handleForgot()"/>
+  <main class="auth-main">
+    <div class="auth-card">
+      <div class="auth-card-meta">
+        <span>Intern Ops · Auth</span>
+        <span>Disenyo Digitals</span>
       </div>
-      <div class="login-actions">
-        <button class="btn btn-primary" id="forgot-btn" onclick="handleForgot()">Send Reset Link</button>
-        <button class="btn btn-ghost" onclick="showForgot(false)">← Back to sign in</button>
-      </div>
-    </div>
+      <div class="auth-card-body">
 
-    <!-- Role Picker (shown after admin login) -->
-    <div class="role-picker" id="role-picker" style="display:none">
-      <h2>Where to?</h2>
-      <p>You have access to all workspaces. Choose where to go.</p>
-      <div class="role-btn-wrap">
-        <button class="btn btn-primary" onclick="goHQ()">Go to HQ</button>
-        <button class="btn btn-ghost" onclick="goIntern()">Go to Intern Center</button>
-      </div>
-      <div style="margin-top:24px;font-size:10px;color:var(--ink-3)">
-        <a href="#" style="color:var(--ink-3);text-decoration:none" onclick="handleSignOut()">Sign out</a>
+        <!-- Login Form -->
+        <div id="login-form">
+          <div class="auth-greeting">Clock in.</div>
+          <div class="auth-sub">Sign in to the Intern Command Center</div>
+          <div class="login-error" id="login-error"></div>
+          <div class="form-group">
+            <label class="form-label" for="login-email">Email</label>
+            <input class="form-input" id="login-email" type="email" placeholder="you@destinevents.biz" autocomplete="email"/>
+          </div>
+          <div class="form-group" style="margin-bottom:8px">
+            <label class="form-label" for="login-pass">Password</label>
+            <input class="form-input" id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')handleSignIn()"/>
+          </div>
+          <div class="auth-forgot-row">
+            <a href="#" class="login-forgot" onclick="showForgot(true);return false">Forgot password?</a>
+          </div>
+          <div class="auth-actions">
+            <button class="btn btn-primary" id="login-btn" onclick="handleSignIn()">Sign In</button>
+            <div class="auth-alt">New intern? <a href="signup.html">Create an account</a></div>
+          </div>
+        </div>
+
+        <!-- Forgot Password -->
+        <div id="forgot-form" style="display:none">
+          <div class="auth-greeting">Reset password.</div>
+          <div class="auth-sub">Enter your email and we'll send you a reset link</div>
+          <div class="login-error" id="forgot-error"></div>
+          <div class="form-group" style="margin-bottom:24px">
+            <label class="form-label" for="forgot-email">Email</label>
+            <input class="form-input" id="forgot-email" type="email" placeholder="you@destinevents.biz" autocomplete="email" onkeydown="if(event.key==='Enter')handleForgot()"/>
+          </div>
+          <div class="auth-actions">
+            <button class="btn btn-primary" id="forgot-btn" onclick="handleForgot()">Send Reset Link</button>
+            <button class="btn btn-ghost" onclick="showForgot(false)">← Back to sign in</button>
+          </div>
+        </div>
+
+        <!-- Role Picker (shown after admin login) -->
+        <div class="role-picker" id="role-picker" style="display:none">
+          <h2>Where to?</h2>
+          <p>You have access to all workspaces. Choose where to go.</p>
+          <div class="role-btn-wrap">
+            <button class="btn btn-primary" onclick="goHQ()">Go to HQ</button>
+            <button class="btn btn-ghost" onclick="goIntern()">Go to Intern Center</button>
+          </div>
+          <div class="role-signout">
+            <a href="#" onclick="handleSignOut();return false">Sign out</a>
+          </div>
+        </div>
+
       </div>
     </div>
-  </div>
+  </main>
+
+  <footer class="auth-foot">DestineVents Collective OPC · Internal Tool</footer>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.0/dist/umd/supabase.js"></script>
 <script src="utils/logger.js"></script>
 <script src="utils/errorHandler.js"></script>
 <script src="js/auth.js"></script>
+<script src="js/authPage.js"></script>
 <script src="js/login.js"></script>
 </body>
 </html>

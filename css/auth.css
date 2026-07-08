@@ -1,0 +1,197 @@
+/* ─── ICC AUTH PAGES (login / signup / reset-password) ───
+   Self-contained: these pages link only this stylesheet, so nothing
+   here can leak into the HQ login screen (which keeps css/login.css
+   + css/components/login.css). Palette mirrors icc/intern.css. */
+
+:root {
+  --forest:      #252f27;
+  --forest-deep: #1b231d;
+  --forest-mid:  #3a4a3c;
+  --cream:       #F5ECD7;
+  --gold:        #C9A84C;
+  --gold-light:  #f5e9c8;
+  --terra:       #8B3A2A;
+  --green:       #10b981;
+  --card-line:   rgba(37,47,39,0.14);
+  --ease:        cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+html { height:100%; }
+body {
+  min-height:100vh; min-height:100dvh;
+  font-family:'DM Sans',system-ui,sans-serif; color:var(--forest);
+  background:radial-gradient(120% 90% at 50% 0%, var(--forest-mid) 0%, var(--forest) 46%, var(--forest-deep) 100%);
+}
+/* Same grain the portal's brand surfaces use */
+body::before {
+  content:''; position:fixed; inset:0; pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+}
+
+.auth-screen {
+  position:relative; min-height:100vh; min-height:100dvh;
+  display:flex; flex-direction:column;
+}
+
+/* ─── TOP BAR: portal logo + live clock ─── */
+.auth-top {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:26px 34px;
+  animation:slideDown 0.5s var(--ease) both;
+}
+.auth-logo { display:flex; align-items:center; gap:11px; }
+.auth-logo-icon {
+  width:38px; height:38px; border-radius:10px; background:var(--gold);
+  display:flex; align-items:center; justify-content:center; font-size:18px;
+}
+.auth-logo-text .t1 { color:var(--cream); font-size:14px; font-weight:800; line-height:1.2; }
+.auth-logo-text .t2 { color:var(--gold); font-size:10px; }
+
+.auth-clock { text-align:right; }
+.auth-clock .time {
+  font-family:'DM Mono',monospace; font-size:17px; font-weight:500;
+  color:var(--cream); font-variant-numeric:tabular-nums; letter-spacing:0.04em;
+}
+.auth-clock .zone {
+  font-family:'DM Mono',monospace; font-size:8px; letter-spacing:0.24em;
+  text-transform:uppercase; color:rgba(245,236,215,0.4); margin-top:3px;
+}
+
+/* ─── CARD ─── */
+.auth-main {
+  flex:1; display:flex; align-items:center; justify-content:center;
+  padding:24px 20px;
+}
+.auth-card {
+  width:100%; max-width:400px; background:var(--cream); border-radius:14px;
+  overflow:hidden; box-shadow:0 24px 70px rgba(0,0,0,0.35), 0 4px 18px rgba(0,0,0,0.18);
+  animation:cardUp 0.55s var(--ease) 0.08s both;
+}
+.auth-card--wide { max-width:460px; }
+/* Signature: the gold "session line" draws itself across the card */
+.auth-card::before {
+  content:''; display:block; height:3px; background:var(--gold);
+  transform-origin:left; animation:drawLine 0.7s var(--ease) 0.3s both;
+}
+.auth-card-meta {
+  display:flex; justify-content:space-between; gap:12px;
+  padding:13px 30px; border-bottom:1px solid var(--card-line);
+  font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.18em;
+  text-transform:uppercase; color:rgba(37,47,39,0.55);
+}
+.auth-card-body { padding:30px 30px 34px; }
+
+.auth-greeting {
+  font-size:38px; font-weight:800; letter-spacing:-0.02em; line-height:1.05;
+  color:var(--forest);
+}
+.auth-sub { font-size:13px; color:rgba(37,47,39,0.6); margin-top:9px; margin-bottom:26px; }
+
+/* ─── FORMS ─── */
+.form-group { display:flex; flex-direction:column; gap:7px; margin-bottom:14px; }
+.form-label {
+  font-family:'DM Mono',monospace; font-size:10px; font-weight:500;
+  letter-spacing:0.14em; text-transform:uppercase; color:#4a5348;
+}
+.form-label .req { color:var(--terra); }
+.form-input {
+  width:100%; padding:12px 14px; font-size:14px; font-family:'DM Sans',sans-serif;
+  color:var(--forest); background:#fff; border:1.5px solid rgba(37,47,39,0.16);
+  border-radius:8px; transition:border-color 0.15s, box-shadow 0.15s; outline:none;
+}
+.form-input::placeholder { color:rgba(37,47,39,0.32); }
+.form-input:hover { border-color:rgba(37,47,39,0.32); }
+.form-input:focus {
+  border-color:var(--gold); box-shadow:0 0 0 3px rgba(201,168,76,0.22);
+}
+.form-row2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+
+.auth-forgot-row { text-align:right; margin:-4px 0 22px; }
+.login-forgot {
+  font-size:11.5px; color:rgba(37,47,39,0.55); text-decoration:none;
+  border-bottom:1px dotted rgba(37,47,39,0.3); padding-bottom:1px;
+  transition:color 0.15s, border-color 0.15s;
+}
+.login-forgot:hover { color:var(--forest); border-bottom-color:var(--forest); }
+
+/* ─── BUTTONS (replicated locally; JS toggles .btn-loading) ─── */
+.btn {
+  width:100%; padding:13px 22px; font-size:11px; font-weight:700;
+  font-family:'DM Sans',sans-serif; letter-spacing:0.12em; text-transform:uppercase;
+  border:none; border-radius:8px; cursor:pointer; display:inline-flex;
+  align-items:center; justify-content:center; gap:6px;
+  transition:all 0.15s var(--ease);
+}
+.btn:active { transform:scale(0.975); }
+.btn:disabled { opacity:0.45; cursor:not-allowed; pointer-events:none; }
+.btn-primary { background:var(--forest); color:var(--cream); }
+.btn-primary:hover {
+  background:var(--forest-mid); transform:translateY(-1px);
+  box-shadow:0 6px 18px rgba(27,35,29,0.3);
+}
+.btn-primary:active { transform:scale(0.975) translateY(0); box-shadow:none; }
+.btn-ghost { background:transparent; color:var(--forest); border:1.5px solid rgba(37,47,39,0.22); }
+.btn-ghost:hover { border-color:var(--forest); background:rgba(255,255,255,0.45); }
+.btn-loading { position:relative; color:transparent !important; pointer-events:none; }
+.btn-loading::after {
+  content:''; position:absolute; width:14px; height:14px;
+  border:2px solid rgba(245,236,215,0.3); border-top-color:var(--cream);
+  border-radius:50%; top:50%; left:50%;
+  animation:spinBtn 0.7s linear infinite;
+}
+
+.auth-actions { display:flex; flex-direction:column; gap:14px; }
+.auth-alt { text-align:center; font-size:12px; color:rgba(37,47,39,0.6); }
+.auth-alt a {
+  color:var(--forest); font-weight:700; text-decoration:none;
+  border-bottom:1.5px solid var(--gold); padding-bottom:1px; transition:color 0.15s;
+}
+.auth-alt a:hover { color:var(--gold); }
+
+/* ─── ERROR / NOTICE (JS writes textContent; green success via inline color) ─── */
+.login-error { color:var(--terra); }
+.login-error:not(:empty) {
+  border-left:2px solid currentColor; background:rgba(255,255,255,0.55);
+  padding:10px 12px; font-size:12px; line-height:1.5; border-radius:0 6px 6px 0;
+  margin-bottom:18px; animation:fadeIn 0.2s ease;
+}
+
+/* ─── ROLE PICKER (admin post-login) ─── */
+.role-picker { text-align:center; }
+.role-picker h2 { font-size:30px; font-weight:800; letter-spacing:-0.02em; color:var(--forest); margin-bottom:6px; }
+.role-picker p { font-size:12.5px; color:rgba(37,47,39,0.6); margin-bottom:26px; }
+.role-btn-wrap { display:flex; flex-direction:column; gap:12px; }
+.role-signout { margin-top:22px; font-size:10.5px; }
+.role-signout a { color:rgba(37,47,39,0.5); text-decoration:none; border-bottom:1px dotted rgba(37,47,39,0.3); }
+.role-signout a:hover { color:var(--forest); }
+
+/* ─── FOOTER ─── */
+.auth-foot {
+  padding:22px 34px; text-align:center;
+  font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.22em;
+  text-transform:uppercase; color:rgba(245,236,215,0.3);
+  animation:fadeIn 0.6s ease 0.25s both;
+}
+
+/* ─── MOTION ─── */
+@keyframes slideDown { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} }
+@keyframes cardUp    { from{opacity:0;transform:translateY(16px)}  to{opacity:1;transform:translateY(0)} }
+@keyframes drawLine  { from{transform:scaleX(0)} to{transform:scaleX(1)} }
+@keyframes fadeIn    { from{opacity:0} to{opacity:1} }
+@keyframes spinBtn   { to{transform:rotate(360deg)} }
+@media (prefers-reduced-motion: reduce) {
+  .auth-top, .auth-card, .auth-foot { animation:none; }
+  .auth-card::before { animation:none; }
+}
+
+/* ─── PHONE ─── */
+@media (max-width: 640px) {
+  .auth-top { padding:20px 20px; }
+  .auth-clock .time { font-size:14px; }
+  .auth-card-meta, .auth-card-body { padding-left:22px; padding-right:22px; }
+  .auth-greeting { font-size:31px; }
+  .form-row2 { grid-template-columns:1fr; gap:0; }
+  .auth-foot { padding:18px 20px; }
+}
