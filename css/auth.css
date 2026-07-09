@@ -175,6 +175,33 @@ body::before {
   animation:fadeIn 0.6s ease 0.25s both;
 }
 
+/* ─── INPUT WRAPPER (password toggle + email check) ─── */
+.input-wrap { position:relative; }
+.input-wrap .form-input { padding-right:40px; }
+
+.pw-toggle {
+  position:absolute; right:12px; top:50%; transform:translateY(-50%);
+  background:none; border:none; cursor:pointer; font-size:15px;
+  color:rgba(37,47,39,0.4); padding:2px; line-height:1;
+  transition:color 0.15s, transform 0.15s;
+}
+.pw-toggle:hover { color:var(--forest); transform:translateY(-50%) scale(1.15); }
+.pw-toggle.active { color:var(--gold); }
+
+.input-valid {
+  position:absolute; right:12px; top:50%; transform:translateY(-50%) scale(0);
+  color:var(--green); font-size:13px; font-weight:700; pointer-events:none;
+  transition:transform 0.2s var(--ease), opacity 0.2s;
+  opacity:0;
+}
+.input-valid.show { transform:translateY(-50%) scale(1); opacity:1; }
+
+/* ─── FORM STATE CROSSFADE ─── */
+.auth-form-state {
+  animation:formIn 0.3s var(--ease) both;
+}
+@keyframes formIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
 /* ─── STAGGERED FIELD ENTRANCE ─── */
 @keyframes fieldUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
 .auth-card-body > * { animation:fieldUp 0.4s var(--ease) both; }

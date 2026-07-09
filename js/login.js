@@ -74,10 +74,31 @@ async function handleSignIn() {
 }
 
 function showForgot(show) {
-  document.getElementById('login-form').style.display = show ? 'none' : 'block';
-  document.getElementById('forgot-form').style.display = show ? 'block' : 'none';
+  const login  = document.getElementById('login-form');
+  const forgot = document.getElementById('forgot-form');
+  login.style.display  = show ? 'none' : 'block';
+  forgot.style.display = show ? 'block' : 'none';
+  // Replay entrance animation on the newly-shown form
+  const visible = show ? forgot : login;
+  visible.classList.remove('auth-form-state');
+  void visible.offsetWidth;
+  visible.classList.add('auth-form-state');
   document.getElementById('login-error').textContent = '';
   document.getElementById('forgot-error').textContent = '';
+}
+
+function checkEmail(input) {
+  const valid = document.getElementById('login-email-valid');
+  if (!valid) return;
+  const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value);
+  valid.classList.toggle('show', ok);
+}
+
+function togglePassword(inputId, btn) {
+  const input = document.getElementById(inputId);
+  const show = input.type === 'password';
+  input.type = show ? 'text' : 'password';
+  btn.classList.toggle('active', show);
 }
 
 async function handleForgot() {

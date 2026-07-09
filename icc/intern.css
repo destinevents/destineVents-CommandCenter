@@ -654,3 +654,79 @@ textarea.form-input { resize: vertical; min-height: 100px; }
   .acc-info-row { flex-wrap: wrap; }
   .modal-overlay { padding: 10px; }
 }
+
+/* ════════════════════════════════════════════════════
+   MICRO-INTERACTIONS & MOTION POLISH
+   ════════════════════════════════════════════════════ */
+
+/* ─── PAGE TRANSITION ─── */
+@keyframes pageIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+.page.active { animation: pageIn 0.28s var(--ease) both; }
+
+/* ─── STAT CARD HOVER LIFT ─── */
+.stat-card {
+  transition: background 0.15s, transform 0.18s var(--ease), box-shadow 0.18s var(--ease);
+}
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(37,47,39,0.12);
+}
+
+/* ─── KANBAN CARD HOVER: gold left border ─── */
+.kan-card {
+  border-left: 3px solid transparent;
+  transition: box-shadow 0.14s, border-color 0.18s, transform 0.18s var(--ease);
+}
+.kan-card:hover {
+  border-left-color: var(--gold);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+}
+
+/* ─── TABLE ROW: gold left-border sweep on hover ─── */
+.tbl tbody tr {
+  transition: background 0.1s, box-shadow 0.15s;
+  border-left: 3px solid transparent;
+}
+.tbl tbody tr:hover {
+  border-left-color: var(--gold);
+  box-shadow: inset 3px 0 0 var(--gold);
+}
+
+/* ─── NAV BUTTON ICON SCALE ─── */
+.nav-btn .icon { transition: transform 0.18s var(--ease); }
+.nav-btn:hover .icon { transform: scale(1.2); }
+.nav-btn.active .icon { transform: scale(1.1); }
+
+/* ─── ROW / CARD STAGGER ENTRANCE ─── */
+@keyframes rowIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+.stagger-item {
+  animation: rowIn 0.3s var(--ease) both;
+  animation-delay: calc(var(--i, 0) * 60ms);
+}
+
+/* ─── STAT CARD COUNT-UP (number element gets this class while animating) ─── */
+.sc-val[data-counting] { font-variant-numeric: tabular-nums; }
+
+/* ─── NOTIFICATION BELL RING ─── */
+@keyframes bellRing {
+  0%,100% { transform: rotate(0); }
+  15%     { transform: rotate(18deg); }
+  30%     { transform: rotate(-14deg); }
+  45%     { transform: rotate(10deg); }
+  60%     { transform: rotate(-7deg); }
+  75%     { transform: rotate(4deg); }
+}
+.notif-btn.has-unread { animation: bellRing 0.7s var(--ease); }
+
+/* ─── MODAL CLOSE ANIMATION ─── */
+@keyframes modalOut { from{opacity:1;transform:scale(1) translateY(0)} to{opacity:0;transform:scale(0.96) translateY(8px)} }
+.modal-overlay.closing { display:flex; pointer-events:none; }
+.modal-overlay.closing .modal-box { animation: modalOut 0.18s var(--ease) forwards; }
+
+/* ─── REDUCED MOTION ─── */
+@media (prefers-reduced-motion: reduce) {
+  .page.active, .stagger-item, .stat-card, .kan-card, .nav-btn .icon { animation: none; transition: none; }
+  .notif-btn.has-unread { animation: none; }
+  .modal-overlay.closing .modal-box { animation: none; }
+}

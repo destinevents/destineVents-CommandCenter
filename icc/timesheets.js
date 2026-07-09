@@ -48,7 +48,7 @@ async function renderTimesheets() {
                               ['<th>Date</th>','<th>Task</th>','<th>Activity</th>','<th>Hours</th>','<th>Category</th>','<th>Skills</th>','<th>Status</th>','<th></th>'];
   document.getElementById('sheet-thead').innerHTML = `<tr>${adminCols.join('')}</tr>`;
 
-  document.getElementById('sheet-tbody').innerHTML = visible.map(ts=>{
+  document.getElementById('sheet-tbody').innerHTML = visible.map((ts, i)=>{
     const task = taskById.get(ts.task_id);
     const intern = userById.get(ts.intern_id);
     // Approved entries are locked (spec §4.1); pending/rejected can be removed
@@ -56,7 +56,7 @@ async function renderTimesheets() {
     const delBtn = canDelete ? `<button class="btn-sm-reject" data-action="delete-sheet" data-id="${ts.id}" title="Delete entry">🗑</button>` : '';
     const approveBtn = ts.status==='pending' && isAdmin ? `<button class="btn-sm-approve" data-action="approve-sheet" data-id="${ts.id}">✓ Approve</button><button class="btn-sm-reject" data-action="reject-sheet" data-id="${ts.id}">✕ Reject</button>` : '';
     const skillHtml = (ts.skills||[]).slice(0,2).map(skillPillGreen).join(' ')+((ts.skills||[]).length>2?`<span style="font-size:10px;color:var(--faint)">+${ts.skills.length-2}</span>`:'');
-    return `<tr>
+    return `<tr class="stagger-item" style="--i:${i}">
       ${isAdmin?`<td><div class="flex-gap-8">${avatarEl(intern?.avatar||'?',24)}<span class="text-bold">${escapeHtml(intern?.name)||'—'}</span></div></td>`:''}
       <td style="white-space:nowrap;color:#374151">${ts.date}</td>
       <td style="color:#374151">${escapeHtml(task?.title)||'<span class="no-task-flag" title="Entry is not linked to a task">⚠ no task</span>'}</td>

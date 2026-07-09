@@ -23,6 +23,12 @@ function renderNotifCenter() {
   const badge = document.getElementById('nc-count');
   badge.textContent = count;
   badge.style.display = count > 0 ? '' : 'none';
+  const bell = document.getElementById('nc-bell');
+  if (bell && count > 0) {
+    bell.classList.remove('has-unread');
+    void bell.offsetWidth;
+    bell.classList.add('has-unread');
+  }
 
   document.getElementById('nc-list').innerHTML = liveNotifications.map(n => `
     <button class="nc-item${n.read ? '' : ' nc-unread'}" data-action="open-notification" data-id="${n.id}" data-page="${n.link_page || ''}">

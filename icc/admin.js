@@ -23,10 +23,10 @@ async function renderApprovals() {
   const taskById = new Map(liveTasks.map((t) => [t.id, t]));
   const userById = new Map(liveUsers.map((u) => [u.id, u]));
   document.getElementById('appr-list').innerHTML = pending
-    .map((ts) => {
+    .map((ts, i) => {
       const task = taskById.get(ts.task_id);
       const intern = userById.get(ts.intern_id);
-      return `<div class="appr-card" style="margin-bottom:12px">
+      return `<div class="appr-card stagger-item" style="--i:${i};margin-bottom:12px">
       <div class="appr-layout">
         <div style="display:flex;gap:14px;align-items:flex-start">
           ${avatarEl(intern?.avatar || '?', 42)}
@@ -55,7 +55,7 @@ async function renderApprovals() {
 async function renderInterns() {
   const interns = liveUsers.filter((u) => u.role === 'intern');
   document.getElementById('interns-grid').innerHTML = interns
-    .map((intern) => {
+    .map((intern, i) => {
       const iSheets = liveTimesheets.filter((t) => t.intern_id === intern.id);
       const approved = iSheets
         .filter((t) => t.status === 'approved')
@@ -68,7 +68,7 @@ async function renderInterns() {
         iSheets.filter((t) => t.status === 'approved'),
         3
       );
-      return `<div class="intern-card">
+      return `<div class="intern-card stagger-item" style="--i:${i}">
       <div class="intern-card-head">
         ${avatarEl(intern.avatar, 46, '#C9A84C')}
         <div>

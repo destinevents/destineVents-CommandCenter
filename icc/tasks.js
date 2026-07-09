@@ -40,9 +40,9 @@ function dueLabel(t) {
     : `<div class="kan-card-meta">Due ${formatDateShort(t.due_date)}</div>`;
 }
 
-function taskCard(t) {
+function taskCard(t, i = 0) {
   return `
-    <div class="kan-card" data-action="open-task" data-id="${t.id}">
+    <div class="kan-card stagger-item" style="--i:${i}" data-action="open-task" data-id="${t.id}">
       <div class="kan-card-title">${escapeHtml(t.title)}</div>
       <div class="kan-card-desc">${escapeHtml(t.description)}</div>
       <div>${pBadge(t.priority)}</div>
@@ -84,7 +84,7 @@ async function renderTasks() {
           <span class="kan-col-title">${STATUS_LABELS[col]}</span>
           <span class="kan-count">${colTasks.length}</span>
         </div>
-        ${colTasks.slice(0, TASK_PREVIEW_COUNT).map(taskCard).join('')}
+        ${colTasks.slice(0, TASK_PREVIEW_COUNT).map((t, i) => taskCard(t, i)).join('')}
         ${hiddenCount > 0 ? `<button class="kan-more-btn" data-action="set-task-filter" data-filter="${col}">View more (${hiddenCount})</button>` : ''}
       </div>`;
     }).join('');
@@ -94,7 +94,7 @@ async function renderTasks() {
     const visible = colTasks.slice(0, taskPager.limit);
     board.className = colTasks.length ? 'task-grid' : '';
     board.innerHTML = colTasks.length
-      ? visible.map(taskCard).join('') +
+      ? visible.map((t, i) => taskCard(t, i)).join('') +
         (colTasks.length > visible.length
           ? `<button class="kan-more-btn" data-action="task-load-more" style="grid-column:1/-1">Load more (showing ${visible.length} of ${colTasks.length})</button>`
           : '')

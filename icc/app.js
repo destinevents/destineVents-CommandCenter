@@ -46,8 +46,12 @@ function openModal(id) {
 const MODAL_CLOSE_HOOKS = {};
 
 function closeModal(id) {
-  document.getElementById(id).classList.remove('open');
-  MODAL_CLOSE_HOOKS[id]?.();
+  const overlay = document.getElementById(id);
+  overlay.classList.add('closing');
+  setTimeout(() => {
+    overlay.classList.remove('open', 'closing');
+    MODAL_CLOSE_HOOKS[id]?.();
+  }, 180);
 }
 
 // ─── UI HELPERS ──────────────────────────────────────────────────────────────

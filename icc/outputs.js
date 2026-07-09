@@ -24,9 +24,9 @@ async function renderOutputs() {
   const totalCount = tasks.length;
   const visible = tasks.slice(0, outputPager.limit);
 
-  document.getElementById('outputs-grid').innerHTML = visible.map(t=>{
+  document.getElementById('outputs-grid').innerHTML = visible.map((t, i)=>{
     const intern = userById.get(t.assigned_to) || {};
-    return `<div class="out-card">
+    return `<div class="out-card stagger-item" style="--i:${i}">
       <div class="out-card-head">
         <span style="font-size:26px">${OUTPUT_ICONS[t.output_type]||'📦'}</span>
         <div>
