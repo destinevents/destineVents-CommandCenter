@@ -91,6 +91,42 @@ function openLogHours() {
 
 async function setSheetFilter(f) { sheetFilter = f; await renderTimesheets(); }
 
+function exportTimesheetCSV() {
+  const sheets = mySheets();
+  const taskById = new Map(liveTasks.map(t => [t.id, t]));
+  const userById = new Map(liveUsers.map(u => [u.id, u]));
+  const filtered = applySheetFilters(
+    sheetFilter === 'all' ? sheets : sheets.filter(t => t.status === sheetFilter),
+    taskById, userById
+  );
+  if (!filtered.length) { toast('No timesheet entries to export.'); return; }
+  const isAdmin = currentUser.role !== 'intern';
+  let csv = (isAdmin ? 'Intern,' : '') + 'Date,Task,Activity,Hours,Category,Skills,Status\n';
+  filtered.forEach(ts => {
+    const task = taskById.get(ts.task_id);
+    const intern = userById.get(ts.intern_id);
+    const row = [
+      ...(isAdmin ? [`"${(intern?.name || '—').replace(/"/g, '""')}"`] : []),
+      `"${ts.date}"`,
+      `"${(task?.title || '—').replace(/"/g, '""')}"`,
+      `"${(ts.activity_description || '').replace(/"/g, '""')}"`,
+      ts.hours,
+      `"${ts.industry_category}"`,
+      `"${(ts.skills || []).join('; ')}"`,
+      `"${ts.status}"`,
+    ];
+    csv += row.join(',') + '\n';
+  });
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const fname = (currentUser.role === 'intern' ? currentUser.name || 'Intern' : 'All_Interns').replace(/ /g, '_');
+  a.download = `${fname}_Timesheets.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('Timesheets exported!');
+}
+
 async function approveSheet(id) {
   const result = await updateTimesheet(id, {
     status: 'approved',

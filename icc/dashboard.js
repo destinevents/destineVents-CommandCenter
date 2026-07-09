@@ -25,6 +25,24 @@ async function renderDashboard() {
   if (dashStatsEl) dashStatsEl.className = statsData.length >= 4 ? 'grid4' : 'grid3';
   renderStatCards('dash-stats', statsData);
 
+  // ── Proactive nudges ──────────────────────────────────────────────────────
+  const nudges = [];
+  if (currentUser.role === 'intern') {
+    const sorted = [...sheets].sort((a, b) => b.date.localeCompare(a.date));
+    if (!sorted.length) {
+      nudges.push({ type: 'warn', msg: "You haven't logged any hours yet — start with today's work." });
+    } else {
+      const daysSince = Math.floor((Date.now() - new Date(sorted[0].date)) / 86400000);
+      if (daysSince >= 3) nudges.push({ type: 'warn', msg: `No hours logged in ${daysSince} day${daysSince !== 1 ? 's' : ''} — remember to log your daily activity.` });
+    }
+    if (overdueTasks > 0) nudges.push({ type: 'danger', msg: `You have ${overdueTasks} overdue task${overdueTasks !== 1 ? 's' : ''} — check your task board.` });
+    if (requiredHours && approvedHours >= requiredHours) nudges.push({ type: 'success', msg: `You've reached your required ${requiredHours}h! 🎉 Contact your supervisor to wrap up.` });
+  } else {
+    if (pending > 0) nudges.push({ type: 'warn', msg: `${pending} timesheet entr${pending !== 1 ? 'ies' : 'y'} waiting for your approval.` });
+  }
+  const nudgeEl = document.getElementById('dash-nudges');
+  if (nudgeEl) nudgeEl.innerHTML = nudges.map(n => `<div class="dash-nudge dash-nudge--${n.type}">${n.msg}</div>`).join('');
+
   const recentTasks = tasks.slice(0,4);
   document.getElementById('dash-tasks-list').innerHTML = recentTasks.map(t=>`
     <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f3f4f6;">

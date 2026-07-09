@@ -1,3 +1,33 @@
+let showCompletedInterns = false;
+
+function setInternTab(completed) {
+  showCompletedInterns = completed;
+  document.getElementById('intern-tab-active')?.classList.toggle('active', !completed);
+  document.getElementById('intern-tab-completed')?.classList.toggle('active', completed);
+  renderInterns();
+}
+
+async function completeIntern(uid) {
+  const intern = liveUsers.find(u => u.id === uid);
+  if (!intern) return;
+  if (!confirm(`Mark ${intern.name} as completed? They'll move to the Completed tab.`)) return;
+  const { error } = await sb.from('intern_users').update({ completed_at: new Date().toISOString() }).eq('id', uid);
+  if (error) { toast('Failed to update — try again.'); return; }
+  await loadLiveUsers();
+  renderInterns();
+  toast(`${intern.name} marked as completed.`);
+}
+
+async function reopenIntern(uid) {
+  const intern = liveUsers.find(u => u.id === uid);
+  if (!intern) return;
+  const { error } = await sb.from('intern_users').update({ completed_at: null }).eq('id', uid);
+  if (error) { toast('Failed to reactivate — try again.'); return; }
+  await loadLiveUsers();
+  renderInterns();
+  toast(`${intern.name} reactivated.`);
+}
+
 function topSkillsFor(sheets, n) {
   const map = {};
   sheets.forEach((ts) =>
@@ -53,12 +83,20 @@ async function renderApprovals() {
 }
 
 async function renderInterns() {
-  const interns = liveUsers.filter((u) => u.role === 'intern');
+  const allInterns = liveUsers.filter((u) => u.role === 'intern');
+  const interns = allInterns.filter(u => showCompletedInterns ? !!u.completed_at : !u.completed_at);
   const sheetsByIntern = new Map();
   liveTimesheets.forEach(t => {
     if (!sheetsByIntern.has(t.intern_id)) sheetsByIntern.set(t.intern_id, []);
     sheetsByIntern.get(t.intern_id).push(t);
   });
+
+  if (!interns.length) {
+    document.getElementById('interns-grid').innerHTML =
+      `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">${showCompletedInterns ? '🎓' : '👥'}</div>${showCompletedInterns ? 'No completed interns yet.' : 'No active interns.'}</div>`;
+    return;
+  }
+
   document.getElementById('interns-grid').innerHTML = interns
     .map((intern, i) => {
       const iSheets = sheetsByIntern.get(intern.id) || [];
@@ -69,16 +107,15 @@ async function renderInterns() {
       const done = liveTasks.filter(
         (t) => t.assigned_to === intern.id && ['completed', 'reviewed'].includes(t.status)
       ).length;
-      const topSkills = topSkillsFor(
-        iSheets.filter((t) => t.status === 'approved'),
-        3
-      );
+      const topSkills = topSkillsFor(iSheets.filter((t) => t.status === 'approved'), 3);
+      const completedDate = intern.completed_at ? new Date(intern.completed_at).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' }) : null;
       return `<div class="intern-card stagger-item" style="--i:${i}">
       <div class="intern-card-head">
         ${avatarEl(intern.avatar, 46, '#C9A84C')}
-        <div>
+        <div style="flex:1">
           <div class="intern-card-name">${escapeHtml(intern.name)}</div>
           <div class="intern-card-sub">${intern.program} · ${intern.school}</div>
+          ${completedDate ? `<div class="intern-completed-badge">✓ Completed ${completedDate}</div>` : ''}
         </div>
       </div>
       <div class="intern-stats">
@@ -88,6 +125,13 @@ async function renderInterns() {
       </div>
       <div class="intern-skills">
         ${topSkills.length ? `<div class="section-label">TOP SKILLS</div><div class="flex-wrap">${topSkills.map(skillPill).join('')}</div>` : '<div style="font-size:12px;color:var(--faint)">No approved entries yet.</div>'}
+      </div>
+      <div style="padding:10px 16px;border-top:1px solid #f3f4f6;display:flex;gap:7px;flex-wrap:wrap">
+        <button class="btn-sm-approve" style="font-size:11px" data-action="export-excel" data-id="${intern.id}">📊 Excel</button>
+        <button style="font-size:11px;background:#eff6ff;color:#2563eb;border:none;border-radius:6px;padding:4px 10px;font-weight:600;cursor:pointer;font-family:inherit" data-action="export-pdf" data-id="${intern.id}">📄 PDF</button>
+        ${intern.completed_at
+          ? `<button style="font-size:11px;background:#fef9ec;color:#92400e;border:none;border-radius:6px;padding:4px 10px;font-weight:600;cursor:pointer;font-family:inherit" data-action="reopen-intern" data-id="${intern.id}">↩ Reactivate</button>`
+          : `<button style="font-size:11px;background:#f0fdf4;color:#166534;border:none;border-radius:6px;padding:4px 10px;font-weight:600;cursor:pointer;font-family:inherit" data-action="complete-intern" data-id="${intern.id}">✓ Mark Complete</button>`}
       </div>
     </div>`;
     })

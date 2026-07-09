@@ -375,6 +375,26 @@ document.addEventListener('click', async (e) => {
     exportPDF(el.dataset.id);
     return;
   }
+  if (a === 'export-my-csv') {
+    exportTimesheetCSV();
+    return;
+  }
+  if (a === 'complete-intern') {
+    await completeIntern(el.dataset.id);
+    return;
+  }
+  if (a === 'reopen-intern') {
+    await reopenIntern(el.dataset.id);
+    return;
+  }
+  if (a === 'intern-tab-active') {
+    setInternTab(false);
+    return;
+  }
+  if (a === 'intern-tab-completed') {
+    setInternTab(true);
+    return;
+  }
   if (a === 'switch-to-hq') {
     window.location.href = 'index.html';
     return;
