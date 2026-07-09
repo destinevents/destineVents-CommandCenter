@@ -7,9 +7,22 @@
     hour: '2-digit', minute: '2-digit', second: '2-digit',
     hour12: false,
   });
-  function tick() {
-    el.textContent = fmt.format(new Date());
-  }
+  function tick() { el.textContent = fmt.format(new Date()); }
   tick();
   setInterval(tick, 1000);
+})();
+
+// Ripple effect on .btn-primary clicks.
+(function () {
+  document.addEventListener('click', function (e) {
+    const btn = e.target.closest('.btn-primary');
+    if (!btn) return;
+    const rect = btn.getBoundingClientRect();
+    const span = document.createElement('span');
+    span.className = 'ripple';
+    span.style.left = (e.clientX - rect.left) + 'px';
+    span.style.top  = (e.clientY - rect.top)  + 'px';
+    btn.appendChild(span);
+    span.addEventListener('animationend', () => span.remove(), { once: true });
+  });
 })();

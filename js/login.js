@@ -26,6 +26,16 @@ function goIntern() {
   window.location.href = 'intern.html';
 }
 
+function shakeInputs() {
+  ['login-email', 'login-pass'].forEach(id => {
+    const el = document.getElementById(id);
+    el.classList.remove('shake');
+    void el.offsetWidth; // force reflow so re-adding re-triggers
+    el.classList.add('shake');
+    el.addEventListener('animationend', () => el.classList.remove('shake'), { once: true });
+  });
+}
+
 async function handleSignIn() {
   const email = document.getElementById('login-email').value.trim();
   const pass = document.getElementById('login-pass').value;
@@ -40,10 +50,12 @@ async function handleSignIn() {
     const { data, error } = await signIn(email, pass);
     if (error) {
       errEl.textContent = error.message || 'Sign in failed. Please try again.';
+      shakeInputs();
       return;
     }
     if (!data.user) {
       errEl.textContent = 'Sign in failed. Please verify your email and try again.';
+      shakeInputs();
       return;
     }
     const { data: profile, error: profileError } = await sb

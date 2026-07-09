@@ -175,6 +175,71 @@ body::before {
   animation:fadeIn 0.6s ease 0.25s both;
 }
 
+/* ─── STAGGERED FIELD ENTRANCE ─── */
+@keyframes fieldUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+.auth-card-body > * { animation:fieldUp 0.4s var(--ease) both; }
+.auth-card-body > *:nth-child(1) { animation-delay:0.22s; }
+.auth-card-body > *:nth-child(2) { animation-delay:0.30s; }
+.auth-card-body > *:nth-child(3) { animation-delay:0.35s; }
+.auth-card-body > *:nth-child(4) { animation-delay:0.43s; }
+.auth-card-body > *:nth-child(5) { animation-delay:0.51s; }
+.auth-card-body > *:nth-child(6) { animation-delay:0.59s; }
+.auth-card-body > *:nth-child(7) { animation-delay:0.67s; }
+.auth-card-body > *:nth-child(8) { animation-delay:0.75s; }
+
+/* ─── SHAKE ON ERROR ─── */
+@keyframes shake {
+  0%,100% { transform:translateX(0); }
+  15%     { transform:translateX(-7px); }
+  35%     { transform:translateX(7px); }
+  55%     { transform:translateX(-5px); }
+  75%     { transform:translateX(5px); }
+}
+.shake { animation:shake 0.42s var(--ease) both; }
+
+/* ─── AMBIENT BACKGROUND PULSE ─── */
+@keyframes bgPulse {
+  0%,100% { background-position:50% 0%; }
+  50%     { background-position:50% 8%; }
+}
+body {
+  background-size:100% 140%;
+  animation:bgPulse 7s ease-in-out infinite;
+}
+
+/* ─── LOGO BOUNCE ON HOVER ─── */
+@keyframes logoBounce {
+  0%   { transform:scale(1); }
+  30%  { transform:scale(1.13); }
+  55%  { transform:scale(0.93); }
+  75%  { transform:scale(1.05); }
+  100% { transform:scale(1); }
+}
+.auth-logo-icon {
+  transition:box-shadow 0.2s;
+  cursor:pointer;
+}
+.auth-logo-icon:hover {
+  animation:logoBounce 0.45s var(--ease);
+  box-shadow:0 0 0 5px rgba(201,168,76,0.28);
+}
+
+/* ─── LABEL TURNS GOLD ON FOCUS ─── */
+.form-group:focus-within .form-label {
+  color:var(--gold);
+  transition:color 0.2s;
+}
+
+/* ─── BUTTON RIPPLE ─── */
+@keyframes rippleOut { from{transform:scale(0);opacity:1} to{transform:scale(4);opacity:0} }
+.btn-primary { position:relative; overflow:hidden; }
+.ripple {
+  position:absolute; border-radius:50%; pointer-events:none;
+  width:80px; height:80px; margin-left:-40px; margin-top:-40px;
+  background:rgba(201,168,76,0.28);
+  animation:rippleOut 0.55s ease-out forwards;
+}
+
 /* ─── MOTION ─── */
 @keyframes slideDown { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} }
 @keyframes cardUp    { from{opacity:0;transform:translateY(16px)}  to{opacity:1;transform:translateY(0)} }
@@ -182,8 +247,11 @@ body::before {
 @keyframes fadeIn    { from{opacity:0} to{opacity:1} }
 @keyframes spinBtn   { to{transform:rotate(360deg)} }
 @media (prefers-reduced-motion: reduce) {
-  .auth-top, .auth-card, .auth-foot { animation:none; }
+  .auth-top, .auth-card, .auth-foot, body { animation:none; }
   .auth-card::before { animation:none; }
+  .auth-card-body > * { animation:none; }
+  .auth-logo-icon:hover { animation:none; }
+  .ripple { animation:none; }
 }
 
 /* ─── PHONE ─── */
