@@ -43,6 +43,9 @@
     <button class="nav-btn" data-page="timesheets">
       <span class="icon">⏱️</span><span class="label">Timesheets</span>
     </button>
+    <button class="nav-btn intern-only" data-page="calendar">
+      <span class="icon">📅</span><span class="label">Calendar</span>
+    </button>
     <button class="nav-btn" data-page="outputs">
       <span class="icon">📦</span><span class="label">Outputs</span>
     </button>
@@ -68,6 +71,11 @@
       <span class="icon">🔄</span><span class="label">Switch to HQ</span>
     </button>
   </nav>
+
+  <div class="sb-today intern-only" id="sb-today-widget">
+    <div class="sb-today-label" id="sb-today-label">TODAY</div>
+    <div class="sb-today-hours" id="sb-today-hours">—</div>
+  </div>
 
   <div class="sb-bottom">
     <div class="role-btn active" style="pointer-events:none">
@@ -297,6 +305,18 @@
     <!-- ══ ACCOUNT SETTINGS ══ -->
     <div class="page" id="page-account"></div>
 
+    <!-- ══ CALENDAR ══ -->
+    <div class="page" id="page-calendar">
+      <div class="page-head" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <div class="cal-nav">
+          <button class="cal-nav-btn" data-action="cal-prev">‹</button>
+          <h2 id="cal-month-label" style="font-size:18px;font-weight:800;color:var(--forest);min-width:150px;text-align:center;margin:0"></h2>
+          <button class="cal-nav-btn" data-action="cal-next">›</button>
+        </div>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+    </div>
+
   </div><!-- /content -->
 </div><!-- /main -->
 
@@ -442,6 +462,18 @@
   </div>
 </div>
 
+<!-- Day Detail Modal -->
+<div class="modal-overlay" id="modal-cal-day" role="dialog" aria-modal="true" aria-labelledby="modal-cal-day-title">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-cal-day-title"></span>
+      <button class="modal-close" data-action="close-modal" data-modal="modal-cal-day" aria-label="Close dialog">×</button>
+    </div>
+    <div class="modal-body" id="modal-cal-day-body"></div>
+  </div>
+</div>
+
+<div id="sb-cal-tooltip"></div>
 <div id="toast" role="status" aria-live="polite"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.0/dist/umd/supabase.js"></script>
@@ -481,6 +513,7 @@
 <script src="icc/dashboard.js"></script>
 <script src="icc/tasks.js"></script>
 <script src="icc/timesheets.js"></script>
+<script src="icc/calendar.js"></script>
 <script src="icc/outputs.js"></script>
 <script src="icc/admin.js"></script>
 <script src="icc/account.js"></script>

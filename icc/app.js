@@ -103,6 +103,30 @@ function updateBadges() {
     nb.style.display = currentUser.role !== 'intern' && count > 0 ? 'flex' : 'none';
   }
   document.getElementById('notif-count').textContent = count;
+  updateTodayHours();
+}
+
+function updateTodayHours() {
+  const el = document.getElementById('sb-today-hours');
+  const labelEl = document.getElementById('sb-today-label');
+  if (!el) return;
+  const today = todayISO();
+  const todayTotal = liveTimesheets
+    .filter(t => t.date === today)
+    .reduce((s, t) => s + t.hours, 0);
+  if (todayTotal > 0) {
+    el.textContent = todayTotal + 'h';
+    if (labelEl) labelEl.textContent = 'TODAY';
+  } else {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yISO = yesterday.toISOString().slice(0, 10);
+    const yTotal = liveTimesheets
+      .filter(t => t.date === yISO)
+      .reduce((s, t) => s + t.hours, 0);
+    el.textContent = yTotal + 'h';
+    if (labelEl) labelEl.textContent = yTotal > 0 ? 'YESTERDAY' : 'TODAY';
+  }
 }
 
 // ─── DATA LOADING ────────────────────────────────────────────────────────────
@@ -132,6 +156,7 @@ const PAGE_DATA = {
   reports: ['users', 'tasks', 'timesheets'],
   audit: ['users'],
   account: [],
+  calendar: ['timesheets', 'tasks'],
 };
 
 async function goPage(page) {
@@ -153,6 +178,7 @@ async function goPage(page) {
     reports: 'Reports',
     audit: 'Audit Log',
     account: 'Account Settings',
+    calendar: 'Calendar',
   };
   document.getElementById('topbar-title').textContent = titles[page] || page;
   await renderPage(page);
@@ -171,6 +197,7 @@ async function renderPage(page) {
     reports: renderReports,
     audit: renderAuditLog,
     account: renderAccount,
+    calendar: renderCalendar,
   };
 
   const needs = PAGE_DATA[page] ?? [];
@@ -421,6 +448,14 @@ document.addEventListener('click', async (e) => {
   }
   if (a === 'output-load-more') {
     outputPager.loadMore();
+    return;
+  }
+  if (a === 'cal-prev') {
+    calPrev();
+    return;
+  }
+  if (a === 'cal-next') {
+    calNext();
     return;
   }
 });
