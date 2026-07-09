@@ -90,7 +90,7 @@ function showForgot(show) {
 function checkEmail(input) {
   const valid = document.getElementById('login-email-valid');
   if (!valid) return;
-  const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value);
+  const ok = validateEmail(input.value) === null;
   valid.classList.toggle('show', ok);
 }
 

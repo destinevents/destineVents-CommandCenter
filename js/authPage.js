@@ -9,7 +9,8 @@
   });
   function tick() { el.textContent = fmt.format(new Date()); }
   tick();
-  setInterval(tick, 1000);
+  const _clockId = setInterval(tick, 1000);
+  window.addEventListener('pagehide', () => clearInterval(_clockId), { once: true });
 })();
 
 // Ripple effect on .btn-primary clicks.
@@ -24,5 +25,6 @@
     span.style.top  = (e.clientY - rect.top)  + 'px';
     btn.appendChild(span);
     span.addEventListener('animationend', () => span.remove(), { once: true });
+    setTimeout(() => span.remove(), 600);
   });
 })();

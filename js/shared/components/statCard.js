@@ -1,3 +1,5 @@
+const _statCardTimers = {};
+
 function countUp(el, target, duration) {
   const num = parseFloat(target);
   if (isNaN(num) || num === 0) return;
@@ -28,14 +30,14 @@ function renderStatCards(containerId, cards) {
     return `<div class="stat-card stagger-item" style="--i:${i}">
       ${accent}
       ${topEl}
-      <div class="stat-value${c.valClass ? ' ' + c.valClass : ''} sc-val"${c.valColor ? ` style="color:${c.valColor}"` : ''} data-target="${c.value}">${c.value}</div>
+      <div class="stat-value${c.valClass ? ' ' + c.valClass : ''} sc-val"${c.valColor ? ` style="color:${c.valColor}"` : ''} data-target="${String(c.value).replace(/"/g, '&quot;')}">${c.value}</div>
       <div class="stat-label">${c.label}</div>
       ${changeEl}
     </div>`;
   }).join('');
 
-  // Animate numbers after a brief delay so the stagger entrance plays first
-  setTimeout(() => {
+  clearTimeout(_statCardTimers[containerId]);
+  _statCardTimers[containerId] = setTimeout(() => {
     container.querySelectorAll('.sc-val[data-target]').forEach(el => {
       countUp(el, el.dataset.target, 700);
     });

@@ -37,7 +37,9 @@ function handleError(context, error) {
 }
 
 function openModal(id) {
-  document.getElementById(id).classList.add('open');
+  const overlay = document.getElementById(id);
+  overlay.classList.remove('closing');
+  overlay.classList.add('open');
 }
 
 // Per-modal cleanup run on EVERY close path (Cancel, overlay, save).
@@ -45,12 +47,14 @@ function openModal(id) {
 // instead of closeModal reaching into other files' state.
 const MODAL_CLOSE_HOOKS = {};
 
-function closeModal(id) {
+function closeModal(id, onClose) {
   const overlay = document.getElementById(id);
+  if (!overlay || overlay.classList.contains('closing')) return;
   overlay.classList.add('closing');
   setTimeout(() => {
     overlay.classList.remove('open', 'closing');
     MODAL_CLOSE_HOOKS[id]?.();
+    onClose?.();
   }, 180);
 }
 

@@ -276,8 +276,7 @@ function openEditTask(id) {
     picker.querySelector(`.skill-tag[data-value="${s}"]`)?.classList.add('selected');
     [...select.options].forEach(o => { if (o.value === s) o.selected = true; });
   });
-  closeModal('modal-view-task');
-  openModal('modal-add-task');
+  closeModal('modal-view-task', () => openModal('modal-add-task'));
 }
 
 async function populateAddTaskModal() {

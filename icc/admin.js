@@ -54,9 +54,14 @@ async function renderApprovals() {
 
 async function renderInterns() {
   const interns = liveUsers.filter((u) => u.role === 'intern');
+  const sheetsByIntern = new Map();
+  liveTimesheets.forEach(t => {
+    if (!sheetsByIntern.has(t.intern_id)) sheetsByIntern.set(t.intern_id, []);
+    sheetsByIntern.get(t.intern_id).push(t);
+  });
   document.getElementById('interns-grid').innerHTML = interns
     .map((intern, i) => {
-      const iSheets = liveTimesheets.filter((t) => t.intern_id === intern.id);
+      const iSheets = sheetsByIntern.get(intern.id) || [];
       const approved = iSheets
         .filter((t) => t.status === 'approved')
         .reduce((s, t) => s + t.hours, 0);
