@@ -1,12 +1,14 @@
 async function loadFinance() {
-  const [inv, bil, pay] = await Promise.all([
+  const [inv, bil, pay, bir] = await Promise.all([
     fetchInvoices(),
     fetchBills(),
     fetchPayrollRuns(),
+    fetchBirFilings(),
   ]);
-  _invoices = inv || [];
-  _bills    = bil || [];
-  _payroll  = pay || [];
+  _invoices    = inv || [];
+  _bills       = bil || [];
+  _payroll     = pay || [];
+  _birFilings  = bir || [];
   renderFinanceOverview(_invoices, _bills);
   renderAR(_invoices);
   renderAP(_bills);
@@ -100,44 +102,137 @@ function renderPayroll(runs) {
     : `<tr><td colspan="6"><div class="empty-state">No payroll runs yet</div></td></tr>`;
 }
 
+// Maps a BIR status label to an existing badge style.
+function birBadgeClass(status) {
+  return status === 'Filed'    ? 'paid'
+       : status === 'Overdue'  ? 'overdue'
+       : status === 'Due Soon' ? 'unpaid'
+       : status === 'Ongoing'  ? 'lead'
+       : 'lead';
+}
+
+// Builds the "history" footer line for a periodic form.
+function birHistoryLine(form) {
+  const past = birFilingsFor(_birFilings, form);
+  if (!past.length) return `<span style="color:var(--ink-3)">No filings recorded yet</span>`;
+  const last = past[0];
+  return `${escapeHtml(last.period)} — <span style="color:var(--green);font-weight:600">Filed ✓</span>`
+       + ` <span style="color:var(--ink-3)">${formatDateShort(String(last.filed_at).slice(0,10))}`
+       + `${past.length > 1 ? ` · ${past.length} total` : ''}</span>`;
+}
+
+// One card for a quarterly/annual form with a "Save Filing Record" action.
+function birPeriodicCard(form, desc, period, deadlineISO, baseLabel, baseValue) {
+  const filed  = birIsFiled(_birFilings, form, period);
+  const status = birFilingStatus(deadlineISO, filed, new Date());
+  const dline  = deadlineISO ? formatDateShort(deadlineISO) : '—';
+  return `
+    <div class="bir-card">
+      <div class="bir-form-name">${form}</div>
+      <div class="bir-form-desc">${desc}</div>
+      <div class="flex-between">
+        <div class="bir-deadline">${escapeHtml(period)} deadline: <strong>${dline}</strong></div>
+        <span class="badge badge-${birBadgeClass(status)}">${status}</span>
+      </div>
+      <div style="margin-top:8px;font-size:11px;color:var(--ink-2)">${escapeHtml(baseLabel)}: <strong>${formatCurrency(baseValue)}</strong></div>
+      <div style="margin-top:10px;font-size:11px;color:var(--ink-3)">${birHistoryLine(form)}</div>
+      ${filed ? '' : `<button class="btn btn-primary" style="margin-top:12px;width:100%" onclick="openFileBir('${form}')">Save Filing Record</button>`}
+    </div>`;
+}
+
 function renderBIR() {
+  const today = new Date();
+  const { q, year } = birMostRecentCompletedQuarter(today);
+  const period = birQuarterLabel(q, year);
+
+  const receipts = birGrossReceipts(_invoices, q, year);
+  const expenses = birExpenses(_bills, q, year);
+  const netInc   = Math.max(0, receipts - expenses);
+  const withheld = birCompWithholding(_payroll, APP_SETTINGS.finance.birYear);
+
+  // 2307 — per-transaction, not a periodic filing
+  const twoThreeOhSeven = bir2307Bills(_bills);
+  const last2307 = twoThreeOhSeven
+    .slice()
+    .sort((a, b) => String(b.date).localeCompare(String(a.date)))[0];
+
   document.getElementById('bir-cards').innerHTML = `
-    <div class="bir-card">
-      <div class="bir-form-name">2551Q</div>
-      <div class="bir-form-desc">Quarterly Percentage Tax Return<br>For non-VAT registered businesses</div>
-      <div class="flex-between">
-        <div class="bir-deadline">Q2 2026 deadline: <strong>Jul 25, 2026</strong></div>
-        <span class="badge badge-unpaid">Due</span>
-      </div>
-      <div style="margin-top:10px;font-size:11px;color:var(--ink-3)">Q1 2026 — <span style="color:var(--green);font-weight:600">Filed ✓</span></div>
-    </div>
-    <div class="bir-card">
-      <div class="bir-form-name">1701Q</div>
-      <div class="bir-form-desc">Quarterly Income Tax Return<br>For self-employed / OPC founders</div>
-      <div class="flex-between">
-        <div class="bir-deadline">Q2 2026 deadline: <strong>Aug 15, 2026</strong></div>
-        <span class="badge badge-unpaid">Due</span>
-      </div>
-      <div style="margin-top:10px;font-size:11px;color:var(--ink-3)">Q1 2026 — <span style="color:var(--green);font-weight:600">Filed ✓</span></div>
-    </div>
-    <div class="bir-card">
-      <div class="bir-form-name">1604C</div>
-      <div class="bir-form-desc">Annual Information Return — Income Taxes Withheld on Compensation</div>
-      <div class="flex-between">
-        <div class="bir-deadline">Next deadline: <strong>Jan 31, 2027</strong></div>
-        <span class="badge badge-paid">Filed</span>
-      </div>
-      <div style="margin-top:10px;font-size:11px;color:var(--ink-3)">FY 2025 — <span style="color:var(--green);font-weight:600">Filed ✓</span></div>
-    </div>
+    ${birPeriodicCard('2551Q', 'Quarterly Percentage Tax Return<br>Non-VAT · 3% of gross receipts',
+        period, bir2551qDeadline(q, year), 'Gross receipts this quarter', receipts)}
+    ${birPeriodicCard('1701Q', 'Quarterly Income Tax Return<br>For self-employed / OPC founders',
+        period, bir1701qDeadline(q, year), 'Net income this quarter', netInc)}
+    ${birPeriodicCard('1604C', 'Annual Information Return — Income Taxes Withheld on Compensation',
+        `FY ${APP_SETTINGS.finance.birYear}`, bir1604cDeadline(APP_SETTINGS.finance.birYear),
+        'Compensation withheld YTD', withheld)}
     <div class="bir-card">
       <div class="bir-form-name">2307</div>
-      <div class="bir-form-desc">Certificate of Creditable Tax Withheld at Source — issue to clients per transaction</div>
+      <div class="bir-form-desc">Certificate of Creditable Tax Withheld at Source — issue to payees per transaction</div>
       <div class="flex-between">
-        <div class="bir-deadline">Issue per transaction</div>
+        <div class="bir-deadline">${twoThreeOhSeven.length} bill${twoThreeOhSeven.length!==1?'s':''} with EWT to certify</div>
         <span class="badge badge-lead">Ongoing</span>
       </div>
-      <div style="margin-top:10px;font-size:11px;color:var(--ink-3)">Last issued: <span style="color:var(--ink);font-weight:600">Jun 2, 2026</span></div>
+      <div style="margin-top:10px;font-size:11px;color:var(--ink-3)">Last EWT bill: <span style="color:var(--ink);font-weight:600">${last2307 ? formatDateShort(String(last2307.date).slice(0,10)) : '—'}</span></div>
     </div>`;
+}
+
+// Opens the "verify amounts → save filing record" modal for a periodic form.
+function openFileBir(form) {
+  const today = new Date();
+  const { q, year } = birMostRecentCompletedQuarter(today);
+  const birYear = APP_SETTINGS.finance.birYear;
+
+  let period, base, suggestedTax, baseLabel, note;
+  if (form === '2551Q') {
+    period = birQuarterLabel(q, year);
+    base = birGrossReceipts(_invoices, q, year);
+    suggestedTax = Math.round(base * BIR_PERCENTAGE_TAX_RATE * 100) / 100;
+    baseLabel = 'Gross receipts (₱)';
+    note = '3% percentage tax pre-filled from paid invoices this quarter.';
+  } else if (form === '1701Q') {
+    period = birQuarterLabel(q, year);
+    base = Math.max(0, birGrossReceipts(_invoices, q, year) - birExpenses(_bills, q, year));
+    suggestedTax = Math.round(birGrossReceipts(_invoices, q, year) * BIR_8PCT_OPTION_RATE * 100) / 100;
+    baseLabel = 'Net income (₱)';
+    note = '8% option pre-filled on gross receipts — verify against your accountant (graduated rates may apply).';
+  } else { // 1604C
+    period = `FY ${birYear}`;
+    base = birCompWithholding(_payroll, birYear);
+    suggestedTax = base;
+    baseLabel = 'Compensation withheld (₱)';
+    note = 'Total withholding on compensation from payroll runs this year.';
+  }
+
+  openModal(`File ${form} — ${period}`, `
+    <div class="form-grid">
+      <div class="form-group"><div class="form-label">Form</div><input class="form-input" id="fb-form" value="${form}" readonly/></div>
+      <div class="form-group"><div class="form-label">Period</div><input class="form-input" id="fb-period" value="${escapeHtml(period)}"/></div>
+      <div class="form-group"><div class="form-label">${baseLabel}</div><input class="form-input" id="fb-base" type="number" value="${base}"/></div>
+      <div class="form-group"><div class="form-label">Tax Due / Paid (₱)</div><input class="form-input" id="fb-tax" type="number" value="${suggestedTax}"/></div>
+      <div class="form-group"><div class="form-label">Filed Date</div><input class="form-input" id="fb-date" type="date" value="${todayISO()}"/></div>
+      <div class="form-group"><div class="form-label">BIR Reference No.</div><input class="form-input" id="fb-ref" placeholder="eFPS / confirmation no."/></div>
+      <div class="form-group full"><div class="form-label">Notes</div><textarea class="form-input" id="fb-notes" rows="2" placeholder="Optional"></textarea></div>
+    </div>
+    <div style="font-size:10.5px;color:var(--ink-3);margin-top:10px;line-height:1.6">${note}</div>`, saveBirFiling);
+}
+
+async function saveBirFiling() {
+  const form   = document.getElementById('fb-form').value.trim();
+  const period = document.getElementById('fb-period').value.trim();
+  const err = validateRequired(period, 'Period');
+  if (err) { toast(err, 'error'); return; }
+  const result = await createBirFiling({
+    form,
+    period,
+    tax_base:     +document.getElementById('fb-base').value || 0,
+    tax_due:      +document.getElementById('fb-tax').value  || 0,
+    reference_no: document.getElementById('fb-ref').value.trim(),
+    notes:        document.getElementById('fb-notes').value.trim(),
+    filed_at:     document.getElementById('fb-date').value || todayISO(),
+  });
+  if (!result) return;
+  toast(`${form} filing recorded for ${period}`, 'success');
+  closeModal();
+  loadFinance();
 }
 
 function openAddInvoice() {

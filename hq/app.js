@@ -7,6 +7,7 @@ let _bills = [];
 let _payroll = [];
 let _projects = [];
 let _impactEntries = [];
+let _birFilings = [];
 
 let _onSave = null;
 
@@ -100,6 +101,7 @@ function setupRealtime() {
     invoices: { page: 'finance', reload: () => loadFinance() },
     bills: { page: 'finance', reload: () => loadFinance() },
     payroll_runs: { page: 'finance', reload: () => loadFinance() },
+    bir_filings: { page: 'finance', reload: () => loadFinance() },
     documents: { page: 'documents', reload: () => loadDocuments() },
     projects: { page: 'projects', reload: () => loadProjects() },
     impact_entries: { page: 'impact', reload: () => loadImpact() },
