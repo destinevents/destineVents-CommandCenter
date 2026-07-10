@@ -129,6 +129,7 @@ async function npFinish() {
   const contact = document.getElementById('np-contact').value.trim();
   const email   = document.getElementById('np-email').value.trim();
   const brand   = document.getElementById('np-brand').value;
+  const purpose = document.getElementById('np-purpose').value.trim() || 'Project';
 
   const exists = await findClientByName(client, _clients);
   if (!exists) {
@@ -138,6 +139,17 @@ async function npFinish() {
     });
   }
 
+  await createProject({
+    name: purpose,
+    client,
+    brand,
+    category: 'Events',
+    value: 0,
+    status: 'NDA Signed',
+    notes: `Created via New Project flow. Contact: ${contact} <${email}>`,
+    updated_at: new Date().toISOString(),
+  });
+
   document.getElementById('np-circle-2').className = 'step-circle done';
   document.getElementById('np-circle-2').textContent = '\u2713';
   document.getElementById('np-label-2').className = 'step-label';
@@ -146,7 +158,61 @@ async function npFinish() {
   document.getElementById('np-label-3').className = 'step-label active';
 
   toast(`Project created for ${client}`, 'success');
-  setTimeout(() => showPage('clients'), 1400);
+  setTimeout(() => showPage('projects'), 1400);
+}
+
+async function loadImpact() {
+  _impactEntries = await fetchImpactEntries();
+  renderImpact();
+}
+
+function renderImpact() {
+  const totals = { students: 0, teachers: 0, smes: 0, lgus: 0 };
+  _impactEntries.forEach(e => {
+    totals.students += e.students_reached  || 0;
+    totals.teachers += e.teachers_trained  || 0;
+    totals.smes     += e.smes_supported    || 0;
+    totals.lgus     += e.lgus_engaged      || 0;
+  });
+
+  const el = id => document.getElementById(id);
+  el('imp-total-students').textContent = totals.students.toLocaleString();
+  el('imp-total-teachers').textContent = totals.teachers.toLocaleString();
+  el('imp-total-smes').textContent     = totals.smes.toLocaleString();
+  el('imp-total-lgus').textContent     = totals.lgus.toLocaleString();
+
+  el('impact-entries').innerHTML = _impactEntries.length
+    ? _impactEntries.map(e => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--ink-4);font-size:12px">
+          <div>
+            <div style="font-weight:600;color:var(--ink)">${escapeHtml(e.period)} \u2014 ${escapeHtml(e.program)}</div>
+            <div style="color:var(--ink-3);font-size:10.5px;margin-top:2px">
+              ${e.students_reached || 0} students \u00b7 ${e.teachers_trained || 0} teachers \u00b7 ${e.smes_supported || 0} SMEs \u00b7 ${e.lgus_engaged || 0} LGUs
+            </div>
+          </div>
+        </div>`).join('')
+    : '<div style="color:var(--ink-3);font-size:11.5px;padding:8px 0">No entries yet \u2014 log your first entry.</div>';
+}
+
+async function saveImpactEntry() {
+  const period  = document.getElementById('imp-period').value.trim();
+  const program = document.getElementById('imp-program').value.trim();
+  const err = validateRequired(period, 'Period') || validateRequired(program, 'Program');
+  if (err) { toast(err, 'error'); return; }
+  const result = await createImpactEntry({
+    period,
+    program,
+    students_reached: +document.getElementById('imp-students').value || 0,
+    teachers_trained: +document.getElementById('imp-teachers').value || 0,
+    smes_supported:   +document.getElementById('imp-smes').value    || 0,
+    lgus_engaged:     +document.getElementById('imp-lgus').value    || 0,
+  });
+  if (!result) return;
+  toast('Impact entry saved', 'success');
+  ['imp-period','imp-program','imp-students','imp-teachers','imp-smes','imp-lgus'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  loadImpact();
 }
 
 function downloadNDA() {

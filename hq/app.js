@@ -5,6 +5,8 @@ let _documents = [];
 let _invoices = [];
 let _bills = [];
 let _payroll = [];
+let _projects = [];
+let _impactEntries = [];
 
 let _onSave = null;
 
@@ -99,6 +101,8 @@ function setupRealtime() {
     bills: { page: 'finance', reload: () => loadFinance() },
     payroll_runs: { page: 'finance', reload: () => loadFinance() },
     documents: { page: 'documents', reload: () => loadDocuments() },
+    projects: { page: 'projects', reload: () => loadProjects() },
+    impact_entries: { page: 'impact', reload: () => loadImpact() },
   };
   const ch = sb.channel('db-realtime');
   Object.entries(pageMap).forEach(([table, { page, reload }]) => {
@@ -183,11 +187,17 @@ function showPage(name) {
 
 function loadPage(name) {
   switch (name) {
+    case 'dashboard':
+      loadDashboard();
+      break;
     case 'clients':
       loadClients();
       break;
     case 'proposals':
       loadProposals();
+      break;
+    case 'projects':
+      loadProjects();
       break;
     case 'partners':
       loadPartners();
@@ -198,12 +208,110 @@ function loadPage(name) {
     case 'finance':
       loadFinance();
       break;
+    case 'impact':
+      loadImpact();
+      break;
     case 'ai':
       break;
-    case 'new-project':
-      resetNewProject();
-      break;
   }
+}
+
+async function loadDashboard() {
+  const [clients, proposals, projects, invoices, bills, partners] = await Promise.all([
+    fetchClients(),
+    fetchProposals(),
+    fetchProjects(),
+    fetchInvoices(),
+    fetchBills(),
+    fetchPartners(),
+  ]);
+  _clients   = clients   || [];
+  _proposals = proposals || [];
+  _projects  = projects  || [];
+  _invoices  = invoices  || [];
+  _bills     = bills     || [];
+  _partners  = partners  || [];
+  renderDashboard();
+}
+
+function renderDashboard() {
+  const el = id => document.getElementById(id);
+
+  // ── Stat cards ──
+  const activeProjects  = _projects.filter(p => p.status === 'Active').length;
+  const pipelineValue   = _proposals.filter(p => p.status !== 'Won' && p.status !== 'Lost').reduce((s, p) => s + (p.value || 0), 0);
+  const ndaSigned       = _clients.filter(c => c.status === 'NDA Signed').length;
+  const totalClients    = _clients.length;
+
+  el('dash-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-accent" style="background:var(--green)"></div><div class="stat-label">Active Projects</div><div class="stat-value">${activeProjects}</div><div class="stat-change">of ${_projects.length} total</div></div>
+    <div class="stat-card"><div class="stat-accent" style="background:var(--blue)"></div><div class="stat-label">Pipeline Value</div><div class="stat-value" style="font-size:24px">${formatCurrency(pipelineValue)}</div><div class="stat-change">${_proposals.filter(p => p.status !== 'Won' && p.status !== 'Lost').length} open proposals</div></div>
+    <div class="stat-card"><div class="stat-accent" style="background:var(--amber)"></div><div class="stat-label">NDAs Signed</div><div class="stat-value">${ndaSigned}</div><div class="stat-change">${_clients.filter(c => c.status === 'Lead').length} still in lead stage</div></div>
+    <div class="stat-card"><div class="stat-accent" style="background:var(--forest)"></div><div class="stat-label">Total Clients</div><div class="stat-value">${totalClients}</div><div class="stat-change up">across all brands</div></div>`;
+
+  // ── Pipeline by proposal status ──
+  const stageCounts = {};
+  _proposals.forEach(p => { stageCounts[p.status] = (stageCounts[p.status] || 0) + 1; });
+  const maxStage = Math.max(1, ...Object.values(stageCounts));
+  el('dash-pipeline').innerHTML = Object.keys(stageCounts).length
+    ? Object.entries(stageCounts).map(([s, n]) => `
+        <div class="pipeline-bar">
+          <div class="pipeline-label"><span>${escapeHtml(s)}</span><span>${n}</span></div>
+          <div class="pipeline-track"><div class="pipeline-fill" style="width:${Math.round(n / maxStage * 100)}%"></div></div>
+        </div>`).join('')
+    : '<div style="font-size:11px;color:var(--ink-3);padding:8px 0">No proposals yet</div>';
+
+  // ── Activity feed (newest clients + invoices) ──
+  const activity = [
+    ..._clients.slice(0, 4).map(c => ({ text: `New client — ${c.name}`, time: c.created_at || '', dot: 'blue' })),
+    ..._invoices.slice(0, 4).map(i => ({ text: `Invoice ${i.or_num} — ${i.client} · ${i.status}`, time: i.created_at || i.date || '', dot: i.status === 'Paid' ? 'green' : i.status === 'Overdue' ? 'red' : 'blue' })),
+    ..._projects.slice(0, 2).map(p => ({ text: `Project — ${p.name} · ${p.status}`, time: p.created_at || '', dot: 'green' })),
+  ].sort((a, b) => b.time.localeCompare(a.time)).slice(0, 5);
+
+  el('dash-activity').innerHTML = activity.length
+    ? activity.map(a => `
+        <div class="activity-item">
+          <div class="activity-dot ${a.dot}"></div>
+          <div><div class="activity-text">${escapeHtml(a.text)}</div><div class="activity-time">${formatDateShort((a.time || '').slice(0, 10))}</div></div>
+        </div>`).join('')
+    : '<div style="font-size:11px;color:var(--ink-3);padding:8px 0">No activity yet — add clients and projects to get started</div>';
+
+  // ── Revenue chart (paid invoices, last 6 months) ──
+  const now = new Date();
+  const months = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
+    return { label: d.toLocaleString('en-US', { month: 'short' }), key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` };
+  });
+  const revByMonth = {};
+  _invoices.filter(i => i.status === 'Paid').forEach(i => {
+    const k = (i.date || '').slice(0, 7);
+    if (k) revByMonth[k] = (revByMonth[k] || 0) + (i.amount || 0);
+  });
+  const maxRev = Math.max(1, ...months.map(m => revByMonth[m.key] || 0));
+  el('dash-chart').innerHTML = months.map(m => {
+    const h = Math.max(3, Math.round(((revByMonth[m.key] || 0) / maxRev) * 100));
+    return `<div class="bar"><div class="bar-fill" style="height:${h}%"></div></div>`;
+  }).join('');
+  el('dash-chart-label').textContent = `${months[0].label} — ${months[5].label} ${now.getFullYear()}`;
+
+  // ── Follow-ups due (proposals with upcoming follow-up date) ──
+  const today = todayISO();
+  const followups = _proposals
+    .filter(p => p.followup && p.followup >= today && p.status !== 'Won' && p.status !== 'Lost')
+    .sort((a, b) => a.followup.localeCompare(b.followup))
+    .slice(0, 4);
+  el('dash-followups').innerHTML = followups.length
+    ? followups.map(p => `<div>${escapeHtml(p.followup)} — <strong>${escapeHtml(p.client || p.name)}</strong></div>`).join('')
+    : '<div style="color:var(--ink-3)">No follow-ups due soon</div>';
+
+  // ── Quick stats ──
+  const won   = _proposals.filter(p => p.status === 'Won').length;
+  const closed = _proposals.filter(p => p.status === 'Won' || p.status === 'Lost').length;
+  const winRate = closed ? Math.round(won / closed * 100) : 0;
+  el('dash-quickstats').innerHTML = `
+    <div>${_proposals.length} total proposal${_proposals.length !== 1 ? 's' : ''}</div>
+    <div>Win rate: <strong>${winRate}%</strong></div>
+    <div>${_partners.length} partner${_partners.length !== 1 ? 's' : ''}</div>`;
 }
 
 function filterTable(input, tbodyId) {

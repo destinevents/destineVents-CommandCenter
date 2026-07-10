@@ -185,100 +185,30 @@
   <div class="page active" id="page-dashboard">
     <div class="page-eyebrow">overview</div>
     <div class="page-title" id="dashboard-greeting">Good morning.</div>
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-accent" style="background:var(--green)"></div>
-        <div class="stat-label">Active Projects</div>
-        <div class="stat-value">12</div>
-        <div class="stat-change up">↑ 3 this month</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-accent" style="background:var(--blue)"></div>
-        <div class="stat-label">Pipeline Value</div>
-        <div class="stat-value" style="font-size:24px">₱148K</div>
-        <div class="stat-change up">↑ ₱32K vs last mo.</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-accent" style="background:var(--amber)"></div>
-        <div class="stat-label">NDAs Signed</div>
-        <div class="stat-value">7</div>
-        <div class="stat-change">2 pending signature</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-accent" style="background:var(--ink)"></div>
-        <div class="stat-label">Total Clients</div>
-        <div class="stat-value">24</div>
-        <div class="stat-change up">↑ 4 new this quarter</div>
-      </div>
-    </div>
+    <div class="stats-grid" id="dash-stats"></div>
     <div class="two-col">
       <div class="card">
-        <div class="card-title">Pipeline by Stage <span>Last 30 days</span></div>
-        <div class="pipeline-bar">
-          <div class="pipeline-label"><span>Lead / Discovery</span><span>4</span></div>
-          <div class="pipeline-track"><div class="pipeline-fill" style="width:75%"></div></div>
-        </div>
-        <div class="pipeline-bar">
-          <div class="pipeline-label"><span>Proposal Sent</span><span>3</span></div>
-          <div class="pipeline-track"><div class="pipeline-fill" style="width:55%"></div></div>
-        </div>
-        <div class="pipeline-bar">
-          <div class="pipeline-label"><span>NDA Signed / Active</span><span>3</span></div>
-          <div class="pipeline-track"><div class="pipeline-fill" style="width:40%"></div></div>
-        </div>
-        <div class="pipeline-bar">
-          <div class="pipeline-label"><span>Completed</span><span>2</span></div>
-          <div class="pipeline-track"><div class="pipeline-fill" style="width:25%"></div></div>
-        </div>
+        <div class="card-title">Pipeline by Stage</div>
+        <div id="dash-pipeline"></div>
       </div>
       <div class="card">
-        <div class="card-title">Recent Activity <span>Today</span></div>
-        <div class="activity-item">
-          <div class="activity-dot green"></div>
-          <div><div class="activity-text">NDA signed — <strong>SM City Baguio Partnership</strong></div><div class="activity-time">2 hours ago</div></div>
-        </div>
-        <div class="activity-item">
-          <div class="activity-dot blue"></div>
-          <div><div class="activity-text">New client — <strong>BCU Training Program</strong></div><div class="activity-time">4 hours ago</div></div>
-        </div>
-        <div class="activity-item">
-          <div class="activity-dot"></div>
-          <div><div class="activity-text">AI generated: Monthly Report, May 2026</div><div class="activity-time">Yesterday</div></div>
-        </div>
-        <div class="activity-item">
-          <div class="activity-dot"></div>
-          <div><div class="activity-text">Proposal submitted — <strong>DTI CAR MSME Summit</strong></div><div class="activity-time">2 days ago</div></div>
-        </div>
+        <div class="card-title">Recent Activity</div>
+        <div id="dash-activity"></div>
       </div>
     </div>
     <div class="three-col">
       <div class="card">
         <div class="card-title">Monthly Revenue</div>
-        <div class="mini-chart">
-          <div class="bar"><div class="bar-fill" style="height:45%"></div></div>
-          <div class="bar"><div class="bar-fill" style="height:60%"></div></div>
-          <div class="bar"><div class="bar-fill" style="height:35%"></div></div>
-          <div class="bar"><div class="bar-fill" style="height:80%"></div></div>
-          <div class="bar"><div class="bar-fill" style="height:55%"></div></div>
-          <div class="bar"><div class="bar-fill" style="height:90%"></div></div>
-        </div>
-        <div style="font-size:9.5px;color:var(--ink-3);margin-top:7px;letter-spacing:0.05em">Jan — Jun 2026</div>
+        <div class="mini-chart" id="dash-chart"></div>
+        <div style="font-size:9.5px;color:var(--ink-3);margin-top:7px;letter-spacing:0.05em" id="dash-chart-label"></div>
       </div>
       <div class="card">
         <div class="card-title">Follow-ups Due</div>
-        <div style="font-size:12px;color:var(--ink-2);line-height:2.1">
-          <div>Jun 4 — <strong>Monica Fernandez</strong></div>
-          <div>Jun 5 — <strong>SIGLAT Youth Hub</strong></div>
-          <div>Jun 7 — <strong>DTI CAR Contact</strong></div>
-        </div>
+        <div style="font-size:12px;color:var(--ink-2);line-height:2.1" id="dash-followups"></div>
       </div>
       <div class="card">
         <div class="card-title">Quick Stats</div>
-        <div style="font-size:12px;color:var(--ink-2);line-height:2.1">
-          <div>5 proposals this month</div>
-          <div>Win rate: <strong>68%</strong></div>
-          <div>11 active partners</div>
-        </div>
+        <div style="font-size:12px;color:var(--ink-2);line-height:2.1" id="dash-quickstats"></div>
       </div>
     </div>
   </div>
@@ -347,22 +277,17 @@
     <div class="page-eyebrow">pipeline</div>
     <div class="page-title" style="margin-bottom:8px">Projects</div>
     <div class="flex-between" style="margin-bottom:16px">
-      <div style="font-size:11px;color:var(--ink-3)">6 projects · ₱148,500 total value</div>
+      <div id="projects-summary" style="font-size:11px;color:var(--ink-3)"></div>
       <div class="flex-gap">
         <input class="form-input" placeholder="Search…" style="width:180px;padding:6px 10px;font-size:12px" oninput="filterTable(this,'projects-tbody')"/>
-        <button class="btn btn-primary" onclick="showPage('new-project')">New</button>
+        <button class="btn btn-ghost" onclick="openAddProject()">Add Project</button>
+        <button class="btn btn-primary" onclick="showPage('new-project')">New (NDA)</button>
       </div>
     </div>
     <div style="border:1px solid var(--ink-4);overflow:hidden">
       <table class="project-table">
-        <thead><tr><th>Project</th><th>Status</th><th>Category</th><th>Value</th><th>Updated</th></tr></thead>
-        <tbody id="projects-tbody">
-          <tr><td><div class="project-name">DTI CAR MSME Innovation Summit</div><div class="project-client">DTI CAR / Government</div></td><td><span class="badge badge-active">Active</span></td><td style="font-size:11.5px;color:var(--ink-3)">Events</td><td class="project-value">₱85,000</td><td style="font-size:10.5px;color:var(--ink-3)">Today</td></tr>
-          <tr><td><div class="project-name">BCU Digital Confidence Training</div><div class="project-client">Baguio Central University</div></td><td><span class="badge badge-proposal">Proposal</span></td><td style="font-size:11.5px;color:var(--ink-3)">Training</td><td class="project-value">₱24,000</td><td style="font-size:10.5px;color:var(--ink-3)">Jun 1</td></tr>
-          <tr><td><div class="project-name">SM City Baguio Partnership</div><div class="project-client">SM Events Team</div></td><td><span class="badge badge-nda">NDA Signed</span></td><td style="font-size:11.5px;color:var(--ink-3)">Corporate</td><td class="project-value">₱18,500</td><td style="font-size:10.5px;color:var(--ink-3)">Jun 2</td></tr>
-          <tr><td><div class="project-name">As You Are Baguio Community Event</div><div class="project-client">As You Are Baguio</div></td><td><span class="badge badge-active">Active</span></td><td style="font-size:11.5px;color:var(--ink-3)">Community</td><td class="project-value">₱12,000</td><td style="font-size:10.5px;color:var(--ink-3)">May 30</td></tr>
-          <tr><td><div class="project-name">AgriPulse System Prototype</div><div class="project-client">Baguio City LGU</div></td><td><span class="badge badge-completed">Completed</span></td><td style="font-size:11.5px;color:var(--ink-3)">Digital</td><td class="project-value">₱5,000</td><td style="font-size:10.5px;color:var(--ink-3)">May 15</td></tr>
-        </tbody>
+        <thead><tr><th>Project</th><th>Status</th><th>Category</th><th>Brand</th><th>Value</th><th>Updated</th></tr></thead>
+        <tbody id="projects-tbody"></tbody>
       </table>
     </div>
   </div>
@@ -531,34 +456,28 @@
   <div class="page" id="page-impact">
     <div class="page-eyebrow">social impact</div>
     <div class="page-title">Impact Tracker</div>
-    <div class="impact-grid">
-      <div class="impact-card"><div class="impact-icon">🎓</div><div class="impact-num">1,240</div><div class="impact-lbl">Students Reached</div></div>
-      <div class="impact-card"><div class="impact-icon">👩‍🏫</div><div class="impact-num">87</div><div class="impact-lbl">Teachers Trained</div></div>
-      <div class="impact-card"><div class="impact-icon">🏪</div><div class="impact-num">312</div><div class="impact-lbl">SMEs Supported</div></div>
-      <div class="impact-card"><div class="impact-icon">🏛</div><div class="impact-num">8</div><div class="impact-lbl">LGUs Engaged</div></div>
+    <div class="impact-grid" id="impact-totals">
+      <div class="impact-card"><div class="impact-icon">🎓</div><div class="impact-num" id="imp-total-students">—</div><div class="impact-lbl">Students Reached</div></div>
+      <div class="impact-card"><div class="impact-icon">👩‍🏫</div><div class="impact-num" id="imp-total-teachers">—</div><div class="impact-lbl">Teachers Trained</div></div>
+      <div class="impact-card"><div class="impact-icon">🏪</div><div class="impact-num" id="imp-total-smes">—</div><div class="impact-lbl">SMEs Supported</div></div>
+      <div class="impact-card"><div class="impact-icon">🏛</div><div class="impact-num" id="imp-total-lgus">—</div><div class="impact-lbl">LGUs Engaged</div></div>
     </div>
     <div class="two-col">
       <div class="card">
         <div class="card-title">Log New Entry</div>
         <div class="form-grid">
-          <div class="form-group"><div class="form-label">Period</div><input class="form-input" value="May 2026"/></div>
-          <div class="form-group"><div class="form-label">Program</div><input class="form-input" placeholder="e.g. Digital Brew"/></div>
-          <div class="form-group"><div class="form-label">Students Reached</div><input class="form-input" placeholder="0"/></div>
-          <div class="form-group"><div class="form-label">Teachers Trained</div><input class="form-input" placeholder="0"/></div>
-          <div class="form-group"><div class="form-label">SMEs Supported</div><input class="form-input" placeholder="0"/></div>
-          <div class="form-group"><div class="form-label">LGUs</div><input class="form-input" placeholder="0"/></div>
+          <div class="form-group"><div class="form-label">Period</div><input class="form-input" id="imp-period" placeholder="e.g. Q2 2026"/></div>
+          <div class="form-group"><div class="form-label">Program</div><input class="form-input" id="imp-program" placeholder="e.g. Digital Brew / DDC"/></div>
+          <div class="form-group"><div class="form-label">Students Reached</div><input class="form-input" id="imp-students" type="number" placeholder="0" min="0"/></div>
+          <div class="form-group"><div class="form-label">Teachers Trained</div><input class="form-input" id="imp-teachers" type="number" placeholder="0" min="0"/></div>
+          <div class="form-group"><div class="form-label">SMEs Supported</div><input class="form-input" id="imp-smes" type="number" placeholder="0" min="0"/></div>
+          <div class="form-group"><div class="form-label">LGUs Engaged</div><input class="form-input" id="imp-lgus" type="number" placeholder="0" min="0"/></div>
         </div>
-        <button class="btn btn-primary" onclick="toast('Entry saved (demo mode)','success')">Save Entry</button>
+        <button class="btn btn-primary" onclick="saveImpactEntry()">Save Entry</button>
       </div>
       <div class="card">
-        <div class="card-title">All Metrics</div>
-        <div style="font-size:12px;color:var(--ink-2);line-height:2.3">
-          <div class="flex-between"><span>Workshops Conducted</span><strong>34</strong></div>
-          <div class="flex-between"><span>CSR Projects</span><strong>12</strong></div>
-          <div class="flex-between"><span>Communities Reached</span><strong>6</strong></div>
-          <div class="flex-between"><span>Youth Programs</span><strong>9</strong></div>
-          <div class="flex-between"><span>Corporate Partners</span><strong>11</strong></div>
-        </div>
+        <div class="card-title">All Entries</div>
+        <div id="impact-entries"></div>
       </div>
     </div>
   </div>
@@ -619,6 +538,8 @@
 <script src="services/documentService.js"></script>
 <script src="services/userService.js"></script>
 <script src="services/auditService.js"></script>
+<script src="services/projectService.js"></script>
+<script src="services/impactService.js"></script>
 <script src="lib/business/dashboardStats.js"></script>
 <script src="lib/business/ndaGenerator.js"></script>
 <script src="lib/business/reportGenerator.js"></script>
@@ -638,5 +559,6 @@
 <script src="hq/operations.js"></script>
 <script src="hq/finance.js"></script>
 <script src="hq/ai.js"></script>
+<script src="hq/projects.js"></script>
 </body>
 </html>
