@@ -11,8 +11,8 @@ export default mergeConfig(
       coverage: {
         provider: 'v8',
         // Cover the shipped browser scripts that tests now import directly,
-        // not a parallel TS copy. See utils/logger.js for the export shim.
-        include: ['services/**/*.js', 'utils/**/*.js', 'lib/**/*.js'],
+        // not a parallel TS copy. See shared/utils/logger.js for the export shim.
+        include: ['shared/services/**/*.js', 'shared/utils/**/*.js', 'shared/business/**/*.js'],
         exclude: ['**/*.test.js', '**/*.test.ts'],
       },
     },

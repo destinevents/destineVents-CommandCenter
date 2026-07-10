@@ -28,70 +28,52 @@ A dual-portal operations management platform for **DestineVents Collective OPC**
 
 ```
 destineVents-CommandCenter/
+├── index.html                 # HQ portal entry point (URL must stay stable)
+├── intern.html                # Intern Command Center entry point
+├── login.html                 # Shared login page
+├── signup.html                # Intern signup page
+├── reset-password.html        # Password reset (linked from Supabase auth emails)
+│
+├── apps/                      # The two portals
+│   ├── hq/                   # HQ portal (admin/supervisor)
+│   │   ├── app.js            # App shell, routing, realtime
+│   │   ├── crm.js            # Clients & proposals pages
+│   │   ├── operations.js     # Partners, documents, impact, new project wizard
+│   │   ├── projects.js       # Projects CRUD
+│   │   ├── finance.js        # Finance overview, AR, AP, payroll, BIR
+│   │   ├── ai.js             # AI assistant (Anthropic Claude)
+│   │   └── hq.css            # HQ portal styles
+│   └── icc/                  # Intern Command Center
+│       ├── app.js            # App shell, routing, realtime
+│       ├── dashboard.js      # Dashboard stat cards, activity feed
+│       ├── tasks.js          # Kanban board, task CRUD, status transitions
+│       ├── timesheets.js     # Timesheet entry, approval workflow
+│       ├── calendar.js       # Monthly hours calendar
+│       ├── outputs.js        # Output portfolio grid
+│       ├── admin.js          # Approvals, intern overview, reports, exports
+│       ├── account.js        # Account settings
+│       └── intern.css        # ICC portal styles
+│
+├── shared/                    # Code used by both portals
+│   ├── auth/                 # Supabase client + login/signup/reset page scripts
+│   ├── services/             # Domain service layer (Supabase queries)
+│   ├── business/             # Business logic (dashboardStats, ndaGenerator, reportGenerator, birCalc)
+│   ├── components/           # Reusable component renderers (badge, modal, toast, …)
+│   ├── utils/                # date, format, logger, storage, validators, helpers (escapeHtml etc.)
+│   ├── styles/               # Shared component stylesheets
+│   ├── constants.js          # SKILL_LIST, STATUS_LABELS, KANBAN_COLS
+│   └── types.ts              # All domain interfaces (TypeScript)
+│
 ├── config/                    # App configuration
 │   ├── config.js             # Supabase credentials — NOT in git (gitignored)
 │   ├── config.example.js     # Template showing required credential format
 │   ├── roles.ts              # Role hierarchy, permissions, routes (TypeScript)
 │   └── settings.js           # App constants (brands, rates, statuses)
 │
-├── services/                  # Domain service layer (Supabase queries)
-│   ├── supabase.ts           # Supabase client singleton (reads from import.meta.env)
-│   ├── authService.ts        # signIn, signOut, getSession, getCurrentUser
-│   ├── taskService.ts        # Tasks CRUD + status transitions
-│   ├── timesheetService.ts   # Timesheets CRUD + stats
-│   ├── clientService.js      # Clients CRUD (HQ)
-│   ├── proposalService.js    # Proposals CRUD + win rate calc (HQ)
-│   ├── partnerService.js     # Partners CRUD + filtering (HQ)
-│   ├── financeService.js     # Invoices, bills, payroll CRUD + summaries (HQ)
-│   ├── documentService.js    # Document upload, metadata, public URLs (HQ)
-│   ├── userService.js        # User queries (interns, staff)
-│   └── auditService.js       # Audit logging
-│
-├── utils/                     # Shared utility functions
-│   ├── logger.js             # Structured logging (debug/info/warn/error)
-│   ├── validators.ts         # Input validation helpers (TypeScript)
-│   ├── errorHandler.js       # Error handling wrappers
-│   ├── date.js               # Date formatting and period helpers
-│   ├── format.js             # Currency, number, bytes formatting
-│   └── storage.js            # localStorage convenience wrappers
-│
-├── js/shared/                 # Shared types and UI logic
-│   ├── types.ts              # All domain interfaces (TypeScript)
-│   ├── constants.js          # SKILL_LIST, STATUS_LABELS, KANBAN_COLS
-│   ├── utils.js              # escapeHtml, badge, avatar, etc.
-│   └── components/           # Reusable component renderers
-│
-├── hq/                        # HQ portal page modules (admin/supervisor)
-│   ├── app.js                # HQ app shell, routing, realtime
-│   ├── crm.js                # Clients & proposals pages
-│   ├── operations.js         # Partners, documents, new project wizard
-│   ├── finance.js            # Finance overview, AR, AP, payroll, BIR
-│   ├── ai.js                 # AI assistant (Anthropic Claude)
-│   └── hq.css                # HQ portal styles
-│
-├── icc/                       # Intern Command Center page modules
-│   ├── app.js                # ICC app shell, routing, realtime
-│   ├── dashboard.js          # Dashboard stat cards, activity feed
-│   ├── tasks.js              # Kanban board, task CRUD, status transitions
-│   ├── timesheets.js         # Timesheet entry, approval workflow
-│   ├── outputs.js            # Output portfolio grid
-│   ├── admin.js              # Approvals, intern overview, reports, exports
-│   ├── account.js            # Account settings
-│   └── intern.css            # ICC portal styles
-│
-├── lib/business/              # Business logic modules
-│   ├── dashboardStats.js     # HQ + Intern dashboard stat builders
-│   ├── ndaGenerator.js       # NDA document HTML generation
-│   └── reportGenerator.js    # CSV/PDF report generation
-│
-├── css/                       # Shared component stylesheets
+├── assets/                    # Icons and static assets
 ├── database/schema/           # Database schema SQL files
-├── index.html                 # HQ portal entry point
-├── intern.html                # Intern Command Center entry point
-├── login.html                 # Shared login page
-├── signup.html                # Intern signup page
-├── vite.config.ts             # Vite bundler + Vitest config
-├── tsconfig.json              # TypeScript config (allowJs: true, strict: false)
+├── vite.config.ts             # Vitest config (no build — site ships as-is)
+├── tsconfig.json              # TypeScript config (allowJs: true)
 └── vercel.json                # Vercel deployment config
 ```
 

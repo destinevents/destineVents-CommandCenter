@@ -13,11 +13,9 @@
     "types": ["vite/client"]
   },
   "include": [
-    "js/**/*",
-    "services/**/*",
-    "utils/**/*",
+    "apps/**/*",
+    "shared/**/*",
     "config/**/*",
-    "lib/**/*",
     "vite.config.ts"
   ],
   "exclude": ["node_modules", "dist"]
