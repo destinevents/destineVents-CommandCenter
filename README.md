@@ -72,7 +72,7 @@ destineVents-CommandCenter/
 │
 ├── assets/                    # Icons and static assets
 ├── database/schema/           # Database schema SQL files
-├── vite.config.ts             # Vitest config (no build — site ships as-is)
+├── vite.config.ts             # Vite MPA build + Vitest config (auth pages are modules; portals classic, copied verbatim)
 ├── tsconfig.json              # TypeScript config (allowJs: true)
 └── vercel.json                # Vercel deployment config
 ```
@@ -144,13 +144,9 @@ npm run lint    # ESLint
 
 ## Deployment
 
-The project deploys to Vercel as a static site. No build step — Vercel serves files directly from the repo root:
+The project deploys to Vercel with a Vite build (`vercel.json` sets `buildCommand: "npm run build"`, `outputDirectory: "dist"`). The `/` → `/login.html` redirect handles the root URL.
 
-```bash
-npx vercel --prod
-```
-
-`vercel.json` sets `buildCommand: ""` and `outputDirectory: "."`, so Vite is not invoked during deployment. The `/` → `/login.html` redirect handles the root URL.
+Migration status: the three auth pages (login/signup/reset) are bundled Vite module entries; `index.html` and `intern.html` still load classic scripts, which the build copies into `dist/` verbatim (see `copyClassicTrees` in vite.config.ts). Supabase URL/anon key for the bundled pages come from `.env` (committed — the anon key is public by design; RLS is the access control).
 
 ---
 

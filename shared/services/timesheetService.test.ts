@@ -13,7 +13,7 @@ import {
   getExistingHoursForDate,
   buildSkillFrequency,
 } from './timesheetService.ts';
-import type { Timesheet } from '../js/shared/types';
+import type { Timesheet } from '../types';
 
 const mockFrom = sb.from as ReturnType<typeof vi.fn>;
 

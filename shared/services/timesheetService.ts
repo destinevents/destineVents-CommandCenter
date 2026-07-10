@@ -1,7 +1,7 @@
 import { sb } from './supabase';
 import { logger } from '../utils/loggerUtils.ts';
 import { FETCH_CAP } from './taskService.ts';
-import type { Timesheet, TimesheetStats, SkillFrequency, UserRole } from '../js/shared/types';
+import type { Timesheet, TimesheetStats, SkillFrequency, UserRole } from '../types';
 
 export async function fetchTimesheets(role: UserRole, userId: string): Promise<Timesheet[]> {
   const base = sb.from('intern_timesheets').select('*');

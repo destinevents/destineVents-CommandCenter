@@ -1,4 +1,4 @@
-import type { UserRole } from '../js/shared/types';
+import type { UserRole } from '../shared/types';
 
 export const ROLES = {
   ADMIN: 'admin',

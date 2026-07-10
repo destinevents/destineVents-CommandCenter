@@ -13,7 +13,7 @@ import {
   requiresOutputLink,
   calcTaskStats,
 } from './taskService.ts';
-import type { Task } from '../js/shared/types';
+import type { Task } from '../types';
 
 const mockFrom = sb.from as ReturnType<typeof vi.fn>;
 
