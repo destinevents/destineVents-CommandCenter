@@ -50,3 +50,9 @@ function calcFinanceSummary(invoices, bills) {
     pendingBillsCount: pendingBills.length,
   };
 }
+
+// Node/Vitest export so tests run against this shipped file (see utils/logger.js).
+// No-op in the browser, which loads this as a classic <script>.
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { calcFinanceSummary };
+}

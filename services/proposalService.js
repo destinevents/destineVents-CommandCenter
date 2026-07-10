@@ -25,3 +25,8 @@ function calcWinRate(proposals) {
     pipelineValue,
   };
 }
+
+// Node/Vitest export — tests run against this shipped file. No-op in browser.
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { calcWinRate };
+}

@@ -26,3 +26,8 @@ function capitalize(str) {
 function pluralize(count, singular, plural) {
   return count === 1 ? singular : (plural || singular + 's');
 }
+
+// Node/Vitest export — tests run against this shipped file. No-op in browser.
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { formatCurrency, formatNumber, formatBytes, formatPercentage, capitalize, pluralize };
+}

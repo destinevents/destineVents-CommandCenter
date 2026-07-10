@@ -10,8 +10,10 @@ export default mergeConfig(
       environment: 'node',
       coverage: {
         provider: 'v8',
-        include: ['services/**/*.ts', 'utils/**/*.ts', 'config/**/*.ts'],
-        exclude: ['**/*.test.ts'],
+        // Cover the shipped browser scripts that tests now import directly,
+        // not a parallel TS copy. See utils/logger.js for the export shim.
+        include: ['services/**/*.js', 'utils/**/*.js', 'lib/**/*.js'],
+        exclude: ['**/*.test.js', '**/*.test.ts'],
       },
     },
   })

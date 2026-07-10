@@ -10,11 +10,16 @@ async function createClient(data) {
   return result?.[0] || null;
 }
 
-async function getClientTotalValue(clients) {
+function getClientTotalValue(clients) {
   return clients.reduce((s, c) => s + (c.total_value || 0), 0);
 }
 
-async function findClientByName(name, clients) {
+function findClientByName(name, clients) {
   if (!name || !clients) return null;
   return clients.find(c => c.name?.toLowerCase() === name.toLowerCase()) || null;
+}
+
+// Node/Vitest export — tests run against this shipped file. No-op in browser.
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { getClientTotalValue, findClientByName };
 }

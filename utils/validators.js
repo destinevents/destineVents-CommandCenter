@@ -74,3 +74,11 @@ function validateDailyHours(existingHours, newHours, max = 9) {
     return `Cannot log ${newHours}h — total would be ${total}h (max is ${max}h per day).`;
   return null;
 }
+
+// Node/Vitest export — tests run against this shipped file. No-op in browser.
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    validateRequired, validateEmail, validatePassword, validateNumber,
+    validateDate, validateForm, validateTaskStatusTransition, validateDailyHours,
+  };
+}

@@ -39,5 +39,9 @@ const logger = {
 
 // Attach to window for the browser pages, which load this as a classic
 // <script src> — module syntax (export) is a SyntaxError there and kills the
-// whole file. Tests/TS services import from loggerUtils.ts instead.
+// whole file. Under Node/Vitest, expose the same symbols via module.exports so
+// tests exercise this exact shipped file (no parallel TS copy to drift from).
 if (typeof window !== 'undefined') window.logger = logger;
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { logger, setLogLevel, LOG_LEVELS };
+}

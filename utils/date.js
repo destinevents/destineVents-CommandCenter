@@ -48,3 +48,11 @@ function getQuarter(date) {
   const m = (date || new Date()).getMonth();
   return 'Q' + (Math.floor(m / 3) + 1) + ' ' + (date || new Date()).getFullYear();
 }
+
+// Node/Vitest export — tests run against this shipped file. No-op in browser.
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    formatDate, formatDateLong, formatDateShort, formatDateForNDA,
+    formatTime, todayISO, nowISO, getCurrentPeriod, getQuarter,
+  };
+}

@@ -1,7 +1,6 @@
 {
   "name": "destinevents-command-center",
   "version": "1.0.0",
-  "type": "module",
   "description": "A dual-portal operations management platform for DestineVents Collective OPC",
   "scripts": {
     "dev": "vite",
