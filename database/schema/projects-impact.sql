@@ -43,5 +43,18 @@ create policy "admin_only" on impact_entries for all to authenticated
   with check (public.current_user_role() = 'admin');
 
 -- ─── REALTIME ────────────────────────────────────────────────────────────────
-alter publication supabase_realtime add table projects;
-alter publication supabase_realtime add table impact_entries;
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and tablename = 'projects'
+  ) then
+    alter publication supabase_realtime add table projects;
+  end if;
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and tablename = 'impact_entries'
+  ) then
+    alter publication supabase_realtime add table impact_entries;
+  end if;
+end $$;
