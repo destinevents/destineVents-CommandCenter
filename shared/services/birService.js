@@ -1,5 +1,5 @@
 import { sb } from './supabase';
-import { logger } from '../utils/loggerUtils.ts';
+import { logger } from '../utils/logger.ts';
 import { showToast } from '../components/toast.ts';
 
 export async function fetchBirFilings() {

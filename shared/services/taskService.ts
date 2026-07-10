@@ -1,5 +1,5 @@
 import { sb } from './supabase';
-import { logger } from '../utils/loggerUtils.ts';
+import { logger } from '../utils/logger.ts';
 import type { Task, TaskStatus, TaskStats, TaskAction, UserRole } from '../types';
 
 // Safety cap: newest rows win — keep in sync with taskService.js

@@ -4,7 +4,7 @@ import { escapeHtml, statusClass } from '../../shared/utils/helpers.ts';
 import { validateRequired } from '../../shared/utils/validators.ts';
 import { APP_SETTINGS } from '../../config/settings.js';
 import { fetchProjects, createProject } from '../../shared/services/projectService.js';
-import { setProjects } from './state.js';
+import { _projects, setProjects } from './state.js';
 import { toast, openModal, closeModal } from './ui.js';
 
 export async function loadProjects() {
@@ -30,11 +30,11 @@ export function renderProjects(projects) {
           <td class="project-value">${formatCurrency(p.value)}</td>
           <td style="font-size:10.5px;color:var(--ink-3)">${formatDateShort((p.updated_at || p.created_at || '').slice(0, 10))}</td>
         </tr>`).join('')
-    : `<tr><td colspan="6"><div class="empty-state">No projects yet — start one with \ New Project</div></td></tr>`;
+    : `<tr><td colspan="6"><div class="empty-state">No projects yet — start one with \\ New Project</div></td></tr>`;
 }
 
 export function openAddProject() {
-  const brands    = (window.APP_SETTINGS?.company?.brands || ['DestineVents', 'DDC', 'AYA Baguio']).map(b => `<option>${escapeHtml(b)}</option>`).join('');
+  const brands    = (APP_SETTINGS.company.brands || ['DestineVents', 'DDC', 'AYA Baguio']).map(b => `<option>${escapeHtml(b)}</option>`).join('');
   const statuses  = ['Lead', 'Proposal Sent', 'NDA Signed', 'Active', 'Completed'].map(s => `<option>${s}</option>`).join('');
   const cats      = ['Events', 'Training', 'Digital', 'CSR', 'Community'].map(c => `<option>${c}</option>`).join('');
   openModal('New Project', `

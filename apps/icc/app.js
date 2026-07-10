@@ -2,7 +2,7 @@
 // Top of the module graph — imports every page module. Page modules may import
 // { goPage, renderPage } back from here, but only call them inside handlers
 // (never at top level), which keeps the circular edges TDZ-safe.
-import { logger } from '../../shared/utils/loggerUtils.ts';
+import { logger } from '../../shared/utils/logger.ts';
 import { populateOutputTypeSelect } from '../../shared/utils/helpers.ts';
 import { sb } from '../../shared/services/supabase';
 import { getCurrentUser, signOut } from '../../shared/services/authService.ts';

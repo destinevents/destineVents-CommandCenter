@@ -1,6 +1,4 @@
-// TS shim of utils/logger.js for services/tests. The browser pages load
-// logger.js as a classic script (no module syntax allowed there); TS code
-// imports from this file instead. Keep the two in sync.
+// Structured console logging with levels (debug/info/warn/error).
 const LOG_LEVELS = { DEBUG: 0, INFO: 1, WARN: 2, ERROR: 3 };
 let _logLevel = LOG_LEVELS.INFO;
 

@@ -5,7 +5,7 @@ import { validateRequired } from '../../shared/utils/validators.ts';
 import { APP_SETTINGS } from '../../config/settings.js';
 import { fetchClients, createClient } from '../../shared/services/clientService.js';
 import { fetchProposals, createProposal, calcWinRate } from '../../shared/services/proposalService.js';
-import { setClients, setProposals } from './state.js';
+import { _clients, _proposals, setClients, setProposals } from './state.js';
 import { toast, openModal, closeModal } from './ui.js';
 
 export async function loadClients() {

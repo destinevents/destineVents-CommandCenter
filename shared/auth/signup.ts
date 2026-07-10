@@ -3,7 +3,7 @@
 // hardcodes 'intern' (and authService.signUp strips role defensively anyway).
 import './authPage.ts';
 import { signUp } from '../services/authService.ts';
-import { validatePassword } from './validation.ts';
+import { validatePassword } from '../utils/validators.ts';
 
 function setLoading(loading: boolean) {
   const btn = document.getElementById('signup-btn') as HTMLButtonElement;

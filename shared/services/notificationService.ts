@@ -1,6 +1,6 @@
 // ICC-only service — converted in place from notificationService.js.
 import { sb } from './supabase';
-import { logger } from '../utils/loggerUtils.ts';
+import { logger } from '../utils/logger.ts';
 
 export interface InternNotification {
   id: string;

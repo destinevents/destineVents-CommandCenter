@@ -1,6 +1,6 @@
 // Shared error path for domain services: log + user-facing toast.
 // (Replaces the classic shared/utils/errorHandler.js handleServiceError.)
-import { logger } from '../utils/loggerUtils.ts';
+import { logger } from '../utils/logger.ts';
 import { showToast } from '../components/toast.ts';
 
 export function handleServiceError(context: string, error: { message?: string } | null) {

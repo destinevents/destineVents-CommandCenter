@@ -1,6 +1,6 @@
 // ESM version of shared/services/auditService.js (frozen classic copy kept for HQ).
 import { sb } from './supabase';
-import { logger } from '../utils/loggerUtils.ts';
+import { logger } from '../utils/logger.ts';
 
 export interface AuditLog {
   id: string;

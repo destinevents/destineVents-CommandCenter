@@ -8,8 +8,8 @@ import { createClient, findClientByName } from '../../shared/services/clientServ
 import { createProject } from '../../shared/services/projectService.js';
 import { fetchImpactEntries, createImpactEntry } from '../../shared/services/impactService.js';
 import { generateNDAContent, buildNDAWindowContent } from '../../shared/business/ndaGenerator.js';
-import { _clients, _impactEntries, setPartners, setDocuments, setImpactEntries } from './state.js';
-import { toast } from './ui.js';
+import { _clients, _partners, _documents, _impactEntries, setPartners, setDocuments, setImpactEntries } from './state.js';
+import { toast, openModal, closeModal } from './ui.js';
 import { showPage } from './app.js';
 
 export async function loadPartners() {

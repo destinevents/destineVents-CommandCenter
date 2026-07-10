@@ -12,16 +12,16 @@ import { fetchPartners } from '../../shared/services/partnerService.js';
 import { fetchInvoices, fetchBills } from '../../shared/services/financeService.js';
 import { fetchProjects } from '../../shared/services/projectService.js';
 import {
-  _clients, _proposals, _partners, _invoices, _bills, _projects,
+  _clients, _proposals, _partners, _invoices, _projects,
   setClients, setProposals, setPartners, setInvoices, setBills, setProjects,
 } from './state.js';
-import { toast, openModal, closeModal, saveModal, toggleHqNav } from './ui.js';
+import { toast, closeModal, saveModal, toggleHqNav } from './ui.js';
 import { loadClients, openAddClient, loadProposals, openAddProposal } from './crm.js';
 import {
   loadPartners, filterPartners, openAddPartner, loadDocuments, handleFileSelect,
   npGoStep2, npGoStep1, npFinish, downloadNDA, loadImpact, saveImpactEntry,
 } from './operations.js';
-import { loadFinance, showFinanceTab, openFileBir, openAddInvoice, openAddBill, openAddPayroll } from './finance.js';
+import { loadFinance, showFinanceTab, openFileBir, openAddInvoice, openAddBill, openAddPayroll, estimateDeductions } from './finance.js';
 import { loadProjects, openAddProject } from './projects.js';
 import { selectTemplate, copyAIOutput, simulateAI } from './ai.js';
 
@@ -307,7 +307,7 @@ Object.assign(window, {
   showPage, handleSignIn, handleSignOut, toggleHqNav, filterTable,
   closeModal, saveModal, toast,
   openAddClient, openAddProposal, openAddPartner, openAddProject,
-  openAddInvoice, openAddBill, openAddPayroll, openFileBir, showFinanceTab,
+  openAddInvoice, openAddBill, openAddPayroll, openFileBir, showFinanceTab, estimateDeductions,
   filterPartners, handleFileSelect, npGoStep1, npGoStep2, npFinish, downloadNDA,
   saveImpactEntry, selectTemplate, copyAIOutput, simulateAI,
 });

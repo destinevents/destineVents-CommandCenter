@@ -3,7 +3,7 @@
 // app.js in the import graph so page modules can use these at top level
 // without hitting TDZ on the circular app.js edge.
 import { showToast } from '../../shared/components/toast.ts';
-import { logger } from '../../shared/utils/loggerUtils.ts';
+import { logger } from '../../shared/utils/logger.ts';
 import { todayISO } from '../../shared/utils/dateUtils.ts';
 import { currentUser, liveTimesheets, pendingApprovals } from './state.js';
 

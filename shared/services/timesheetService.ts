@@ -1,5 +1,5 @@
 import { sb } from './supabase';
-import { logger } from '../utils/loggerUtils.ts';
+import { logger } from '../utils/logger.ts';
 import { FETCH_CAP } from './taskService.ts';
 import type { Timesheet, TimesheetStats, SkillFrequency, UserRole } from '../types';
 

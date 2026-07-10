@@ -5,7 +5,7 @@
 import './authPage.ts';
 import { sb } from '../services/supabase';
 import { signOut, getSession, updatePassword } from '../services/authService.ts';
-import { validatePassword } from './validation.ts';
+import { validatePassword } from '../utils/validators.ts';
 
 function setResetError(msg: string, ok?: boolean) {
   const errEl = document.getElementById('reset-error')!;

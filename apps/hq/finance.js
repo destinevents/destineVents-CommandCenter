@@ -332,7 +332,7 @@ export function openAddPayroll() {
     <div style="font-size:10px;color:var(--ink-3);margin-top:-8px">SSS ≈ 4.5% · PhilHealth ≈ 2.5% · Pag-IBIG ≈ 2% of gross</div>`, savePayroll);
 }
 
-function estimateDeductions() {
+export function estimateDeductions() {
   const gross = +document.getElementById('pp-gross').value||0;
   const ded = Math.round(gross * 0.15);
   document.getElementById('pp-ded').value = ded;

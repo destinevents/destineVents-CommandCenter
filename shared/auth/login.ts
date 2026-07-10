@@ -4,7 +4,7 @@
 import './authPage.ts';
 import { sb } from '../services/supabase';
 import { signIn, signOut, getSession } from '../services/authService.ts';
-import { validateEmail } from './validation.ts';
+import { validateEmail } from '../utils/validators.ts';
 
 function setLoading(loading: boolean) {
   const btn = document.getElementById('login-btn') as HTMLButtonElement;

@@ -1,7 +1,7 @@
 import { renderStatCards } from '../../shared/components/statCard.ts';
 import { escapeHtml, badge } from '../../shared/utils/helpers.ts';
 import { formatDateShort } from '../../shared/utils/dateUtils.ts';
-import { currentUser, liveTasks, myTasks, mySheets, pendingApprovals } from './state.js';
+import { currentUser, myTasks, mySheets, pendingApprovals } from './state.js';
 import { isOverdue } from './tasks.js';
 
 export async function renderDashboard() {
@@ -74,7 +74,6 @@ export async function renderDashboard() {
 
   const recentSheets = sheets.slice(-5).reverse();
   document.getElementById('dash-sheets-body').innerHTML = recentSheets.map(ts=>{
-    const task = liveTasks.find(t=>t.id===ts.task_id);
     return `<tr>
       <td style="color:#374151;white-space:nowrap">${ts.date}</td>
       <td class="truncate text-ink">${escapeHtml(ts.activity_description)}</td>

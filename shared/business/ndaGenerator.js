@@ -2,7 +2,7 @@ import { APP_SETTINGS } from '../../config/settings.js';
 import { formatDateForNDA, todayISO } from '../utils/dateUtils.ts';
 import { escapeHtml } from '../utils/helpers.ts';
 
-export function generateNDAContent(client, address, contact, email, purpose, date, brand) {
+export function generateNDAContent(client, address, contact, email, purpose, date) {
   const fmtDate = date ? formatDateForNDA(date) : formatDateForNDA(todayISO());
   const safe = v => escapeHtml(v || '');
   return `
@@ -19,7 +19,7 @@ export function generateNDAContent(client, address, contact, email, purpose, dat
   `;
 }
 
-export function buildNDAWindowContent(client, address, contact, email, purpose, date, brand) {
+export function buildNDAWindowContent(client, address, contact, email, purpose, date) {
   const fmt = date ? formatDateForNDA(date) : formatDateForNDA(todayISO());
   const safe = v => escapeHtml(v || '');
   return `
