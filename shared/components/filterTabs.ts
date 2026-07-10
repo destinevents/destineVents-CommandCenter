@@ -1,6 +1,13 @@
-// FROZEN classic copy — still loaded by index.html (HQ portal). The canonical
-// module version lives beside this file (.ts); delete this one when HQ converts.
-function renderFilterTabs(containerId, filters, activeFilter, action, dataAttr, labelMap) {
+// ESM version of shared/components/filterTabs.js (frozen classic copy kept for HQ).
+
+export function renderFilterTabs(
+  containerId: string,
+  filters: string[],
+  activeFilter: string,
+  action: string,
+  dataAttr?: string,
+  labelMap?: Record<string, string>
+): void {
   const container = document.getElementById(containerId);
   if (!container) return;
 

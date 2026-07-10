@@ -1,149 +1,39 @@
-// ─── GLOBAL STATE ────────────────────────────────────────────────────────────
-let currentUser = {};
-let activePage = 'dashboard';
-let sheetFilter = 'all';
-let taskFilter = 'all';
-let sidebarOpen = true;
-let pendingRejectId = null;
-
-let liveUsers = [];
-let liveTasks = [];
-let liveTimesheets = [];
-
-// ─── UTILITY FUNCTIONS ───────────────────────────────────────────────────────
-function user(id) {
-  return liveUsers.find((u) => u.id === id) || {};
-}
-
-function myTasks() {
-  return liveTasks;
-}
-
-function mySheets() {
-  return liveTimesheets;
-}
-
-function pendingApprovals() {
-  return liveTimesheets.filter((t) => t.status === 'pending');
-}
-
-function toast(msg) {
-  showToast(msg, '', 2400);
-}
-
-function handleError(context, error) {
-  logger.error(context, error?.message || 'Unknown error', error);
-  toast(`Something went wrong: ${error?.message || 'Unknown error'}. Try refreshing.`);
-}
-
-function openModal(id) {
-  const overlay = document.getElementById(id);
-  overlay.classList.remove('closing');
-  overlay.classList.add('open');
-}
-
-// Per-modal cleanup run on EVERY close path (Cancel, overlay, save).
-// Modules register their own hook (e.g. icc/tasks.js clears edit mode)
-// instead of closeModal reaching into other files' state.
-const MODAL_CLOSE_HOOKS = {};
-
-function closeModal(id, onClose) {
-  const overlay = document.getElementById(id);
-  if (!overlay || overlay.classList.contains('closing')) return;
-  overlay.classList.add('closing');
-  setTimeout(() => {
-    overlay.classList.remove('open', 'closing');
-    MODAL_CLOSE_HOOKS[id]?.();
-    onClose?.();
-  }, 180);
-}
-
-// ─── UI HELPERS ──────────────────────────────────────────────────────────────
-function applyRoleVisibility() {
-  const isAdmin = currentUser.role === 'admin';
-  const isSup = currentUser.role === 'supervisor' || isAdmin;
-  const isIntern = currentUser.role === 'intern';
-  document
-    .querySelectorAll('.admin-only')
-    .forEach((el) => (el.style.display = isAdmin ? '' : 'none'));
-  document
-    .querySelectorAll('.supervisor-only')
-    .forEach((el) => (el.style.display = isSup ? '' : 'none'));
-  document
-    .querySelectorAll('.intern-only')
-    .forEach((el) => (el.style.display = isIntern ? '' : 'none'));
-}
-
-function toggleSidebar() {
-  sidebarOpen = !sidebarOpen;
-  const sidebarEl = document.getElementById('sidebar');
-  sidebarEl.classList.toggle('collapsed', !sidebarOpen);
-  document.querySelector('.sb-collapse').textContent = sidebarOpen ? '◀' : '▶';
-}
-
-// Phone-width off-canvas nav (hamburger in the topbar, backdrop behind)
-function toggleMobileNav(open) {
-  const sidebar = document.getElementById('sidebar');
-  const backdrop = document.getElementById('sidebar-backdrop');
-  const next = open ?? !sidebar.classList.contains('mobile-open');
-  sidebar.classList.toggle('mobile-open', next);
-  backdrop.classList.toggle('show', next);
-  // The drawer always shows full labels. Clear desktop collapse via
-  // toggleSidebar's own state so sidebarOpen and the ◀/▶ arrow stay in sync
-  // when the user returns to desktop width.
-  if (next && !sidebarOpen) toggleSidebar();
-}
-
-function updateBadges() {
-  const count = pendingApprovals().length;
-  document.getElementById('approval-badge').textContent = count;
-  document.getElementById('approval-badge').style.display = count > 0 ? 'inline' : 'none';
-  const nb = document.getElementById('notif-btn');
-  if (nb) {
-    nb.style.display = currentUser.role !== 'intern' && count > 0 ? 'flex' : 'none';
-  }
-  document.getElementById('notif-count').textContent = count;
-  updateTodayHours();
-}
-
-function updateTodayHours() {
-  const el = document.getElementById('sb-today-hours');
-  const labelEl = document.getElementById('sb-today-label');
-  if (!el) return;
-  const today = todayISO();
-  const todayTotal = liveTimesheets
-    .filter(t => t.date === today)
-    .reduce((s, t) => s + t.hours, 0);
-  if (todayTotal > 0) {
-    el.textContent = todayTotal + 'h';
-    if (labelEl) labelEl.textContent = 'TODAY';
-  } else {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yISO = yesterday.toISOString().slice(0, 10);
-    const yTotal = liveTimesheets
-      .filter(t => t.date === yISO)
-      .reduce((s, t) => s + t.hours, 0);
-    el.textContent = yTotal + 'h';
-    if (labelEl) labelEl.textContent = yTotal > 0 ? 'YESTERDAY' : 'TODAY';
-  }
-}
-
-// ─── DATA LOADING ────────────────────────────────────────────────────────────
-async function loadLiveUsers() {
-  const result = await fetchUsers();
-  if (result) liveUsers = result;
-}
-
-async function loadLiveTasks() {
-  const result = await fetchTasks(currentUser.role, currentUser.id);
-  if (result) liveTasks = result;
-}
-
-async function loadLiveTimesheets() {
-  const result = await fetchTimesheets(currentUser.role, currentUser.id);
-  if (result) liveTimesheets = result;
-}
+// ─── ICC APP SHELL: routing, event delegation, realtime, init ────────────────
+// Top of the module graph — imports every page module. Page modules may import
+// { goPage, renderPage } back from here, but only call them inside handlers
+// (never at top level), which keeps the circular edges TDZ-safe.
+import { logger } from '../../shared/utils/loggerUtils.ts';
+import { populateOutputTypeSelect } from '../../shared/utils/helpers.ts';
+import { sb } from '../../shared/services/supabase';
+import { getCurrentUser, signOut } from '../../shared/services/authService.ts';
+import {
+  currentUser, setCurrentUser, activePage, setActivePage,
+} from './state.js';
+import {
+  handleError, openModal, closeModal,
+  applyRoleVisibility, toggleSidebar, toggleMobileNav, updateBadges,
+} from './ui.js';
+import { loadLiveUsers, loadLiveTasks, loadLiveTimesheets } from './data.js';
+import { renderDashboard } from './dashboard.js';
+import {
+  renderTasks, setTaskFilter, openTaskDetail, handleDeleteTask, taskAction,
+  openCreateTask, openEditTask, populateAddTaskModal, handleCreateTask, taskPager,
+} from './tasks.js';
+import {
+  renderTimesheets, openLogHours, setSheetFilter, exportTimesheetCSV,
+  approveSheet, rejectSheet, confirmReject, deleteSheet, logHours, sheetPager,
+} from './timesheets.js';
+import { renderOutputs, outputPager } from './outputs.js';
+import {
+  renderApprovals, renderInterns, renderReports, renderAuditLog,
+  exportExcel, exportPDF, completeIntern, reopenIntern, setInternTab,
+} from './admin.js';
+import { renderAccount } from './account.js';
+import { renderCalendar, calPrev, calNext } from './calendar.js';
+import {
+  loadNotifications, toggleNotifCenter, openNotification,
+  markAllNotificationsRead, handleIncomingNotification,
+} from './notifications.js';
 
 // ─── PAGE ROUTING ────────────────────────────────────────────────────────────
 const PAGE_DATA = {
@@ -159,7 +49,7 @@ const PAGE_DATA = {
   calendar: ['timesheets', 'tasks'],
 };
 
-async function goPage(page) {
+export async function goPage(page) {
   document.querySelectorAll('.page').forEach((p) => p.classList.remove('active'));
   document.getElementById('page-' + page)?.classList.add('active');
   document.querySelectorAll('.nav-btn').forEach((b) => {
@@ -167,7 +57,7 @@ async function goPage(page) {
     const pip = b.querySelector('.pip');
     if (pip) pip.style.display = b.classList.contains('active') ? 'block' : 'none';
   });
-  activePage = page;
+  setActivePage(page);
   const titles = {
     dashboard: 'Dashboard',
     tasks: 'Tasks',
@@ -184,7 +74,7 @@ async function goPage(page) {
   await renderPage(page);
 }
 
-async function renderPage(page) {
+export async function renderPage(page) {
   if (!currentUser.id) return;
 
   const map = {
@@ -487,7 +377,7 @@ async function init() {
       return;
     }
 
-    currentUser = {
+    setCurrentUser({
       id: user.id,
       name: user.name,
       email: user.email,
@@ -496,7 +386,7 @@ async function init() {
       program: user.program,
       school: user.school,
       required_hours: user.required_hours,
-    };
+    });
 
     document.getElementById('topbar-name').textContent = user.name;
     document.getElementById('topbar-role').textContent = user.role;

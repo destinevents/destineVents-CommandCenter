@@ -1,3 +1,16 @@
+import { createPager, attachFilterToolbar, escapeHtml, badge, pBadge, skillPill } from '../../shared/utils/helpers.ts';
+import { emptyStateHTML } from '../../shared/components/emptyState.ts';
+import { renderSkillPicker, resetSkillPicker } from '../../shared/components/skillPicker.ts';
+import { STATUS_LABELS, STATUS_COLORS, KANBAN_COLS } from '../../shared/constants.ts';
+import { formatDateShort, todayISO } from '../../shared/utils/dateUtils.ts';
+import { validateRequired } from '../../shared/utils/validators.ts';
+import { createTask, updateTask, deleteTask } from '../../shared/services/taskService.ts';
+import { logAudit } from '../../shared/services/auditService.ts';
+import { currentUser, taskFilter, setTaskFilterValue, liveTasks, liveUsers, liveTimesheets, myTasks, user } from './state.js';
+import { toast, openModal, closeModal, MODAL_CLOSE_HOOKS } from './ui.js';
+import { loadLiveTasks, loadLiveTimesheets, loadLiveUsers } from './data.js';
+import { renderDashboard } from './dashboard.js';
+
 const TASK_PREVIEW_COUNT = 3;
 
 function applyTaskFilters(tasks) {
@@ -22,14 +35,14 @@ function applyTaskFilters(tasks) {
 }
 
 // Single-status grids render in pages so a big backlog never floods the DOM
-const taskPager = createPager(45, () => renderTasks());
+export const taskPager = createPager(45, () => renderTasks());
 
 attachFilterToolbar(['task-search', 'task-priority-filter', 'task-type-filter', 'task-sort'], () => {
   taskPager.reset();
   renderTasks();
 });
 
-function isOverdue(t) {
+export function isOverdue(t) {
   return !!t.due_date && !['completed', 'reviewed'].includes(t.status) && t.due_date < todayISO();
 }
 
@@ -50,7 +63,7 @@ function taskCard(t, i = 0) {
     </div>`;
 }
 
-async function renderTasks() {
+export async function renderTasks() {
   const allTasks = myTasks();
   const tasks = applyTaskFilters(allTasks);
   document.getElementById('task-count-label').textContent =
@@ -102,14 +115,14 @@ async function renderTasks() {
   }
 }
 
-async function setTaskFilter(f) {
-  taskFilter = f;
+export async function setTaskFilter(f) {
+  setTaskFilterValue(f);
   taskPager.reset();
   await renderTasks();
 }
 
 
-function openTaskDetail(id) {
+export function openTaskDetail(id) {
   const t = liveTasks.find(x=>x.id===id);
   if(!t) return;
   const intern = user(t.assigned_to);
@@ -156,7 +169,7 @@ function openTaskDetail(id) {
   openModal('modal-view-task');
 }
 
-async function handleDeleteTask(id) {
+export async function handleDeleteTask(id) {
   const t = liveTasks.find(x => x.id === id);
   if (!t) return;
   // Timesheets reference tasks by FK — deleting a task with logged hours
@@ -180,7 +193,7 @@ async function handleDeleteTask(id) {
   await renderDashboard();
 }
 
-async function taskAction(id, action) {
+export async function taskAction(id, action) {
   const task = liveTasks.find(t => t.id === id);
 
   if (task?.status === 'reviewed') {
@@ -250,14 +263,14 @@ function clearTaskModal() {
   [...document.getElementById('nt-skills').options].forEach(o => { o.selected = false; });
 }
 
-function openCreateTask() {
+export function openCreateTask() {
   editingTaskId = null;
   setTaskModalMode(false);
   clearTaskModal();
   openModal('modal-add-task');
 }
 
-function openEditTask(id) {
+export function openEditTask(id) {
   const t = liveTasks.find(x => x.id === id);
   if (!t) return;
   editingTaskId = id;
@@ -279,7 +292,7 @@ function openEditTask(id) {
   closeModal('modal-view-task', () => openModal('modal-add-task'));
 }
 
-async function populateAddTaskModal() {
+export async function populateAddTaskModal() {
   if (liveUsers.length === 0) await loadLiveUsers();
   const intern_select = document.getElementById('nt-assignee');
   intern_select.innerHTML = '<option value="">Select intern…</option>' +
@@ -287,7 +300,7 @@ async function populateAddTaskModal() {
   renderSkillPicker('nt-skills-picker', 'nt-skills');
 }
 
-async function handleCreateTask() {
+export async function handleCreateTask() {
   const title = document.getElementById('nt-title').value.trim();
   const assignee = document.getElementById('nt-assignee').value;
   const err = validateRequired(title, 'Title') || validateRequired(assignee, 'Assignee');

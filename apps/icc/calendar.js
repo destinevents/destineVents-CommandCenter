@@ -1,21 +1,25 @@
+import { escapeHtml, badge } from '../../shared/utils/helpers.ts';
+import { liveTasks, liveTimesheets } from './state.js';
+import { openModal } from './ui.js';
+
 // ─── CALENDAR STATE ──────────────────────────────────────────────────────────
 const _calNow = new Date();
 let calYear  = _calNow.getFullYear();
 let calMonth = _calNow.getMonth(); // 0-indexed
 
-function calPrev() {
+export function calPrev() {
   calMonth--;
   if (calMonth < 0) { calMonth = 11; calYear--; }
   renderCalendar();
 }
 
-function calNext() {
+export function calNext() {
   calMonth++;
   if (calMonth > 11) { calMonth = 0; calYear++; }
   renderCalendar();
 }
 
-function renderCalendar() {
+export function renderCalendar() {
   const label = new Date(calYear, calMonth, 1)
     .toLocaleDateString('en-PH', { month: 'long', year: 'numeric' });
   document.getElementById('cal-month-label').textContent = label;

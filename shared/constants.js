@@ -1,3 +1,5 @@
+// FROZEN classic copy — still loaded by index.html (HQ portal). The canonical
+// module version lives beside this file (.ts); delete this one when HQ converts.
 const SKILL_LIST = [
   "Web Development","Backend Development","Database Design","Automation",
   "Debugging","Graphic Design","Video Editing","Content Creation",

@@ -1,13 +1,21 @@
+import { sb } from '../../shared/services/supabase';
+import { fetchAuditLogs } from '../../shared/services/auditService.ts';
+import { escapeHtml, avatarEl, skillPill, skillPillGreen } from '../../shared/utils/helpers.ts';
+import { formatDateShort, formatTime } from '../../shared/utils/dateUtils.ts';
+import { liveUsers, liveTasks, liveTimesheets, pendingApprovals } from './state.js';
+import { toast } from './ui.js';
+import { loadLiveUsers } from './data.js';
+
 let showCompletedInterns = false;
 
-function setInternTab(completed) {
+export function setInternTab(completed) {
   showCompletedInterns = completed;
   document.getElementById('intern-tab-active')?.classList.toggle('active', !completed);
   document.getElementById('intern-tab-completed')?.classList.toggle('active', completed);
   renderInterns();
 }
 
-async function completeIntern(uid) {
+export async function completeIntern(uid) {
   const intern = liveUsers.find(u => u.id === uid);
   if (!intern) return;
   if (!confirm(`Mark ${intern.name} as completed? They'll move to the Completed tab.`)) return;
@@ -18,7 +26,7 @@ async function completeIntern(uid) {
   toast(`${intern.name} marked as completed.`);
 }
 
-async function reopenIntern(uid) {
+export async function reopenIntern(uid) {
   const intern = liveUsers.find(u => u.id === uid);
   if (!intern) return;
   const { error } = await sb.from('intern_users').update({ completed_at: null }).eq('id', uid);
@@ -41,7 +49,7 @@ function topSkillsFor(sheets, n) {
     .map(([s]) => s);
 }
 
-async function renderApprovals() {
+export async function renderApprovals() {
   const pending = pendingApprovals();
   document.getElementById('appr-sub').textContent =
     `${pending.length} entr${pending.length === 1 ? 'y' : 'ies'} awaiting review`;
@@ -82,7 +90,7 @@ async function renderApprovals() {
     .join('');
 }
 
-async function renderInterns() {
+export async function renderInterns() {
   const allInterns = liveUsers.filter((u) => u.role === 'intern');
   const interns = allInterns.filter(u => showCompletedInterns ? !!u.completed_at : !u.completed_at);
   const sheetsByIntern = new Map();
@@ -138,7 +146,7 @@ async function renderInterns() {
     .join('');
 }
 
-async function renderReports() {
+export async function renderReports() {
   const interns = liveUsers.filter((u) => u.role === 'intern');
   const totalApprH = liveTimesheets
     .filter((t) => t.status === 'approved')
@@ -195,7 +203,7 @@ async function renderReports() {
     .join('');
 }
 
-function exportExcel(uid) {
+export function exportExcel(uid) {
   const intern = liveUsers.find((u) => u.id === uid);
   if (!intern) {
     toast('Intern not found — please refresh.');
@@ -216,7 +224,7 @@ function exportExcel(uid) {
   toast('Excel export downloaded!');
 }
 
-function exportPDF(uid) {
+export function exportPDF(uid) {
   const intern = liveUsers.find((u) => u.id === uid);
   if (!intern) {
     toast('Intern not found — please refresh.');
@@ -287,7 +295,7 @@ function exportPDF(uid) {
 let auditLogCache = { logs: null, at: 0 };
 const AUDIT_CACHE_MS = 60000;
 
-async function renderAuditLog() {
+export async function renderAuditLog() {
   if (!auditLogCache.logs || Date.now() - auditLogCache.at > AUDIT_CACHE_MS) {
     auditLogCache = { logs: await fetchAuditLogs(), at: Date.now() };
   }

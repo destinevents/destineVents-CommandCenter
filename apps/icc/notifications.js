@@ -2,9 +2,16 @@
 // intern_notifications table (rows are created by DB triggers — see
 // database/schema/notifications.sql). Live toasts come from the realtime
 // INSERT subscription in app.js calling handleIncomingNotification.
+import { fetchNotifications, markNotificationsRead } from '../../shared/services/notificationService.ts';
+import { showToast } from '../../shared/components/toast.ts';
+import { escapeHtml } from '../../shared/utils/helpers.ts';
+import { formatDateShort } from '../../shared/utils/dateUtils.ts';
+import { currentUser } from './state.js';
+import { goPage } from './app.js';
+
 let liveNotifications = [];
 
-async function loadNotifications() {
+export async function loadNotifications() {
   liveNotifications = await fetchNotifications(currentUser.id);
   renderNotifCenter();
 }
@@ -37,13 +44,13 @@ function renderNotifCenter() {
     </button>`).join('') || '<div class="nc-empty">No notifications yet.</div>';
 }
 
-function toggleNotifCenter(show) {
+export function toggleNotifCenter(show) {
   const panel = document.getElementById('nc-panel');
   const next = show ?? panel.style.display === 'none';
   panel.style.display = next ? 'block' : 'none';
 }
 
-async function openNotification(id, page) {
+export async function openNotification(id, page) {
   const n = liveNotifications.find(x => x.id === id);
   if (n && !n.read) {
     n.read = true;
@@ -54,7 +61,7 @@ async function openNotification(id, page) {
   if (page) await goPage(page);
 }
 
-function markAllNotificationsRead() {
+export function markAllNotificationsRead() {
   const ids = liveNotifications.filter(n => !n.read).map(n => n.id);
   if (!ids.length) return;
   liveNotifications.forEach(n => { n.read = true; });
@@ -62,7 +69,7 @@ function markAllNotificationsRead() {
   markNotificationsRead(ids);
 }
 
-function handleIncomingNotification(payload) {
+export function handleIncomingNotification(payload) {
   const n = payload.new;
   if (!n || n.user_id !== currentUser.id) return;
   liveNotifications.unshift(n);

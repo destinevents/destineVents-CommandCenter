@@ -1,4 +1,10 @@
-async function renderDashboard() {
+import { renderStatCards } from '../../shared/components/statCard.ts';
+import { escapeHtml, badge } from '../../shared/utils/helpers.ts';
+import { formatDateShort } from '../../shared/utils/dateUtils.ts';
+import { currentUser, liveTasks, myTasks, mySheets, pendingApprovals } from './state.js';
+import { isOverdue } from './tasks.js';
+
+export async function renderDashboard() {
   const first = (currentUser.name || 'there').split(' ')[0];
   document.getElementById('dash-greeting').textContent = `Good day, ${first} 👋`;
   document.getElementById('dash-date').textContent = new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});

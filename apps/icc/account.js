@@ -1,3 +1,7 @@
+import { updateProfile, updatePassword } from '../../shared/services/authService.ts';
+import { currentUser } from './state.js';
+import { toast } from './ui.js';
+
 const PW_RULES = [
   { id: 'req-len',     test: p => p.length >= 8,             label: 'Minimum 8 characters' },
   { id: 'req-upper',   test: p => /[A-Z]/.test(p),           label: 'At least one uppercase letter' },
@@ -13,7 +17,7 @@ function pwField(id, placeholder) {
             </div>`;
 }
 
-async function renderAccount() {
+export async function renderAccount() {
   const el = document.getElementById('page-account');
   const isStaff = ['admin', 'supervisor'].includes(currentUser.role);
 

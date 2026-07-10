@@ -1,3 +1,5 @@
+// FROZEN classic copy — still loaded by index.html (HQ portal). The canonical
+// module version lives beside this file (.ts); delete this one when HQ converts.
 function formatDate(isoVal, locale, options) {
   if (!isoVal) return '\u2014';
   return new Date(isoVal + 'T12:00:00').toLocaleDateString(locale || 'en-US', options || {

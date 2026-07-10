@@ -1,11 +1,15 @@
-const outputPager = createPager(30, () => renderOutputs());
+import { createPager, attachFilterToolbar, escapeHtml, badge, avatarEl, skillPill } from '../../shared/utils/helpers.ts';
+import { OUTPUT_ICONS } from '../../shared/constants.ts';
+import { liveUsers, myTasks } from './state.js';
+
+export const outputPager = createPager(30, () => renderOutputs());
 
 attachFilterToolbar(['output-search', 'output-type-filter', 'output-sort'], () => {
   outputPager.reset();
   renderOutputs();
 });
 
-async function renderOutputs() {
+export async function renderOutputs() {
   const q    = document.getElementById('output-search').value.trim().toLowerCase();
   const type = document.getElementById('output-type-filter').value;
   const sort = document.getElementById('output-sort').value;

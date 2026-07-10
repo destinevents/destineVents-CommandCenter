@@ -1,22 +1,21 @@
-// FROZEN classic copy — still loaded by index.html (HQ portal). The canonical
-// module version lives beside this file (.ts); delete this one when HQ converts.
-// Browser copy of utils/validators.ts for the classic-script pages (module
-// syntax is a SyntaxError there). SYNC WARNING: validators.ts is the tested
-// canonical implementation — any logic change must be made in both files.
-function validateRequired(value, fieldName) {
+import type { TaskStatus } from '../types';
+
+type ValidatorFn = (value: string) => string | null;
+
+export function validateRequired(value: unknown, fieldName: string): string | null {
   if (value === undefined || value === null) return `${fieldName} is required.`;
   if (typeof value === 'string' && value.trim() === '') return `${fieldName} is required.`;
   return null;
 }
 
-function validateEmail(value) {
+export function validateEmail(value: string): string | null {
   if (!value || !value.trim()) return 'Email is required.';
   const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!re.test(value.trim())) return 'Please enter a valid email address.';
   return null;
 }
 
-function validatePassword(value) {
+export function validatePassword(value: string): string | null {
   if (!value) return 'Password is required.';
   if (value.length < 8) return 'Password must be at least 8 characters.';
   if (!/[A-Z]/.test(value)) return 'Password must contain at least one uppercase letter.';
@@ -26,7 +25,12 @@ function validatePassword(value) {
   return null;
 }
 
-function validateNumber(value, fieldName, min, max) {
+export function validateNumber(
+  value: string,
+  fieldName: string,
+  min?: number,
+  max?: number
+): string | null {
   const n = parseFloat(value);
   if (isNaN(n)) return `${fieldName} must be a number.`;
   if (min !== undefined && n < min) return `${fieldName} must be at least ${min}.`;
@@ -34,14 +38,14 @@ function validateNumber(value, fieldName, min, max) {
   return null;
 }
 
-function validateDate(value, fieldName) {
+export function validateDate(value: string, fieldName: string): string | null {
   if (!value) return `${fieldName} is required.`;
   if (isNaN(new Date(value).getTime())) return `${fieldName} is not a valid date.`;
   return null;
 }
 
-function validateForm(fields) {
-  const errors = [];
+export function validateForm(fields: [unknown, string, ...ValidatorFn[]][]): string | null {
+  const errors: string[] = [];
   for (const [value, fieldName, ...validators] of fields) {
     const err = validateRequired(value, fieldName);
     if (err) {
@@ -49,7 +53,7 @@ function validateForm(fields) {
       continue;
     }
     for (const vFn of validators) {
-      const e = vFn(value);
+      const e = vFn(value as string);
       if (e) {
         errors.push(e);
         break;
@@ -59,8 +63,8 @@ function validateForm(fields) {
   return errors.length ? errors.join(' ') : null;
 }
 
-function validateTaskStatusTransition(current, next) {
-  const allowed = {
+export function validateTaskStatusTransition(current: TaskStatus, next: TaskStatus): boolean {
+  const allowed: Record<TaskStatus, TaskStatus[]> = {
     assigned: ['acknowledged'],
     acknowledged: ['in_progress'],
     in_progress: ['completed'],
@@ -70,17 +74,13 @@ function validateTaskStatusTransition(current, next) {
   return (allowed[current] ?? []).includes(next);
 }
 
-function validateDailyHours(existingHours, newHours, max = 9) {
+export function validateDailyHours(
+  existingHours: number,
+  newHours: number,
+  max = 9
+): string | null {
   const total = existingHours + newHours;
   if (total > max)
     return `Cannot log ${newHours}h — total would be ${total}h (max is ${max}h per day).`;
   return null;
-}
-
-// Node/Vitest export — tests run against this shipped file. No-op in browser.
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = {
-    validateRequired, validateEmail, validatePassword, validateNumber,
-    validateDate, validateForm, validateTaskStatusTransition, validateDailyHours,
-  };
 }

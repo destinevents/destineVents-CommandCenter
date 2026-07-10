@@ -1,14 +1,26 @@
-// FROZEN classic copy — still loaded by index.html (HQ portal). The canonical
-// module version lives beside this file (.ts); delete this one when HQ converts.
-const _statCardTimers = {};
+// ESM version of shared/components/statCard.js (frozen classic copy kept for HQ).
 
-function countUp(el, target, duration) {
+export interface StatCard {
+  label: string;
+  value: string | number;
+  icon?: string;
+  sub?: string;
+  color?: string;
+  change?: string;
+  trend?: string;
+  valClass?: string;
+  valColor?: string;
+}
+
+const _statCardTimers: Record<string, ReturnType<typeof setTimeout>> = {};
+
+function countUp(el: HTMLElement, target: string, duration: number): void {
   const num = parseFloat(target);
   if (isNaN(num) || num === 0) return;
   const suffix = String(target).replace(/[\d.]/g, '');
   const start = performance.now();
   el.setAttribute('data-counting', '1');
-  function step(now) {
+  function step(now: number) {
     const t = Math.min((now - start) / duration, 1);
     const ease = 1 - Math.pow(1 - t, 3);
     el.textContent = Math.round(num * ease) + suffix;
@@ -18,7 +30,7 @@ function countUp(el, target, duration) {
   requestAnimationFrame(step);
 }
 
-function renderStatCards(containerId, cards) {
+export function renderStatCards(containerId: string, cards: StatCard[]): void {
   const container = document.getElementById(containerId);
   if (!container) return;
 
@@ -40,8 +52,8 @@ function renderStatCards(containerId, cards) {
 
   clearTimeout(_statCardTimers[containerId]);
   _statCardTimers[containerId] = setTimeout(() => {
-    container.querySelectorAll('.sc-val[data-target]').forEach(el => {
-      countUp(el, el.dataset.target, 700);
+    container.querySelectorAll<HTMLElement>('.sc-val[data-target]').forEach(el => {
+      countUp(el, el.dataset.target!, 700);
     });
   }, 200);
 }

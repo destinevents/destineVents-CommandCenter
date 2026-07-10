@@ -1,5 +1,22 @@
+import { createPager, attachFilterToolbar, escapeHtml, badge, avatarEl, skillPillGreen } from '../../shared/utils/helpers.ts';
+import { renderStatCards } from '../../shared/components/statCard.ts';
+import { renderFilterTabs } from '../../shared/components/filterTabs.ts';
+import { renderSkillPicker, resetSkillPicker } from '../../shared/components/skillPicker.ts';
+import { STATUS_LABELS, MAX_DAILY_HOURS } from '../../shared/constants.ts';
+import { formatDateShort } from '../../shared/utils/dateUtils.ts';
+import { validateDailyHours } from '../../shared/utils/validators.ts';
+import { createTimesheet, updateTimesheet, deleteTimesheet } from '../../shared/services/timesheetService.ts';
+import { logAudit } from '../../shared/services/auditService.ts';
+import { currentUser, activePage, sheetFilter, setSheetFilterValue, liveTasks, liveUsers, liveTimesheets, myTasks, mySheets } from './state.js';
+import { toast, openModal, closeModal, updateBadges } from './ui.js';
+import { loadLiveTimesheets } from './data.js';
+import { renderDashboard } from './dashboard.js';
+import { renderPage } from './app.js';
+
+let pendingRejectId = null;
+
 // Render the table in pages so hundreds of rows never hit the DOM at once
-const sheetPager = createPager(50, () => renderTimesheets());
+export const sheetPager = createPager(50, () => renderTimesheets());
 
 attachFilterToolbar(['sheet-search', 'sheet-from', 'sheet-to'], () => {
   sheetPager.reset();
@@ -25,7 +42,7 @@ function applySheetFilters(sheets, taskById, userById) {
   return out;
 }
 
-async function renderTimesheets() {
+export async function renderTimesheets() {
   const sheets = mySheets();
   const isAdmin = currentUser.role!=='intern';
   const taskById = new Map(liveTasks.map(t => [t.id, t]));
@@ -78,7 +95,7 @@ async function renderTimesheets() {
 // Populate the Log Hours form when the modal OPENS — never during table
 // renders, or a realtime event / search keystroke would rebuild the skill
 // picker and wipe the intern's in-progress selections mid-form.
-function openLogHours() {
+export function openLogHours() {
   // Active tasks first; status suffix disambiguates same-titled tasks
   const activeFirst = [...myTasks()].sort((a, b) =>
     (['completed','reviewed'].includes(a.status) ? 1 : 0) - (['completed','reviewed'].includes(b.status) ? 1 : 0)
@@ -89,9 +106,9 @@ function openLogHours() {
   openModal('modal-log-hours');
 }
 
-async function setSheetFilter(f) { sheetFilter = f; await renderTimesheets(); }
+export async function setSheetFilter(f) { setSheetFilterValue(f); await renderTimesheets(); }
 
-function exportTimesheetCSV() {
+export function exportTimesheetCSV() {
   const sheets = mySheets();
   const taskById = new Map(liveTasks.map(t => [t.id, t]));
   const userById = new Map(liveUsers.map(u => [u.id, u]));
@@ -127,7 +144,7 @@ function exportTimesheetCSV() {
   toast('Timesheets exported!');
 }
 
-async function approveSheet(id) {
+export async function approveSheet(id) {
   const result = await updateTimesheet(id, {
     status: 'approved',
     approved_by: currentUser.id,
@@ -144,13 +161,13 @@ async function approveSheet(id) {
   await renderDashboard();
 }
 
-function rejectSheet(id) {
+export function rejectSheet(id) {
   pendingRejectId = id;
   document.getElementById('reject-reason-input').value = '';
   openModal('modal-reject-reason');
 }
 
-async function confirmReject() {
+export async function confirmReject() {
   const reason = document.getElementById('reject-reason-input').value.trim();
   if (!reason) {
     document.getElementById('reject-reason-input').style.borderColor = '#ef4444';
@@ -174,7 +191,7 @@ async function confirmReject() {
   }
 }
 
-async function deleteSheet(id) {
+export async function deleteSheet(id) {
   const ts = liveTimesheets.find(s => s.id === id);
   if (!ts) return;
   if (!confirm(`Delete the ${ts.hours}h entry for ${ts.date}? This cannot be undone.`)) return;
@@ -190,7 +207,7 @@ async function deleteSheet(id) {
   await renderDashboard();
 }
 
-async function logHours() {
+export async function logHours() {
   const date     = document.getElementById('lh-date').value;
   const hours    = parseFloat(document.getElementById('lh-hours').value);
   const activity = document.getElementById('lh-activity').value.trim();
