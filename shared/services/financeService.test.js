@@ -1,6 +1,6 @@
 // Tests the SHIPPED services/financeService.js (the file the browser loads),
 // not a parallel copy. `globals: true` in vite.config provides describe/it/expect.
-const { calcFinanceSummary } = require('./financeService.js');
+import { calcFinanceSummary } from './financeService.js';
 
 const inv = (status, amount) => ({ status, amount });
 const bill = (status, amount) => ({ status, amount });

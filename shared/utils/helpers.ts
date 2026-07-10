@@ -78,3 +78,25 @@ export function populateOutputTypeSelect(id: string): void {
 export function skillPill(s: string): string { return `<span class="skill-pill">${s}</span>`; }
 
 export function skillPillGreen(s: string): string { return `<span class="skill-pill-green">${s}</span>`; }
+
+export function statusClass(s = ''): string {
+  return ({
+    'Active':'active','Completed':'completed','NDA Signed':'nda','Lead':'lead','Proposal':'proposal',
+    'Paid':'paid','Unpaid':'unpaid','Overdue':'overdue',
+    'Won':'won','Lost':'lost','Sent':'sent','Expired':'expired',
+    'Released':'released','Pending':'pending','Draft':'draft',
+  } as Record<string, string>)[s] || 'lead';
+}
+
+export function docTypeIcon(t: string): string {
+  return ({'NDA':'📋','Contract':'📄','Proposal':'📝','Agreement':'🤝','Document':'📁'} as Record<string, string>)[t] || '📁';
+}
+
+export function guessDocType(name: string): string {
+  const n = name.toLowerCase();
+  if (n.includes('nda'))                            return 'NDA';
+  if (n.includes('contract'))                       return 'Contract';
+  if (n.includes('proposal'))                       return 'Proposal';
+  if (n.includes('agreement') || n.includes('mou')) return 'Agreement';
+  return 'Document';
+}

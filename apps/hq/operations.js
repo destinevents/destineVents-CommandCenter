@@ -1,9 +1,23 @@
-async function loadPartners() {
-  _partners = await fetchPartners();
+import { formatBytes } from '../../shared/utils/formatUtils.ts';
+import { formatDateShort, todayISO } from '../../shared/utils/dateUtils.ts';
+import { escapeHtml, docTypeIcon, guessDocType } from '../../shared/utils/helpers.ts';
+import { validateRequired } from '../../shared/utils/validators.ts';
+import { fetchPartners, createPartner, filterPartnersByType } from '../../shared/services/partnerService.js';
+import { fetchDocuments, uploadDocument, getDocumentPublicUrl, saveDocumentMeta } from '../../shared/services/documentService.js';
+import { createClient, findClientByName } from '../../shared/services/clientService.js';
+import { createProject } from '../../shared/services/projectService.js';
+import { fetchImpactEntries, createImpactEntry } from '../../shared/services/impactService.js';
+import { generateNDAContent, buildNDAWindowContent } from '../../shared/business/ndaGenerator.js';
+import { _clients, _impactEntries, setPartners, setDocuments, setImpactEntries } from './state.js';
+import { toast } from './ui.js';
+import { showPage } from './app.js';
+
+export async function loadPartners() {
+  setPartners(await fetchPartners());
   renderPartners(_partners);
 }
 
-function renderPartners(list) {
+export function renderPartners(list) {
   const grid = document.getElementById('partners-grid');
   grid.innerHTML = list.length
     ? list.map(p => `
@@ -15,13 +29,13 @@ function renderPartners(list) {
     : `<div style="grid-column:1/-1"><div class="empty-state">No partners in this category</div></div>`;
 }
 
-function filterPartners(type, el) {
+export function filterPartners(type, el) {
   document.querySelectorAll('.partner-filter-btn').forEach(b => b.classList.remove('active'));
   el.classList.add('active');
   renderPartners(filterPartnersByType(_partners, type));
 }
 
-function openAddPartner() {
+export function openAddPartner() {
   openModal('Add Partner', `
     <div class="form-grid">
       <div class="form-group full"><div class="form-label">Organization Name</div><input class="form-input" id="fpr-name" placeholder="e.g. BLISTT Consortium"/></div>
@@ -33,7 +47,7 @@ function openAddPartner() {
     </div>`, savePartner);
 }
 
-async function savePartner() {
+export async function savePartner() {
   const name = document.getElementById('fpr-name').value.trim();
   const err = validateRequired(name, 'Organization name');
   if (err) { toast(err, 'error'); return; }
@@ -48,12 +62,12 @@ async function savePartner() {
   closeModal(); loadPartners();
 }
 
-async function loadDocuments() {
-  _documents = await fetchDocuments();
+export async function loadDocuments() {
+  setDocuments(await fetchDocuments());
   renderDocuments(_documents);
 }
 
-function renderDocuments(docs) {
+export function renderDocuments(docs) {
   document.getElementById('doc-list').innerHTML = docs.length
     ? docs.map(d => `
         <div class="doc-item">
@@ -69,13 +83,13 @@ function renderDocuments(docs) {
     : `<div class="empty-state">No documents yet \u2014 upload your first file above</div>`;
 }
 
-function handleFileSelect(files) {
+export function handleFileSelect(files) {
   if (!files || !files.length) return;
   document.getElementById('file-input').value = '';
   uploadToStorage(files[0]);
 }
 
-async function uploadToStorage(file) {
+export async function uploadToStorage(file) {
   toast('Uploading\u2026');
   const path = `${Date.now()}-${file.name}`;
   const uploadResult = await uploadDocument(file, path);
@@ -91,7 +105,7 @@ async function uploadToStorage(file) {
   loadDocuments();
 }
 
-function npGoStep2() {
+export function npGoStep2() {
   const client = document.getElementById('np-client').value.trim();
   if (!client) { toast('Client name is required', 'error'); return; }
   const address = document.getElementById('np-address').value.trim();
@@ -113,7 +127,7 @@ function npGoStep2() {
   document.getElementById('np-step2').style.display = 'block';
 }
 
-function npGoStep1() {
+export function npGoStep1() {
   document.getElementById('np-step1').style.display = 'block';
   document.getElementById('np-step2').style.display = 'none';
   document.getElementById('np-circle-1').className = 'step-circle active';
@@ -124,7 +138,7 @@ function npGoStep1() {
   document.getElementById('np-label-2').className = 'step-label';
 }
 
-async function npFinish() {
+export async function npFinish() {
   const client  = document.getElementById('np-client').value.trim();
   const contact = document.getElementById('np-contact').value.trim();
   const email   = document.getElementById('np-email').value.trim();
@@ -161,12 +175,12 @@ async function npFinish() {
   setTimeout(() => showPage('projects'), 1400);
 }
 
-async function loadImpact() {
-  _impactEntries = await fetchImpactEntries();
+export async function loadImpact() {
+  setImpactEntries(await fetchImpactEntries());
   renderImpact();
 }
 
-function renderImpact() {
+export function renderImpact() {
   const totals = { students: 0, teachers: 0, smes: 0, lgus: 0 };
   _impactEntries.forEach(e => {
     totals.students += e.students_reached  || 0;
@@ -194,7 +208,7 @@ function renderImpact() {
     : '<div style="color:var(--ink-3);font-size:11.5px;padding:8px 0">No entries yet \u2014 log your first entry.</div>';
 }
 
-async function saveImpactEntry() {
+export async function saveImpactEntry() {
   const period  = document.getElementById('imp-period').value.trim();
   const program = document.getElementById('imp-program').value.trim();
   const err = validateRequired(period, 'Period') || validateRequired(program, 'Program');
@@ -215,7 +229,7 @@ async function saveImpactEntry() {
   loadImpact();
 }
 
-function downloadNDA() {
+export function downloadNDA() {
   const client  = document.getElementById('np-client').value.trim() || 'Client';
   const address = document.getElementById('np-address').value.trim();
   const purpose = document.getElementById('np-purpose').value.trim() || 'Business Engagement';

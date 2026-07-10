@@ -1,9 +1,11 @@
-function selectTemplate(el) {
+import { toast } from './ui.js';
+
+export function selectTemplate(el) {
   document.querySelectorAll('.ai-template').forEach(t=>t.classList.remove('selected'));
   el.classList.add('selected');
 }
 
-function copyAIOutput() {
+export function copyAIOutput() {
   const text = document.getElementById('ai-result').innerText;
   navigator.clipboard.writeText(text).then(()=>toast('Copied to clipboard','success'));
 }
@@ -22,7 +24,7 @@ function buildAIPrompt(template, client, project, context) {
   return map[template] || map['Follow-up Email'];
 }
 
-async function simulateAI() {
+export async function simulateAI() {
   const apiKey  = localStorage.getItem('ai-api-key') || '';
   const client  = document.getElementById('ai-client').value.trim();
   const project = document.getElementById('ai-project').value.trim();

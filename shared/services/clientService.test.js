@@ -1,5 +1,5 @@
 // Tests the SHIPPED services/clientService.js. `globals: true` provides describe/it/expect.
-const { getClientTotalValue, findClientByName } = require('./clientService.js');
+import { getClientTotalValue, findClientByName } from './clientService.js';
 
 describe('getClientTotalValue', () => {
   it('sums total_value from all clients', () => {

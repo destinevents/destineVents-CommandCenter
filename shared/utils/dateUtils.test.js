@@ -1,5 +1,5 @@
 // Tests the SHIPPED utils/date.js. `globals: true` provides describe/it/expect.
-const { formatDate, formatDateShort, formatDateForNDA, todayISO, getQuarter } = require('./date.js');
+import { formatDate, formatDateShort, formatDateForNDA, todayISO, getQuarter } from './dateUtils.ts';
 
 describe('formatDate', () => {
   it('returns em dash for null', () => {

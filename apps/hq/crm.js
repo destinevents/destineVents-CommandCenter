@@ -1,9 +1,19 @@
-async function loadClients() {
-  _clients = await fetchClients();
+import { formatCurrency } from '../../shared/utils/formatUtils.ts';
+import { formatDateShort } from '../../shared/utils/dateUtils.ts';
+import { escapeHtml, statusClass } from '../../shared/utils/helpers.ts';
+import { validateRequired } from '../../shared/utils/validators.ts';
+import { APP_SETTINGS } from '../../config/settings.js';
+import { fetchClients, createClient } from '../../shared/services/clientService.js';
+import { fetchProposals, createProposal, calcWinRate } from '../../shared/services/proposalService.js';
+import { setClients, setProposals } from './state.js';
+import { toast, openModal, closeModal } from './ui.js';
+
+export async function loadClients() {
+  setClients(await fetchClients());
   renderClients(_clients);
 }
 
-function renderClients(clients) {
+export function renderClients(clients) {
   const total = clients.reduce((s,c) =>s + (c.total_value||0), 0);
   document.getElementById('clients-summary').textContent =
     `${clients.length} clients \u00B7 ${formatCurrency(total)} total value`;
@@ -20,7 +30,7 @@ function renderClients(clients) {
     : `<tr><td colspan="6"><div class="empty-state">No clients yet \u2014 add your first one</div></td></tr>`;
 }
 
-function openAddClient() {
+export function openAddClient() {
   openModal('Add Client', `
     <div class="form-grid">
       <div class="form-group"><div class="form-label">Client Name</div><input class="form-input" id="fc-name" placeholder="e.g. DTI CAR"/></div>
@@ -38,7 +48,7 @@ function openAddClient() {
     </div>`, saveClient);
 }
 
-async function saveClient() {
+export async function saveClient() {
   const name = document.getElementById('fc-name').value.trim();
   const err = validateRequired(name, 'Client name');
   if (err) { toast(err, 'error'); return; }
@@ -56,12 +66,12 @@ async function saveClient() {
   closeModal(); loadClients();
 }
 
-async function loadProposals() {
-  _proposals = await fetchProposals();
+export async function loadProposals() {
+  setProposals(await fetchProposals());
   renderProposals(_proposals);
 }
 
-function renderProposals(proposals) {
+export function renderProposals(proposals) {
   const stats = calcWinRate(proposals);
   document.getElementById('win-rate-pct').textContent = stats.winRate + '%';
   document.getElementById('win-rate-breakdown').innerHTML =
@@ -84,7 +94,7 @@ function renderProposals(proposals) {
     : `<tr><td colspan="5"><div class="empty-state">No proposals yet</div></td></tr>`;
 }
 
-function openAddProposal() {
+export function openAddProposal() {
   openModal('New Proposal', `
     <div class="form-grid">
       <div class="form-group full"><div class="form-label">Proposal Name</div><input class="form-input" id="fp-name" placeholder="e.g. DTI CAR MSME Summit"/></div>
@@ -98,7 +108,7 @@ function openAddProposal() {
     </div>`, saveProposal);
 }
 
-async function saveProposal() {
+export async function saveProposal() {
   const name = document.getElementById('fp-name').value.trim();
   const err = validateRequired(name, 'Proposal name');
   if (err) { toast(err, 'error'); return; }

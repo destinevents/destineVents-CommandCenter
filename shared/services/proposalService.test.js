@@ -1,5 +1,5 @@
 // Tests the SHIPPED services/proposalService.js. `globals: true` provides describe/it/expect.
-const { calcWinRate } = require('./proposalService.js');
+import { calcWinRate } from './proposalService.js';
 
 const p = (status, value = 0) => ({ status, value });
 

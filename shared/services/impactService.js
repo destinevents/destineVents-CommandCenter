@@ -1,4 +1,8 @@
-async function fetchImpactEntries() {
+import { sb } from './supabase';
+import { logger } from '../utils/loggerUtils.ts';
+import { showToast } from '../components/toast.ts';
+
+export async function fetchImpactEntries() {
   const { data, error } = await sb
     .from('impact_entries')
     .select('*')
@@ -7,7 +11,7 @@ async function fetchImpactEntries() {
   return data || [];
 }
 
-async function createImpactEntry(entry) {
+export async function createImpactEntry(entry) {
   const { data, error } = await sb.from('impact_entries').insert(entry).select().single();
   if (error) { logger.error('createImpactEntry', error.message, error); showToast('Could not save impact entry.', 'error', 3000); return null; }
   return data;

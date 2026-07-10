@@ -1,4 +1,8 @@
-function generateNDAContent(client, address, contact, email, purpose, date, brand) {
+import { APP_SETTINGS } from '../../config/settings.js';
+import { formatDateForNDA, todayISO } from '../utils/dateUtils.ts';
+import { escapeHtml } from '../utils/helpers.ts';
+
+export function generateNDAContent(client, address, contact, email, purpose, date, brand) {
   const fmtDate = date ? formatDateForNDA(date) : formatDateForNDA(todayISO());
   const safe = v => escapeHtml(v || '');
   return `
@@ -15,7 +19,7 @@ function generateNDAContent(client, address, contact, email, purpose, date, bran
   `;
 }
 
-function buildNDAWindowContent(client, address, contact, email, purpose, date, brand) {
+export function buildNDAWindowContent(client, address, contact, email, purpose, date, brand) {
   const fmt = date ? formatDateForNDA(date) : formatDateForNDA(todayISO());
   const safe = v => escapeHtml(v || '');
   return `

@@ -18,7 +18,7 @@ A dual-portal operations management platform for **DestineVents Collective OPC**
 ### Principles
 
 - No UI framework (no React, Vue, Angular)
-- Incremental TypeScript migration — services and utils are `.ts`, page modules are `.js`
+- ES modules everywhere, bundled by Vite; shared services/utils are TypeScript, page modules are `.js` (typed incrementally)
 - All business logic in JS/TS modules
 - Event delegation for UI interactions
 
@@ -65,14 +65,12 @@ destineVents-CommandCenter/
 │   └── types.ts              # All domain interfaces (TypeScript)
 │
 ├── config/                    # App configuration
-│   ├── config.js             # Supabase credentials — NOT in git (gitignored)
-│   ├── config.example.js     # Template showing required credential format
 │   ├── roles.ts              # Role hierarchy, permissions, routes (TypeScript)
-│   └── settings.js           # App constants (brands, rates, statuses)
+│   └── settings.js           # App constants (brands, rates, statuses) — ES module
 │
 ├── assets/                    # Icons and static assets
 ├── database/schema/           # Database schema SQL files
-├── vite.config.ts             # Vite MPA build + Vitest config (auth pages are modules; portals classic, copied verbatim)
+├── vite.config.ts             # Vite MPA build (all 5 pages are module entries) + Vitest config
 ├── tsconfig.json              # TypeScript config (allowJs: true)
 └── vercel.json                # Vercel deployment config
 ```
@@ -146,7 +144,7 @@ npm run lint    # ESLint
 
 The project deploys to Vercel with a Vite build (`vercel.json` sets `buildCommand: "npm run build"`, `outputDirectory: "dist"`). The `/` → `/login.html` redirect handles the root URL.
 
-Migration status: the three auth pages (login/signup/reset) are bundled Vite module entries; `index.html` and `intern.html` still load classic scripts, which the build copies into `dist/` verbatim (see `copyClassicTrees` in vite.config.ts). Supabase URL/anon key for the bundled pages come from `.env` (committed — the anon key is public by design; RLS is the access control).
+All five pages are bundled Vite module entries — there are no classic scripts left. Supabase URL/anon key come from `.env` (committed — the anon key is public by design; RLS is the access control).
 
 ---
 

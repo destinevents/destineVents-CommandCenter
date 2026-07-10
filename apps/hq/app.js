@@ -1,37 +1,29 @@
-let _clients = [];
-let _proposals = [];
-let _partners = [];
-let _documents = [];
-let _invoices = [];
-let _bills = [];
-let _payroll = [];
-let _projects = [];
-let _impactEntries = [];
-let _birFilings = [];
-
-let _onSave = null;
-
-function toast(msg, type) {
-  showToast(msg, type, 3200);
-}
-
-function openModal(title, bodyHTML, onSave) {
-  document.getElementById('modal-title').textContent = title;
-  document.getElementById('modal-body').innerHTML = bodyHTML;
-  document.getElementById('modal-overlay').classList.add('open');
-  _onSave = onSave;
-  const saveBtn = document.getElementById('modal-save-btn');
-  if (saveBtn) setTimeout(() => saveBtn.focus(), 100);
-}
-
-function closeModal() {
-  document.getElementById('modal-overlay').classList.remove('open');
-  _onSave = null;
-}
-
-function saveModal() {
-  if (_onSave) _onSave();
-}
+// ─── HQ APP SHELL: auth, routing, realtime, dashboard, window shims ──────────
+// Top of the module graph. index.html keeps its inline onclick handlers, so
+// every function they reference is re-attached to window at the bottom.
+import { sb } from '../../shared/services/supabase';
+import { signIn, signOut, getSession } from '../../shared/services/authService.ts';
+import { formatCurrency } from '../../shared/utils/formatUtils.ts';
+import { formatDateShort, todayISO } from '../../shared/utils/dateUtils.ts';
+import { escapeHtml } from '../../shared/utils/helpers.ts';
+import { fetchClients } from '../../shared/services/clientService.js';
+import { fetchProposals } from '../../shared/services/proposalService.js';
+import { fetchPartners } from '../../shared/services/partnerService.js';
+import { fetchInvoices, fetchBills } from '../../shared/services/financeService.js';
+import { fetchProjects } from '../../shared/services/projectService.js';
+import {
+  _clients, _proposals, _partners, _invoices, _bills, _projects,
+  setClients, setProposals, setPartners, setInvoices, setBills, setProjects,
+} from './state.js';
+import { toast, openModal, closeModal, saveModal, toggleHqNav } from './ui.js';
+import { loadClients, openAddClient, loadProposals, openAddProposal } from './crm.js';
+import {
+  loadPartners, filterPartners, openAddPartner, loadDocuments, handleFileSelect,
+  npGoStep2, npGoStep1, npFinish, downloadNDA, loadImpact, saveImpactEntry,
+} from './operations.js';
+import { loadFinance, showFinanceTab, openFileBir, openAddInvoice, openAddBill, openAddPayroll } from './finance.js';
+import { loadProjects, openAddProject } from './projects.js';
+import { selectTemplate, copyAIOutput, simulateAI } from './ai.js';
 
 async function init() {
   const session = await getSession();
@@ -82,11 +74,6 @@ function enterApp(email, name) {
     if (av) av.textContent = initials;
     if (sav) sav.textContent = initials;
     if (sem) sem.textContent = email;
-  }
-  const savedKey = '';
-  if (savedKey) {
-    const k = document.getElementById('ai-api-key');
-    if (k) k.value = savedKey;
   }
   setupRealtime();
   showPage('dashboard');
@@ -162,15 +149,6 @@ async function handleSignOut() {
   location.reload();
 }
 
-// Phone-width off-canvas nav (hamburger in the topbar, backdrop behind)
-function toggleHqNav(open) {
-  const sidebar = document.querySelector('.sidebar');
-  const backdrop = document.getElementById('hq-backdrop');
-  const next = open ?? !sidebar.classList.contains('mobile-open');
-  sidebar.classList.toggle('mobile-open', next);
-  backdrop.classList.toggle('show', next);
-}
-
 function showPage(name) {
   toggleHqNav(false);
   document.querySelectorAll('.page').forEach((p) => p.classList.remove('active'));
@@ -227,12 +205,12 @@ async function loadDashboard() {
     fetchBills(),
     fetchPartners(),
   ]);
-  _clients   = clients   || [];
-  _proposals = proposals || [];
-  _projects  = projects  || [];
-  _invoices  = invoices  || [];
-  _bills     = bills     || [];
-  _partners  = partners  || [];
+  setClients(clients || []);
+  setProposals(proposals || []);
+  setProjects(projects || []);
+  setInvoices(invoices || []);
+  setBills(bills || []);
+  setPartners(partners || []);
   renderDashboard();
 }
 
@@ -322,5 +300,18 @@ function filterTable(input, tbodyId) {
     tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
   });
 }
+
+// index.html keeps its inline onclick/oninput handlers — every function they
+// (or HQ-generated template literals) reference must be a window global.
+Object.assign(window, {
+  showPage, handleSignIn, handleSignOut, toggleHqNav, filterTable,
+  closeModal, saveModal, toast,
+  openAddClient, openAddProposal, openAddPartner, openAddProject,
+  openAddInvoice, openAddBill, openAddPayroll, openFileBir, showFinanceTab,
+  filterPartners, handleFileSelect, npGoStep1, npGoStep2, npFinish, downloadNDA,
+  saveImpactEntry, selectTemplate, copyAIOutput, simulateAI,
+});
+
+export { showPage };
 
 init();

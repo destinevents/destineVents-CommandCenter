@@ -1,9 +1,18 @@
-async function loadProjects() {
-  _projects = await fetchProjects();
+import { formatCurrency } from '../../shared/utils/formatUtils.ts';
+import { formatDateShort } from '../../shared/utils/dateUtils.ts';
+import { escapeHtml, statusClass } from '../../shared/utils/helpers.ts';
+import { validateRequired } from '../../shared/utils/validators.ts';
+import { APP_SETTINGS } from '../../config/settings.js';
+import { fetchProjects, createProject } from '../../shared/services/projectService.js';
+import { setProjects } from './state.js';
+import { toast, openModal, closeModal } from './ui.js';
+
+export async function loadProjects() {
+  setProjects(await fetchProjects());
   renderProjects(_projects);
 }
 
-function renderProjects(projects) {
+export function renderProjects(projects) {
   const total = projects.reduce((s, p) => s + (p.value || 0), 0);
   document.getElementById('projects-summary').textContent =
     `${projects.length} project${projects.length !== 1 ? 's' : ''} · ${formatCurrency(total)} total value`;
@@ -24,7 +33,7 @@ function renderProjects(projects) {
     : `<tr><td colspan="6"><div class="empty-state">No projects yet — start one with \ New Project</div></td></tr>`;
 }
 
-function openAddProject() {
+export function openAddProject() {
   const brands    = (window.APP_SETTINGS?.company?.brands || ['DestineVents', 'DDC', 'AYA Baguio']).map(b => `<option>${escapeHtml(b)}</option>`).join('');
   const statuses  = ['Lead', 'Proposal Sent', 'NDA Signed', 'Active', 'Completed'].map(s => `<option>${s}</option>`).join('');
   const cats      = ['Events', 'Training', 'Digital', 'CSR', 'Community'].map(c => `<option>${c}</option>`).join('');
@@ -40,7 +49,7 @@ function openAddProject() {
     </div>`, saveProject);
 }
 
-async function saveProject() {
+export async function saveProject() {
   const name = document.getElementById('fp2-name').value.trim();
   const err  = validateRequired(name, 'Project name');
   if (err) { toast(err, 'error'); return; }

@@ -1,8 +1,8 @@
 // Tests the SHIPPED utils/validators.js. `globals: true` provides describe/it/expect.
-const {
+import {
   validateRequired, validateEmail, validatePassword, validateNumber,
   validateDate, validateForm, validateTaskStatusTransition, validateDailyHours,
-} = require('./validators.js');
+} from './validators.ts';
 
 describe('validateRequired', () => {
   it('returns null for a valid string', () =>

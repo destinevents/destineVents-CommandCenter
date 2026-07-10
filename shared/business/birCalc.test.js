@@ -1,10 +1,10 @@
 // Tests the SHIPPED lib/business/birCalc.js. `globals: true` provides describe/it/expect.
-const {
+import {
   birMostRecentCompletedQuarter, birQuarterLabel,
   bir2551qDeadline, bir1701qDeadline, bir1604cDeadline,
   birFilingStatus, birDateInQuarter, birGrossReceipts, birExpenses,
   bir2307Bills, birIsFiled, BIR_PERCENTAGE_TAX_RATE,
-} = require('./birCalc.js');
+} from './birCalc.js';
 
 const JUL_10_2026 = new Date('2026-07-10T12:00:00');
 

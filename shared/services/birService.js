@@ -1,4 +1,8 @@
-async function fetchBirFilings() {
+import { sb } from './supabase';
+import { logger } from '../utils/loggerUtils.ts';
+import { showToast } from '../components/toast.ts';
+
+export async function fetchBirFilings() {
   const { data, error } = await sb
     .from('bir_filings')
     .select('*')
@@ -7,7 +11,7 @@ async function fetchBirFilings() {
   return data || [];
 }
 
-async function createBirFiling(filing) {
+export async function createBirFiling(filing) {
   const { data, error } = await sb.from('bir_filings').insert(filing).select().single();
   if (error) { logger.error('createBirFiling', error.message, error); showToast('Could not save filing record.', 'error', 3000); return null; }
   return data;

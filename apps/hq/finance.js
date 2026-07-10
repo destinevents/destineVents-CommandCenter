@@ -1,14 +1,30 @@
-async function loadFinance() {
+import { formatCurrency } from '../../shared/utils/formatUtils.ts';
+import { formatDateShort, todayISO } from '../../shared/utils/dateUtils.ts';
+import { escapeHtml, statusClass } from '../../shared/utils/helpers.ts';
+import { validateRequired } from '../../shared/utils/validators.ts';
+import { APP_SETTINGS } from '../../config/settings.js';
+import { fetchInvoices, createInvoice, fetchBills, createBill, fetchPayrollRuns, createPayrollRun, calcFinanceSummary } from '../../shared/services/financeService.js';
+import { fetchBirFilings, createBirFiling } from '../../shared/services/birService.js';
+import {
+  BIR_PERCENTAGE_TAX_RATE, BIR_8PCT_OPTION_RATE, birMostRecentCompletedQuarter,
+  birQuarterLabel, bir2551qDeadline, bir1701qDeadline, bir1604cDeadline,
+  birFilingStatus, birGrossReceipts, birExpenses, birCompWithholding,
+  bir2307Bills, birIsFiled, birFilingsFor,
+} from '../../shared/business/birCalc.js';
+import { _invoices, _bills, _payroll, _birFilings, setInvoices, setBills, setPayroll, setBirFilings } from './state.js';
+import { toast, openModal, closeModal } from './ui.js';
+
+export async function loadFinance() {
   const [inv, bil, pay, bir] = await Promise.all([
     fetchInvoices(),
     fetchBills(),
     fetchPayrollRuns(),
     fetchBirFilings(),
   ]);
-  _invoices    = inv || [];
-  _bills       = bil || [];
-  _payroll     = pay || [];
-  _birFilings  = bir || [];
+  setInvoices(inv || []);
+  setBills(bil || []);
+  setPayroll(pay || []);
+  setBirFilings(bir || []);
   renderFinanceOverview(_invoices, _bills);
   renderAR(_invoices);
   renderAP(_bills);
@@ -16,14 +32,14 @@ async function loadFinance() {
   renderBIR();
 }
 
-function showFinanceTab(name, el) {
+export function showFinanceTab(name, el) {
   document.querySelectorAll('.ftab').forEach(t =>t.classList.remove('active'));
   document.getElementById('ftab-' + name).classList.add('active');
   document.querySelectorAll('#finance-subtabs .sub-tab').forEach(t =>t.classList.remove('active'));
   el.classList.add('active');
 }
 
-function renderFinanceOverview(invoices, bills) {
+export function renderFinanceOverview(invoices, bills) {
   const summary = calcFinanceSummary(invoices, bills);
   const net     = summary.arOutstanding - summary.apOutstanding;
 
@@ -54,7 +70,7 @@ function renderFinanceOverview(invoices, bills) {
     </div>`).join('');
 }
 
-function renderAR(invoices) {
+export function renderAR(invoices) {
   const total = invoices.reduce((s,i)=>s+i.amount,0);
   const out   = invoices.filter(i=>i.status!=='Paid').reduce((s,i)=>s+i.amount,0);
   document.getElementById('ar-summary').textContent = `${invoices.length} invoices · ${formatCurrency(total)} total · ${formatCurrency(out)} outstanding`;
@@ -71,7 +87,7 @@ function renderAR(invoices) {
     : `<tr><td colspan="6"><div class="empty-state">No invoices yet</div></td></tr>`;
 }
 
-function renderAP(bills) {
+export function renderAP(bills) {
   const total = bills.reduce((s,b)=>s+b.amount,0);
   const out   = bills.filter(b=>b.status!=='Paid').reduce((s,b)=>s+b.amount,0);
   document.getElementById('ap-summary').textContent = `${bills.length} bills · ${formatCurrency(total)} total · ${formatCurrency(out)} outstanding`;
@@ -88,7 +104,7 @@ function renderAP(bills) {
     : `<tr><td colspan="6"><div class="empty-state">No bills yet</div></td></tr>`;
 }
 
-function renderPayroll(runs) {
+export function renderPayroll(runs) {
   document.getElementById('payroll-tbody').innerHTML = runs.length
     ? runs.map(r=>`
         <tr>
@@ -140,7 +156,7 @@ function birPeriodicCard(form, desc, period, deadlineISO, baseLabel, baseValue) 
     </div>`;
 }
 
-function renderBIR() {
+export function renderBIR() {
   const today = new Date();
   const { q, year } = birMostRecentCompletedQuarter(today);
   const period = birQuarterLabel(q, year);
@@ -176,7 +192,7 @@ function renderBIR() {
 }
 
 // Opens the "verify amounts → save filing record" modal for a periodic form.
-function openFileBir(form) {
+export function openFileBir(form) {
   const today = new Date();
   const { q, year } = birMostRecentCompletedQuarter(today);
   const birYear = APP_SETTINGS.finance.birYear;
@@ -215,7 +231,7 @@ function openFileBir(form) {
     <div style="font-size:10.5px;color:var(--ink-3);margin-top:10px;line-height:1.6">${note}</div>`, saveBirFiling);
 }
 
-async function saveBirFiling() {
+export async function saveBirFiling() {
   const form   = document.getElementById('fb-form').value.trim();
   const period = document.getElementById('fb-period').value.trim();
   const err = validateRequired(period, 'Period');
@@ -235,7 +251,7 @@ async function saveBirFiling() {
   loadFinance();
 }
 
-function openAddInvoice() {
+export function openAddInvoice() {
   openModal('New Invoice (AR)', `
     <div class="form-grid">
       <div class="form-group"><div class="form-label">OR Number</div><input class="form-input" id="fi-or" placeholder="OR-2026-005"/></div>
@@ -249,7 +265,7 @@ function openAddInvoice() {
     </div>`, saveInvoice);
 }
 
-async function saveInvoice() {
+export async function saveInvoice() {
   const or_num = document.getElementById('fi-or').value.trim();
   const err = validateRequired(or_num, 'OR number');
   if (err) { toast(err, 'error'); return; }
@@ -258,15 +274,15 @@ async function saveInvoice() {
     client: document.getElementById('fi-client').value,
     amount: +document.getElementById('fi-amount').value||0,
     status: document.getElementById('fi-status').value,
-    date:   fmtDate(document.getElementById('fi-date').value),
-    due:    fmtDate(document.getElementById('fi-due').value),
+    date:   formatDateShort(document.getElementById('fi-date').value),
+    due:    formatDateShort(document.getElementById('fi-due').value),
   });
   if (!result) return;
   toast('Invoice added','success');
   closeModal(); loadFinance();
 }
 
-function openAddBill() {
+export function openAddBill() {
   openModal('New Bill (AP)', `
     <div class="form-grid">
       <div class="form-group full"><div class="form-label">Payee</div><input class="form-input" id="fb-payee" placeholder="Supplier / vendor name"/></div>
@@ -284,7 +300,7 @@ function openAddBill() {
     </div>`, saveBill);
 }
 
-async function saveBill() {
+export async function saveBill() {
   const payee = document.getElementById('fb-payee').value.trim();
   const err = validateRequired(payee, 'Payee');
   if (err) { toast(err, 'error'); return; }
@@ -293,7 +309,7 @@ async function saveBill() {
     amount:   +document.getElementById('fb-amount').value||0,
     category: document.getElementById('fb-category').value,
     ewt:      document.getElementById('fb-ewt').value,
-    date:     fmtDate(document.getElementById('fb-date').value),
+    date:     formatDateShort(document.getElementById('fb-date').value),
     status:   document.getElementById('fb-status').value,
   });
   if (!result) return;
@@ -301,7 +317,7 @@ async function saveBill() {
   closeModal(); loadFinance();
 }
 
-function openAddPayroll() {
+export function openAddPayroll() {
   openModal('New Payroll Run', `
     <div class="form-grid">
       <div class="form-group"><div class="form-label">Period</div><input class="form-input" id="pp-period" placeholder="e.g. Jun 2026"/></div>
@@ -323,7 +339,7 @@ function estimateDeductions() {
   document.getElementById('pp-net').value = gross - ded;
 }
 
-async function savePayroll() {
+export async function savePayroll() {
   const period = document.getElementById('pp-period').value.trim();
   const err = validateRequired(period, 'Period');
   if (err) { toast(err, 'error'); return; }

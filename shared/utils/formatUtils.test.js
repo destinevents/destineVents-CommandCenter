@@ -1,5 +1,5 @@
 // Tests the SHIPPED utils/format.js. `globals: true` provides describe/it/expect.
-const { formatCurrency, formatBytes, formatPercentage, capitalize, pluralize } = require('./format.js');
+import { formatCurrency, formatBytes, formatPercentage, capitalize, pluralize } from './formatUtils.ts';
 
 describe('formatCurrency', () => {
   it('formats a positive number with peso sign', () => {

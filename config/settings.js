@@ -1,4 +1,4 @@
-const APP_SETTINGS = {
+export const APP_SETTINGS = {
   company: {
     name: 'DestineVents Collective OPC',
     shortName: 'DestineVents',
