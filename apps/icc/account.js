@@ -1,4 +1,5 @@
 import { updateProfile, updatePassword } from '../../shared/services/authService.ts';
+import { validatePassword } from '../../shared/utils/validators.ts';
 import { currentUser } from './state.js';
 import { toast } from './ui.js';
 
@@ -122,7 +123,8 @@ export async function renderAccount() {
           </div>
         </div>
         <div class="acc-card-footer">
-          <button class="btn-primary" id="cp-save-btn" disabled>Update Password</button>
+          <span class="acc-error" id="cp-error"></span>
+          <button class="btn-primary" id="cp-save-btn">Update Password</button>
         </div>
       </div>
 
@@ -212,8 +214,27 @@ function checkPasswordReqs() {
     }
   }
 
-  const saveBtn = document.getElementById('cp-save-btn');
-  if (saveBtn) saveBtn.disabled = !(allPass && confirm && pwd === confirm);
+  // Typing again clears a previous rejection message
+  const errEl = document.getElementById('cp-error');
+  if (errEl) errEl.textContent = '';
+
+  return allPass;
+}
+
+// Loud rejection: the button must never silently refuse — that once left an
+// admin convinced a non-compliant password had been saved (July 10 lockout).
+function rejectPasswordChange(msg) {
+  const errEl = document.getElementById('cp-error');
+  if (errEl) errEl.textContent = msg;
+  ['cp-new', 'cp-confirm', 'pw-reqs'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove('shake');
+    void el.offsetWidth; // restart the animation on repeat clicks
+    el.classList.add('shake');
+    el.addEventListener('animationend', () => el.classList.remove('shake'), { once: true });
+  });
+  toast('⚠️ ' + msg);
 }
 
 // ── Change Password ───────────────────────────────────────
@@ -223,14 +244,22 @@ async function changePassword() {
     const newPwd  = document.getElementById('cp-new').value;
     const confirm = document.getElementById('cp-confirm').value;
 
-    if (!newPwd)  { toast('New password is required.'); return; }
-    if (newPwd !== confirm) { toast('Passwords do not match.'); return; }
+    const pwErr = validatePassword(newPwd);
+    if (pwErr) {
+      checkPasswordReqs(); // paint the failing rules red before shaking them
+      rejectPasswordChange(pwErr + ' Password was NOT changed.');
+      return;
+    }
+    if (newPwd !== confirm) {
+      rejectPasswordChange('Passwords do not match. Password was NOT changed.');
+      return;
+    }
 
     if (btn) { btn.disabled = true; btn.textContent = 'Updating…'; }
 
     const { error } = await updatePassword(newPwd);
     if (error) {
-      toast(error.message || 'Failed to update password.');
+      rejectPasswordChange((error.message || 'Failed to update password.') + ' Password was NOT changed.');
       if (btn) { btn.disabled = false; btn.textContent = 'Update Password'; }
       return;
     }
