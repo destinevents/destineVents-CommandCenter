@@ -111,7 +111,9 @@ export async function handleDeleteClient(id) {
 let _editingProposalId = null;
 
 export async function loadProposals() {
-  setProposals(await fetchProposals());
+  const [proposals, clients] = await Promise.all([fetchProposals(), fetchClients()]);
+  setProposals(proposals);
+  setClients(clients || []);
   renderProposals(_proposals);
 }
 
@@ -131,8 +133,8 @@ export function renderProposals(proposals) {
         <tr>
           <td><div class="project-name">${escapeHtml(p.name)}</div><div class="project-client">${escapeHtml(p.client)}</div></td>
           <td class="project-value">${formatCurrency(p.value)}</td>
-          <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(p.sent || '—')}</td>
-          <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(p.followup || '—')}</td>
+          <td style="font-size:11px;color:var(--ink-3)">${displayDate(p.sent)}</td>
+          <td style="font-size:11px;color:var(--ink-3)">${displayDate(p.followup)}</td>
           <td><span class="badge badge-${statusClass(p.status)}">${escapeHtml(p.status)}</span></td>
           <td>
             <div class="flex-gap" style="gap:4px;flex-wrap:wrap">
@@ -150,6 +152,12 @@ function toISODate(val) {
   if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
   const d = new Date(val);
   return isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
+}
+
+function displayDate(val) {
+  if (!val || val === '—') return '—';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return formatDateShort(val);
+  return escapeHtml(String(val));
 }
 
 function proposalFormHTML(p = {}) {
@@ -248,7 +256,7 @@ export async function openClientDetail(id) {
     ${cProps.length ? cProps.map(p => `
       <div class="activity-item">
         <div class="activity-dot ${dot(p.status)}"></div>
-        <div style="flex:1"><div class="activity-text">${escapeHtml(p.name)}</div><div class="activity-time">${escapeHtml(p.sent || '—')}</div></div>
+        <div style="flex:1"><div class="activity-text">${escapeHtml(p.name)}</div><div class="activity-time">${displayDate(p.sent)}</div></div>
         <div style="display:flex;align-items:center;gap:8px">
           <span style="font-family:'Cormorant Garamond',serif;font-size:13px">${formatCurrency(p.value)}</span>
           <span class="badge badge-${statusClass(p.status)}">${escapeHtml(p.status)}</span>
@@ -267,7 +275,7 @@ export async function openClientDetail(id) {
     ${cInvs.length ? cInvs.map(i => `
       <div class="activity-item">
         <div class="activity-dot ${dot(i.status)}"></div>
-        <div style="flex:1"><div class="activity-text">${escapeHtml(i.or_num)}</div><div class="activity-time">${escapeHtml(i.date || '—')}</div></div>
+        <div style="flex:1"><div class="activity-text">${escapeHtml(i.or_num)}</div><div class="activity-time">${displayDate(i.date)}</div></div>
         <div style="display:flex;align-items:center;gap:8px">
           <span style="font-family:'Cormorant Garamond',serif;font-size:13px">${formatCurrency(i.amount)}</span>
           <span class="badge badge-${statusClass(i.status)}">${escapeHtml(i.status)}</span>

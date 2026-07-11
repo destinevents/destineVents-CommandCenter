@@ -64,7 +64,7 @@ export function renderFinanceOverview(invoices, bills) {
   document.getElementById('finance-recent-ar').innerHTML = invoices.slice(0, 4).map(i => `
     <div class="activity-item">
       <div class="activity-dot ${i.status === 'Paid' ? 'green' : i.status === 'Overdue' ? 'red' : 'blue'}"></div>
-      <div style="flex:1"><div class="activity-text">${escapeHtml(i.client)} — ${escapeHtml(i.or_num)}</div><div class="activity-time">${escapeHtml(i.date)}</div></div>
+      <div style="flex:1"><div class="activity-text">${escapeHtml(i.client)} — ${escapeHtml(i.or_num)}</div><div class="activity-time">${displayDate(i.date)}</div></div>
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-family:'Cormorant Garamond',serif;font-size:14px;font-weight:600">${formatCurrency(i.amount)}</span>
         <span class="badge badge-${statusClass(i.status)}">${escapeHtml(i.status)}</span>
@@ -74,7 +74,7 @@ export function renderFinanceOverview(invoices, bills) {
   document.getElementById('finance-recent-ap').innerHTML = bills.slice(0, 4).map(b => `
     <div class="activity-item">
       <div class="activity-dot ${b.status === 'Paid' ? 'green' : 'blue'}"></div>
-      <div style="flex:1"><div class="activity-text">${escapeHtml(b.payee)}</div><div class="activity-time">${escapeHtml(b.date)} · EWT ${escapeHtml(b.ewt)}</div></div>
+      <div style="flex:1"><div class="activity-text">${escapeHtml(b.payee)}</div><div class="activity-time">${displayDate(b.date)} · EWT ${escapeHtml(b.ewt)}</div></div>
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-family:'Cormorant Garamond',serif;font-size:14px;font-weight:600">${formatCurrency(b.amount)}</span>
         <span class="badge badge-${statusClass(b.status)}">${escapeHtml(b.status)}</span>
@@ -95,8 +95,8 @@ export function renderAR(invoices) {
           <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(i.or_num)}</td>
           <td style="font-weight:500;color:var(--ink)">${escapeHtml(i.client)}</td>
           <td class="amount-cell">${formatCurrency(i.amount)}</td>
-          <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(i.date)}</td>
-          <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(i.due)}</td>
+          <td style="font-size:11px;color:var(--ink-3)">${displayDate(i.date)}</td>
+          <td style="font-size:11px;color:var(--ink-3)">${displayDate(i.due)}</td>
           <td><span class="badge badge-${statusClass(i.status)}">${escapeHtml(i.status)}</span></td>
           <td>
             <div class="flex-gap" style="gap:4px">
@@ -113,6 +113,12 @@ function toISODate(val) {
   if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
   const d = new Date(val);
   return isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
+}
+
+function displayDate(val) {
+  if (!val || val === '—') return '—';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return formatDateShort(val);
+  return escapeHtml(String(val));
 }
 
 function invoiceFormHTML(i = {}) {
@@ -191,7 +197,7 @@ export function renderAP(bills) {
         <tr>
           <td style="font-weight:500;color:var(--ink)">${escapeHtml(b.payee)}</td>
           <td class="amount-cell">${formatCurrency(b.amount)}</td>
-          <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(b.date)}</td>
+          <td style="font-size:11px;color:var(--ink-3)">${displayDate(b.date)}</td>
           <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(b.category)}</td>
           <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(b.ewt)}</td>
           <td><span class="badge badge-${statusClass(b.status)}">${escapeHtml(b.status)}</span></td>
