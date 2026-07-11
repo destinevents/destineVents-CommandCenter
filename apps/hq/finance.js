@@ -57,6 +57,42 @@ export function showFinanceTab(name, el) {
   el.classList.add('active');
 }
 
+function renderRevenueByProject(invoices, projects) {
+  const el = document.getElementById('finance-revenue-by-project');
+  if (!el) return;
+  const grouped = {};
+  invoices.forEach(inv => {
+    const key = inv.project_id ?? 'unassigned';
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(inv);
+  });
+  const rows = Object.entries(grouped)
+    .map(([key, invs]) => {
+      const proj = key !== 'unassigned' ? projects.find(p => p.id === +key) : null;
+      const name = proj ? proj.name : 'Unassigned';
+      const total       = invs.reduce((s, i) => s + (i.amount || 0), 0);
+      const collected   = invs.filter(i => i.status === 'Paid').reduce((s, i) => s + (i.amount || 0), 0);
+      const outstanding = total - collected;
+      return { name, total, collected, outstanding, count: invs.length };
+    })
+    .sort((a, b) => b.total - a.total);
+  if (!rows.length) { el.innerHTML = '<div class="empty-state">No invoices yet</div>'; return; }
+  el.innerHTML = `
+    <table class="ledger-table" style="margin-top:0">
+      <thead><tr><th>Project</th><th style="text-align:right">Invoices</th><th style="text-align:right">Total</th><th style="text-align:right">Collected</th><th style="text-align:right">Outstanding</th></tr></thead>
+      <tbody>
+        ${rows.map(r => `
+          <tr>
+            <td style="font-weight:500;color:var(--ink)">${escapeHtml(r.name)}</td>
+            <td style="text-align:right;font-size:11px;color:var(--ink-3)">${r.count}</td>
+            <td class="amount-cell">${formatCurrency(r.total)}</td>
+            <td class="amount-cell" style="color:var(--green)">${formatCurrency(r.collected)}</td>
+            <td class="amount-cell" style="${r.outstanding > 0 ? 'color:var(--red)' : ''}">${formatCurrency(r.outstanding)}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
 export function renderFinanceOverview(invoices, bills) {
   const summary = calcFinanceSummary(invoices, bills);
   const net     = summary.arOutstanding - summary.apOutstanding;
@@ -66,6 +102,8 @@ export function renderFinanceOverview(invoices, bills) {
     <div class="stat-card"><div class="stat-label">AP Outstanding</div><div class="stat-value" style="font-size:22px">${formatCurrency(summary.apOutstanding)}</div><div class="stat-change">${summary.pendingBillsCount} pending bills</div></div>
     <div class="stat-card"><div class="stat-label">Revenue Collected</div><div class="stat-value" style="font-size:22px">${formatCurrency(summary.revenueCollected)}</div><div class="stat-change up">This quarter</div></div>
     <div class="stat-card"><div class="stat-label">Net Position</div><div class="stat-value" style="font-size:22px${net < 0 ? ';color:var(--red)' : ''}">${formatCurrency(Math.abs(net))}</div><div class="stat-change ${net >= 0 ? 'up' : ''}">${net >= 0 ? 'Receivable surplus' : 'Payable deficit'}</div></div>`;
+
+  renderRevenueByProject(invoices, _projects);
 
   document.getElementById('finance-recent-ar').innerHTML = invoices.slice(0, 4).map(i => `
     <div class="activity-item">
