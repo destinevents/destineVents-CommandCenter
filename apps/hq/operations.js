@@ -13,7 +13,7 @@ import { fetchClients, createClient, findClientByName } from '../../shared/servi
 import { createProject } from '../../shared/services/projectService.js';
 import { fetchImpactEntries, createImpactEntry, updateImpactEntry, deleteImpactEntry } from '../../shared/services/impactService.js';
 import { generateNDAContent, buildNDAWindowContent } from '../../shared/business/ndaGenerator.js';
-import { _clients, _partners, _documents, _impactEntries, setPartners, setDocuments, setImpactEntries } from './state.js';
+import { _clients, _partners, _documents, _impactEntries, setClients, setPartners, setDocuments, setImpactEntries } from './state.js';
 import { toast, openModal, closeModal } from './ui.js';
 import { showPage } from './app.js';
 
@@ -226,6 +226,13 @@ export async function uploadToStorage(file) {
 }
 
 // ── NDA / New Project flow ────────────────────────────────────────────────────
+
+export async function loadNDA() {
+  const clients = _clients.length ? _clients : await fetchClients();
+  if (!_clients.length) setClients(clients || []);
+  const dl = document.getElementById('np-client-list');
+  if (dl) dl.innerHTML = (clients || []).map(c => `<option value="${escapeHtml(c.name)}"/>`).join('');
+}
 
 export function npGoStep2() {
   const client = document.getElementById('np-client').value.trim();

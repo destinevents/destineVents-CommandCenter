@@ -23,7 +23,7 @@ import {
 import {
   loadPartners, filterPartners, openAddPartner, openEditPartner, handleDeletePartner,
   loadDocuments, handleFileSelect, openDocPreview, closeDocPreview, handleDeleteDocument,
-  npGoStep2, npGoStep1, npFinish, downloadNDA,
+  loadNDA, npGoStep2, npGoStep1, npFinish, downloadNDA,
   loadImpact, saveImpactEntry, openEditImpact, handleDeleteImpact,
 } from './operations.js';
 import {
@@ -210,6 +210,9 @@ function loadPage(name) {
       break;
     case 'events':
       loadEvents();
+      break;
+    case 'new-project':
+      loadNDA();
       break;
     case 'ai':
       initAIAutocomplete();
