@@ -24,7 +24,7 @@ import {
   loadPartners, filterPartners, openAddPartner, openEditPartner, handleDeletePartner,
   loadDocuments, handleFileSelect, openDocPreview, closeDocPreview, handleDeleteDocument,
   npGoStep2, npGoStep1, npFinish, downloadNDA,
-  loadImpact, saveImpactEntry, handleDeleteImpact,
+  loadImpact, saveImpactEntry, openEditImpact, handleDeleteImpact,
 } from './operations.js';
 import {
   loadFinance, showFinanceTab, openFileBir,
@@ -341,7 +341,7 @@ Object.assign(window, {
   openFileBir, showFinanceTab, estimateDeductions,
   // Operations
   filterPartners, handleFileSelect, npGoStep1, npGoStep2, npFinish, downloadNDA,
-  saveImpactEntry, handleDeleteImpact,
+  saveImpactEntry, openEditImpact, handleDeleteImpact,
   openDocPreview, closeDocPreview, handleDeleteDocument,
   // Events
   loadEvents, openAddEvent, openEditEvent, handleDeleteEvent,

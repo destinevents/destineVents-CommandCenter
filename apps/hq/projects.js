@@ -6,13 +6,16 @@ import { APP_SETTINGS } from '../../config/settings.js';
 import {
   fetchProjects, createProject, updateProject, deleteProject,
 } from '../../shared/services/projectService.js';
-import { _clients, _proposals, _projects, setProjects } from './state.js';
+import { fetchClients } from '../../shared/services/clientService.js';
+import { _clients, _proposals, _projects, setClients, setProjects } from './state.js';
 import { toast, openModal, closeModal } from './ui.js';
 
 let _editingProjectId = null;
 
 export async function loadProjects() {
-  setProjects(await fetchProjects());
+  const [projs, clients] = await Promise.all([fetchProjects(), fetchClients()]);
+  setProjects(projs);
+  setClients(clients || []);
   renderProjects(_projects);
 }
 

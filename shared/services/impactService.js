@@ -17,6 +17,12 @@ export async function createImpactEntry(entry) {
   return data;
 }
 
+export async function updateImpactEntry(id, data) {
+  const { error } = await sb.from('impact_entries').update(data).eq('id', id);
+  if (error) { logger.error('updateImpactEntry', error.message, error); return false; }
+  return true;
+}
+
 export async function deleteImpactEntry(id) {
   const { error } = await sb.from('impact_entries').delete().eq('id', id);
   if (error) { logger.error('deleteImpactEntry', error.message, error); return false; }

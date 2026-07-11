@@ -9,6 +9,7 @@ import {
   fetchPayrollRuns, createPayrollRun, updatePayrollRun, deletePayrollRun,
   calcFinanceSummary,
 } from '../../shared/services/financeService.js';
+import { fetchClients } from '../../shared/services/clientService.js';
 import { fetchBirFilings, createBirFiling } from '../../shared/services/birService.js';
 import {
   BIR_PERCENTAGE_TAX_RATE, BIR_8PCT_OPTION_RATE, birMostRecentCompletedQuarter,
@@ -16,7 +17,7 @@ import {
   birFilingStatus, birGrossReceipts, birExpenses, birCompWithholding,
   bir2307Bills, birIsFiled, birFilingsFor,
 } from '../../shared/business/birCalc.js';
-import { _clients, _invoices, _bills, _payroll, _birFilings, setInvoices, setBills, setPayroll, setBirFilings } from './state.js';
+import { _clients, _invoices, _bills, _payroll, _birFilings, setClients, setInvoices, setBills, setPayroll, setBirFilings } from './state.js';
 import { toast, openModal, closeModal } from './ui.js';
 
 let _editingInvoiceId = null;
@@ -24,12 +25,14 @@ let _editingBillId    = null;
 let _editingPayrollId = null;
 
 export async function loadFinance() {
-  const [inv, bil, pay, bir] = await Promise.all([
+  const [inv, bil, pay, bir, clients] = await Promise.all([
     fetchInvoices(),
     fetchBills(),
     fetchPayrollRuns(),
     fetchBirFilings(),
+    fetchClients(),
   ]);
+  setClients(clients || []);
   setInvoices(inv || []);
   setBills(bil || []);
   setPayroll(pay || []);
