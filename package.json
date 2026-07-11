@@ -4,6 +4,7 @@
   "description": "A dual-portal operations management platform for DestineVents Collective OPC",
   "scripts": {
     "dev": "vite",
+    "dev:full": "vercel dev",
     "build": "vite build",
     "test": "vitest run",
     "test:watch": "vitest",

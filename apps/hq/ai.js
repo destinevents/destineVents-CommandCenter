@@ -31,6 +31,8 @@ export async function simulateAI() {
   const templateName = document.querySelector('.ai-template.selected .ai-template-name')?.textContent || 'Follow-up Email';
   const r = document.getElementById('ai-result');
 
+  r.style.color = '';
+  r.style.whiteSpace = '';
   r.innerHTML = '<div class="ai-generating"><div class="dot-pulse"><span></span><span></span><span></span></div>&nbsp; Generating…</div>';
 
   try {
@@ -45,17 +47,23 @@ export async function simulateAI() {
     });
 
     if (!res.ok) {
-      const err = await res.json().catch(()=>({}));
-      throw new Error(err.error?.message || err.error || `HTTP ${res.status}`);
+      const err = await res.json().catch(() => ({}));
+      const msg = err.error?.message || (typeof err.error === 'string' ? err.error : null) || `HTTP ${res.status}`;
+      throw new Error(msg);
     }
 
     const data = await res.json();
     const text = data.content?.[0]?.text || '(no output)';
     r.textContent = text;
     r.style.whiteSpace = 'pre-line';
-  } catch(e) {
-    r.textContent = `Error: ${e.message}`;
+  } catch (e) {
+    const isNetworkError = e.message.includes('Failed to fetch') || e.message.includes('NetworkError') || e.message.includes('ERR_CONNECTION');
+    const msg = isNetworkError
+      ? 'AI endpoint is not reachable. In local development, run npm run dev:full (uses vercel dev). In production, deploy to Vercel with ANTHROPIC_API_KEY set.'
+      : e.message;
     r.style.color = 'var(--red)';
-    toast(e.message, 'error');
+    r.style.whiteSpace = 'normal';
+    r.textContent = msg;
+    toast('AI generation failed', 'error');
   }
 }

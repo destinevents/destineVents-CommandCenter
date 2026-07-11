@@ -1,6 +1,12 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "functions": {
+    "api/ai.js": {
+      "memory": 256,
+      "maxDuration": 20
+    }
+  },
   "redirects": [
     {
       "source": "/",
