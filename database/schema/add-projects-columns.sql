@@ -5,6 +5,7 @@
 
 alter table projects add column if not exists brand      text;
 alter table projects add column if not exists category   text;
+alter table projects add column if not exists notes      text;
 alter table projects add column if not exists updated_at timestamptz default now();
 
 -- Reload the PostgREST schema cache so the new columns are visible immediately
