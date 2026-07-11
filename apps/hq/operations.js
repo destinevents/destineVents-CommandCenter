@@ -126,8 +126,9 @@ export function renderDocuments(docs) {
 
 export function handleFileSelect(files) {
   if (!files || !files.length) return;
+  const file = files[0];
   document.getElementById('file-input').value = '';
-  uploadToStorage(files[0]);
+  uploadToStorage(file);
 }
 
 export async function uploadToStorage(file) {
