@@ -24,6 +24,7 @@ import {
 import { loadFinance, showFinanceTab, openFileBir, openAddInvoice, openAddBill, openAddPayroll, estimateDeductions } from './finance.js';
 import { loadProjects, openAddProject } from './projects.js';
 import { selectTemplate, copyAIOutput, simulateAI } from './ai.js';
+import { loadEvents, openAddEvent, filterEvents, viewEventRegistrations, backToEvents, copyRegisterUrl, handleUpdateRegistrationStatus } from './events.js';
 
 async function init() {
   const session = await getSession();
@@ -91,7 +92,9 @@ function setupRealtime() {
     bir_filings: { page: 'finance', reload: () => loadFinance() },
     documents: { page: 'documents', reload: () => loadDocuments() },
     projects: { page: 'projects', reload: () => loadProjects() },
-    impact_entries: { page: 'impact', reload: () => loadImpact() },
+    impact_entries:       { page: 'impact',  reload: () => loadImpact() },
+    events:               { page: 'events',  reload: () => loadEvents() },
+    event_registrations:  { page: 'events',  reload: () => loadEvents() },
   };
   const ch = sb.channel('db-realtime');
   Object.entries(pageMap).forEach(([table, { page, reload }]) => {
@@ -190,6 +193,9 @@ function loadPage(name) {
       break;
     case 'impact':
       loadImpact();
+      break;
+    case 'events':
+      loadEvents();
       break;
     case 'ai':
       break;
@@ -310,6 +316,8 @@ Object.assign(window, {
   openAddInvoice, openAddBill, openAddPayroll, openFileBir, showFinanceTab, estimateDeductions,
   filterPartners, handleFileSelect, npGoStep1, npGoStep2, npFinish, downloadNDA,
   saveImpactEntry, selectTemplate, copyAIOutput, simulateAI,
+  loadEvents, openAddEvent, filterEvents, viewEventRegistrations, backToEvents, copyRegisterUrl,
+  updateRegistrationStatus: handleUpdateRegistrationStatus,
 });
 
 export { showPage };

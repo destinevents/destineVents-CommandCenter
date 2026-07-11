@@ -30,3 +30,12 @@ export function setImpactEntries(v) { _impactEntries = v; }
 
 export let _birFilings = [];
 export function setBirFilings(v) { _birFilings = v; }
+
+export let _events = [];
+export function setEvents(v) { _events = v; }
+
+export let _eventRegs = [];
+export function setEventRegs(v) { _eventRegs = v; }
+
+export let _currentEvent = null;
+export function setCurrentEvent(v) { _currentEvent = v; }

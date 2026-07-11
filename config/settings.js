@@ -44,4 +44,15 @@ export const APP_SETTINGS = {
     auditLogKey: 'audit_logged',
     sidebarKey: 'sidebar_collapsed',
   },
+  events: {
+    statuses: ['Upcoming', 'Active', 'Completed', 'Cancelled'],
+    types: [
+      'Corporate', 'Government', 'CSR',
+      'Community', 'Pop-up', 'Workshop',
+      'Training', 'Digital Workshop', 'Expo',
+    ],
+  },
+  app: {
+    url: 'https://destine-vents-command-center.vercel.app',
+  },
 };

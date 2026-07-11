@@ -153,11 +153,6 @@ alter publication supabase_realtime add table bills;
 alter publication supabase_realtime add table payroll_runs;
 alter publication supabase_realtime add table documents;
 
--- ─── STORAGE BUCKET (for Document Vault file uploads) ────────────────────────
--- Run this separately in Supabase → Storage → New Bucket
--- Bucket name: documents
--- Set to Private (not public)
--- Then add this storage policy:
-
--- insert into storage.buckets (id, name, public) values ('documents', 'documents', false);
--- create policy "auth_storage" on storage.objects for all to authenticated using (bucket_id = 'documents') with check (bucket_id = 'documents');
+-- ─── STORAGE BUCKETS ────────────────────────────────────────────────────────
+-- See database/schema/storage-buckets.sql — run that file in the SQL Editor.
+-- Creates: documents, signed-agreements, avatars (all private, RLS-enforced).
