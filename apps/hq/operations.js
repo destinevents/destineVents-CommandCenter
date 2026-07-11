@@ -132,18 +132,29 @@ export function handleFileSelect(files) {
 
 export async function uploadToStorage(file) {
   toast('Uploading…');
-  const path = `${Date.now()}-${file.name}`;
-  const uploadResult = await uploadDocument(file, path);
-  if (!uploadResult) return;
-  const url = getDocumentPublicUrl(path);
-  await saveDocumentMeta({
-    name: file.name, type: guessDocType(file.name),
-    size: formatBytes(file.size),
-    date: formatDateShort(todayISO()),
-    url, path,
-  });
-  toast('File uploaded', 'success');
-  loadDocuments();
+  try {
+    const path = `${Date.now()}-${file.name}`;
+    const uploadResult = await uploadDocument(file, path);
+    if (!uploadResult) {
+      toast('Upload failed — check that the "documents" storage bucket exists in Supabase.', 'error');
+      return;
+    }
+    const url = getDocumentPublicUrl(path);
+    const saved = await saveDocumentMeta({
+      name: file.name, type: guessDocType(file.name),
+      size: formatBytes(file.size),
+      date: formatDateShort(todayISO()),
+      url, path,
+    });
+    if (!saved) {
+      toast('File uploaded but metadata could not be saved.', 'error');
+      return;
+    }
+    toast('File uploaded', 'success');
+    loadDocuments();
+  } catch (err) {
+    toast(`Upload error: ${err?.message || 'Unknown error'}`, 'error');
+  }
 }
 
 // ── NDA / New Project flow ────────────────────────────────────────────────────
