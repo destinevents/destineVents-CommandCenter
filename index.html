@@ -531,16 +531,6 @@
   <div class="page" id="page-ai">
     <div class="page-eyebrow">generate</div>
     <div class="page-title">AI Assistant</div>
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-title">Settings</div>
-      <div style="display:flex;align-items:flex-end;gap:16px">
-        <div class="form-group" style="flex:1;margin:0">
-          <div class="form-label">Anthropic API Key</div>
-          <input class="form-input" id="ai-api-key" type="password" placeholder="sk-ant-api03-…" oninput="localStorage.setItem('ai-api-key',this.value)"/>
-        </div>
-        <div style="font-size:10px;color:var(--ink-3);padding-bottom:9px;line-height:1.7;white-space:nowrap">Stored in your browser only.<br>Get a key at console.anthropic.com</div>
-      </div>
-    </div>
     <div class="ai-grid">
       <div class="ai-template selected" onclick="selectTemplate(this)"><div class="ai-template-icon">📧</div><div class="ai-template-name">Follow-up Email</div><div class="ai-template-desc">Professional client follow-ups</div></div>
       <div class="ai-template" onclick="selectTemplate(this)"><div class="ai-template-icon">📋</div><div class="ai-template-name">Proposal Summary</div><div class="ai-template-desc">Executive summaries that win</div></div>
