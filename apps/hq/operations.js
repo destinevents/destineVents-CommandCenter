@@ -151,10 +151,10 @@ export async function openDocPreview(id) {
     dlBtn.style.pointerEvents = 'none';
   }
 
-  document.getElementById('doc-preview-body').innerHTML = buildPreview(doc.type, signedUrl, doc.name);
+  document.getElementById('doc-preview-body').innerHTML = buildPreview(signedUrl, doc.name);
 }
 
-function buildPreview(type, signedUrl, name) {
+function buildPreview(signedUrl, name) {
   if (!signedUrl) {
     return `<div style="text-align:center;padding:40px 24px">
       <div style="font-size:36px;margin-bottom:12px">📄</div>
@@ -162,17 +162,17 @@ function buildPreview(type, signedUrl, name) {
       <div style="font-size:11px;color:var(--ink-3)">File path is missing — this entry may have been created manually.</div>
     </div>`;
   }
-  const t = (type || '').toUpperCase();
-  if (t === 'PDF') {
+  const ext = (name || '').split('.').pop().toLowerCase();
+  if (ext === 'pdf') {
     return `<iframe src="${signedUrl}" style="width:100%;height:100%;min-height:500px;border:none;display:block"></iframe>`;
   }
-  if (['PNG', 'JPG', 'JPEG', 'GIF', 'WEBP'].includes(t)) {
+  if (['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext)) {
     return `<img src="${signedUrl}" alt="${escapeHtml(name)}" style="max-width:100%;max-height:70vh;object-fit:contain;display:block;margin:auto;padding:20px">`;
   }
   return `<div style="text-align:center;padding:40px 24px">
     <div style="font-size:36px;margin-bottom:12px">📄</div>
-    <div style="font-size:13px;color:var(--ink-2);margin-bottom:6px">Preview not available for ${escapeHtml(type || 'this file type')}</div>
-    <div style="font-size:11px;color:var(--ink-3)">Use the Download button to open it.</div>
+    <div style="font-size:13px;color:var(--ink-2);margin-bottom:6px">${escapeHtml(name)}</div>
+    <div style="font-size:11px;color:var(--ink-3)">Use the Download button to open this file.</div>
   </div>`;
 }
 
