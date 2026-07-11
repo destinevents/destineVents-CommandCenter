@@ -12,9 +12,9 @@ export async function fetchProjects() {
 }
 
 export async function createProject(proj) {
-  const { data, error } = await sb.from('projects').insert(proj).select().single();
+  const { data, error } = await sb.from('projects').insert(proj).select();
   if (error) { logger.error('createProject', error.message, error); showToast('Could not save project.', 'error', 3000); return null; }
-  return data;
+  return data?.[0] ?? true;
 }
 
 export async function updateProjectStatus(id, status) {
