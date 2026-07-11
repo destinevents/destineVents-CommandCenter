@@ -134,10 +134,6 @@
       <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
       Impact Tracker
     </div>
-    <div class="nav-item" data-page="timelogs" onclick="showPage('timelogs')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-      Time Logs
-    </div>
     <div class="nav-item" data-page="ai" onclick="showPage('ai')">
       <svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/><line x1="9" y1="21" x2="15" y2="21"/><line x1="9" y1="18" x2="15" y2="18"/></svg>
       AI Assistant
@@ -533,23 +529,6 @@
         <div class="card-title">All Entries</div>
         <div id="impact-entries"></div>
       </div>
-    </div>
-  </div>
-
-  <!-- TIME LOGS -->
-  <div class="page" id="page-timelogs">
-    <div class="page-eyebrow">freelance</div>
-    <div class="page-title" style="margin-bottom:16px">Time Logs</div>
-    <div class="finance-stat-grid" id="tl-stats" style="margin-bottom:16px"></div>
-    <div class="page-actions" style="margin-bottom:12px">
-      <div style="font-size:11px;color:var(--ink-3)">Track billable and non-billable freelance hours</div>
-      <button class="btn btn-primary" onclick="openAddTimelog()">Log Time</button>
-    </div>
-    <div style="border:1px solid var(--ink-4);overflow:hidden">
-      <table class="ledger-table">
-        <thead><tr><th>Date</th><th>Client</th><th>Project</th><th>Description</th><th>Hours</th><th>Rate</th><th>Billable</th><th>Status</th><th></th></tr></thead>
-        <tbody id="tl-tbody"></tbody>
-      </table>
     </div>
   </div>
 

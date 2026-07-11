@@ -35,7 +35,6 @@ import {
 } from './finance.js';
 import { loadProjects, openAddProject, openEditProject, handleDeleteProject, convertProposalToProject, openProjectDetail, openProjectInvoice } from './projects.js';
 import { selectTemplate, copyAIOutput, simulateAI, saveAIOutput, initAIAutocomplete } from './ai.js';
-import { loadTimelogs, openAddTimelog, openEditTimelog, handleDeleteTimelog } from './timelogs.js';
 import {
   loadEvents, openAddEvent, openEditEvent, handleDeleteEvent,
   filterEvents, viewEventRegistrations, backToEvents, copyRegisterUrl,
@@ -111,7 +110,6 @@ function setupRealtime() {
     impact_entries:       { page: 'impact',  reload: () => loadImpact() },
     events:               { page: 'events',    reload: () => loadEvents() },
     event_registrations:  { page: 'events',    reload: () => loadEvents() },
-    time_logs:            { page: 'timelogs',  reload: () => loadTimelogs() },
   };
   const ch = sb.channel('db-realtime');
   Object.entries(pageMap).forEach(([table, { page, reload }]) => {
@@ -215,9 +213,6 @@ function loadPage(name) {
       break;
     case 'new-project':
       loadNDA();
-      break;
-    case 'timelogs':
-      loadTimelogs();
       break;
     case 'ai':
       initAIAutocomplete();
@@ -360,8 +355,6 @@ Object.assign(window, {
   filterEvents, viewEventRegistrations, backToEvents, copyRegisterUrl,
   updateRegistrationStatus: handleUpdateRegistrationStatus,
   openIssueEventInvoice,
-  // Time Logs
-  openAddTimelog, openEditTimelog, handleDeleteTimelog,
   // AI
   selectTemplate, copyAIOutput, simulateAI, saveAIOutput,
 });

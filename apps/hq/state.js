@@ -39,6 +39,3 @@ export function setEventRegs(v) { _eventRegs = v; }
 
 export let _currentEvent = null;
 export function setCurrentEvent(v) { _currentEvent = v; }
-
-export let _timelogs = [];
-export function setTimelogs(v) { _timelogs = v; }
