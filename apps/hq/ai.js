@@ -1,4 +1,22 @@
+import { escapeHtml } from '../../shared/utils/helpers.ts';
+import { fetchClients } from '../../shared/services/clientService.js';
+import { fetchProjects } from '../../shared/services/projectService.js';
+import { _clients, _projects, setClients, setProjects } from './state.js';
 import { toast } from './ui.js';
+
+export async function initAIAutocomplete() {
+  const [clients, projects] = await Promise.all([
+    _clients.length ? _clients : fetchClients(),
+    _projects.length ? _projects : fetchProjects(),
+  ]);
+  if (!_clients.length) setClients(clients || []);
+  if (!_projects.length) setProjects(projects || []);
+
+  const cl = document.getElementById('ai-client-list');
+  const pl = document.getElementById('ai-project-list');
+  if (cl) cl.innerHTML = (clients || []).map(c => `<option value="${escapeHtml(c.name)}"/>`).join('');
+  if (pl) pl.innerHTML = (projects || []).map(p => `<option value="${escapeHtml(p.name)}"/>`).join('');
+}
 
 export function selectTemplate(el) {
   document.querySelectorAll('.ai-template').forEach(t=>t.classList.remove('selected'));

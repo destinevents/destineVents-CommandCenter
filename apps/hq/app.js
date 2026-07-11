@@ -34,7 +34,7 @@ import {
   estimateDeductions,
 } from './finance.js';
 import { loadProjects, openAddProject, openEditProject, handleDeleteProject, convertProposalToProject } from './projects.js';
-import { selectTemplate, copyAIOutput, simulateAI } from './ai.js';
+import { selectTemplate, copyAIOutput, simulateAI, initAIAutocomplete } from './ai.js';
 import {
   loadEvents, openAddEvent, openEditEvent, handleDeleteEvent,
   filterEvents, viewEventRegistrations, backToEvents, copyRegisterUrl,
@@ -212,6 +212,7 @@ function loadPage(name) {
       loadEvents();
       break;
     case 'ai':
+      initAIAutocomplete();
       break;
   }
 }
