@@ -10,6 +10,8 @@ import {
   calcFinanceSummary,
 } from '../../shared/services/financeService.js';
 import { fetchClients } from '../../shared/services/clientService.js';
+import { fetchProjects } from '../../shared/services/projectService.js';
+import { fetchPartners } from '../../shared/services/partnerService.js';
 import { fetchBirFilings, createBirFiling } from '../../shared/services/birService.js';
 import {
   BIR_PERCENTAGE_TAX_RATE, BIR_8PCT_OPTION_RATE, birMostRecentCompletedQuarter,
@@ -17,7 +19,7 @@ import {
   birFilingStatus, birGrossReceipts, birExpenses, birCompWithholding,
   bir2307Bills, birIsFiled, birFilingsFor,
 } from '../../shared/business/birCalc.js';
-import { _clients, _invoices, _bills, _payroll, _birFilings, setClients, setInvoices, setBills, setPayroll, setBirFilings } from './state.js';
+import { _clients, _projects, _partners, _invoices, _bills, _payroll, _birFilings, setClients, setProjects, setPartners, setInvoices, setBills, setPayroll, setBirFilings } from './state.js';
 import { toast, openModal, closeModal } from './ui.js';
 
 let _editingInvoiceId = null;
@@ -25,14 +27,18 @@ let _editingBillId    = null;
 let _editingPayrollId = null;
 
 export async function loadFinance() {
-  const [inv, bil, pay, bir, clients] = await Promise.all([
+  const [inv, bil, pay, bir, clients, projs, parts] = await Promise.all([
     fetchInvoices(),
     fetchBills(),
     fetchPayrollRuns(),
     fetchBirFilings(),
     fetchClients(),
+    fetchProjects(),
+    fetchPartners(),
   ]);
   setClients(clients || []);
+  setProjects(projs || []);
+  setPartners(parts || []);
   setInvoices(inv || []);
   setBills(bil || []);
   setPayroll(pay || []);
@@ -122,7 +128,8 @@ function displayDate(val) {
 }
 
 function invoiceFormHTML(i = {}) {
-  const clientOpts = _clients.map(c => `<option value="${escapeHtml(c.name)}"/>`).join('');
+  const clientOpts  = _clients.map(c => `<option value="${escapeHtml(c.name)}"/>`).join('');
+  const projectOpts = `<option value="">— no project —</option>` + _projects.map(p => `<option value="${p.id}"${i.project_id === p.id ? ' selected' : ''}>${escapeHtml(p.name)}</option>`).join('');
   return `<datalist id="hq-client-list">${clientOpts}</datalist>
   <div class="form-grid">
     <div class="form-group"><div class="form-label">OR Number</div><input class="form-input" id="fi-or" value="${escapeHtml(i.or_num || '')}" placeholder="OR-2026-005"/></div>
@@ -137,6 +144,7 @@ function invoiceFormHTML(i = {}) {
     </div>
     <div class="form-group"><div class="form-label">Date Issued</div><input class="form-input" id="fi-date" type="date" value="${toISODate(i.date)}"/></div>
     <div class="form-group"><div class="form-label">Due Date</div><input class="form-input" id="fi-due" type="date" value="${toISODate(i.due)}"/></div>
+    <div class="form-group full"><div class="form-label">Project (optional)</div><select class="form-input" id="fi-project">${projectOpts}</select></div>
   </div>`;
 }
 
@@ -156,13 +164,15 @@ export async function saveInvoice() {
   const or_num = document.getElementById('fi-or').value.trim();
   const err = validateRequired(or_num, 'OR number');
   if (err) { toast(err, 'error'); return; }
+  const projVal = document.getElementById('fi-project')?.value;
   const payload = {
     or_num,
-    client: document.getElementById('fi-client').value,
-    amount: +document.getElementById('fi-amount').value || 0,
-    status: document.getElementById('fi-status').value,
-    date:   document.getElementById('fi-date').value || null,
-    due:    document.getElementById('fi-due').value || null,
+    client:     document.getElementById('fi-client').value,
+    amount:     +document.getElementById('fi-amount').value || 0,
+    status:     document.getElementById('fi-status').value,
+    date:       document.getElementById('fi-date').value || null,
+    due:        document.getElementById('fi-due').value || null,
+    project_id: projVal ? +projVal : null,
   };
   if (_editingInvoiceId) {
     const ok = await updateInvoice(_editingInvoiceId, payload);
@@ -212,12 +222,14 @@ export function renderAP(bills) {
 }
 
 function billFormHTML(b = {}) {
-  const catOpts = ['Venue', 'Catering', 'Equipment', 'Services', 'Transport', 'Supplies', 'Other']
+  const catOpts     = ['Venue', 'Catering', 'Equipment', 'Services', 'Transport', 'Supplies', 'Other']
     .map(c => `<option${c === b.category ? ' selected' : ''}>${c}</option>`).join('');
-  const ewtOpts = ['0%', '2%', '5%', '10%', '15%']
+  const ewtOpts     = ['0%', '2%', '5%', '10%', '15%']
     .map(e => `<option${e === b.ewt ? ' selected' : ''}>${e}</option>`).join('');
+  const partnerOpts = `<option value="">— no partner —</option>` + _partners.map(p => `<option value="${p.id}"${b.partner_id === p.id ? ' selected' : ''}>${escapeHtml(p.name)}</option>`).join('');
   return `<div class="form-grid">
     <div class="form-group full"><div class="form-label">Payee</div><input class="form-input" id="fb-payee" value="${escapeHtml(b.payee || '')}" placeholder="Supplier / vendor name"/></div>
+    <div class="form-group full"><div class="form-label">Partner / Vendor (optional)</div><select class="form-input" id="fb-partner">${partnerOpts}</select></div>
     <div class="form-group"><div class="form-label">Amount (₱)</div><input class="form-input" id="fb-amount" type="number" value="${b.amount || 0}"/></div>
     <div class="form-group"><div class="form-label">Category</div><select class="form-input" id="fb-category">${catOpts}</select></div>
     <div class="form-group"><div class="form-label">EWT Rate</div><select class="form-input" id="fb-ewt">${ewtOpts}</select></div>
@@ -247,13 +259,15 @@ export async function saveBill() {
   const payee = document.getElementById('fb-payee').value.trim();
   const err = validateRequired(payee, 'Payee');
   if (err) { toast(err, 'error'); return; }
+  const partVal = document.getElementById('fb-partner')?.value;
   const payload = {
     payee,
-    amount:   +document.getElementById('fb-amount').value || 0,
-    category: document.getElementById('fb-category').value,
-    ewt:      document.getElementById('fb-ewt').value,
-    date:     document.getElementById('fb-bill-date').value || null,
-    status:   document.getElementById('fb-status').value,
+    amount:     +document.getElementById('fb-amount').value || 0,
+    category:   document.getElementById('fb-category').value,
+    ewt:        document.getElementById('fb-ewt').value,
+    date:       document.getElementById('fb-bill-date').value || null,
+    status:     document.getElementById('fb-status').value,
+    partner_id: partVal ? +partVal : null,
   };
   if (_editingBillId) {
     const ok = await updateBill(_editingBillId, payload);

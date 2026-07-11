@@ -18,7 +18,7 @@ import {
 import { toast, closeModal, saveModal, toggleHqNav } from './ui.js';
 import {
   loadClients, openAddClient, openEditClient, handleDeleteClient, openClientDetail,
-  loadProposals, openAddProposal, openEditProposal, handleDeleteProposal,
+  loadProposals, openAddProposal, openEditProposal, handleDeleteProposal, openProposalInvoice,
 } from './crm.js';
 import {
   loadPartners, filterPartners, openAddPartner, openEditPartner, handleDeletePartner,
@@ -33,8 +33,8 @@ import {
   openAddPayroll, openEditPayroll, handleDeletePayroll,
   estimateDeductions,
 } from './finance.js';
-import { loadProjects, openAddProject, openEditProject, handleDeleteProject, convertProposalToProject } from './projects.js';
-import { selectTemplate, copyAIOutput, simulateAI, initAIAutocomplete } from './ai.js';
+import { loadProjects, openAddProject, openEditProject, handleDeleteProject, convertProposalToProject, openProjectDetail, openProjectInvoice } from './projects.js';
+import { selectTemplate, copyAIOutput, simulateAI, saveAIOutput, initAIAutocomplete } from './ai.js';
 import {
   loadEvents, openAddEvent, openEditEvent, handleDeleteEvent,
   filterEvents, viewEventRegistrations, backToEvents, copyRegisterUrl,
@@ -265,18 +265,19 @@ function renderDashboard() {
         </div>`).join('')
     : '<div style="font-size:11px;color:var(--ink-3);padding:8px 0">No proposals yet</div>';
 
-  // ── Activity feed (newest clients + invoices) ──
+  // ── Activity feed (newest clients + invoices + projects) ──
   const activity = [
-    ..._clients.slice(0, 4).map(c => ({ text: `New client — ${c.name}`, time: c.created_at || '', dot: 'blue' })),
-    ..._invoices.slice(0, 4).map(i => ({ text: `Invoice ${i.or_num} — ${i.client} · ${i.status}`, time: i.created_at || i.date || '', dot: i.status === 'Paid' ? 'green' : i.status === 'Overdue' ? 'red' : 'blue' })),
-    ..._projects.slice(0, 2).map(p => ({ text: `Project — ${p.name} · ${p.status}`, time: p.created_at || '', dot: 'green' })),
+    ..._clients.slice(0, 4).map(c => ({ text: `New client — ${c.name}`, time: c.created_at || '', dot: 'blue', action: `openClientDetail(${c.id})` })),
+    ..._invoices.slice(0, 4).map(i => ({ text: `Invoice ${i.or_num} — ${i.client} · ${i.status}`, time: i.created_at || i.date || '', dot: i.status === 'Paid' ? 'green' : i.status === 'Overdue' ? 'red' : 'blue', action: `showPage('finance')` })),
+    ..._projects.slice(0, 2).map(p => ({ text: `Project — ${p.name} · ${p.status}`, time: p.created_at || '', dot: 'green', action: `openProjectDetail(${p.id})` })),
   ].sort((a, b) => b.time.localeCompare(a.time)).slice(0, 5);
 
   el('dash-activity').innerHTML = activity.length
     ? activity.map(a => `
-        <div class="activity-item">
+        <div class="activity-item" onclick="${a.action}" style="cursor:pointer" onmouseenter="this.style.background='var(--ink-5)'" onmouseleave="this.style.background=''">
           <div class="activity-dot ${a.dot}"></div>
           <div><div class="activity-text">${escapeHtml(a.text)}</div><div class="activity-time">${formatDateShort((a.time || '').slice(0, 10))}</div></div>
+          <div style="color:var(--ink-3);font-size:10px;margin-left:auto;padding-left:8px">→</div>
         </div>`).join('')
     : '<div style="font-size:11px;color:var(--ink-3);padding:8px 0">No activity yet — add clients and projects to get started</div>';
 
@@ -336,8 +337,10 @@ Object.assign(window, {
   openAddProposal, openEditProposal, handleDeleteProposal,
   // Partners
   openAddPartner, openEditPartner, handleDeletePartner,
+  // Proposals
+  openProposalInvoice,
   // Projects
-  openAddProject, openEditProject, handleDeleteProject, convertProposalToProject,
+  openAddProject, openEditProject, handleDeleteProject, convertProposalToProject, openProjectDetail, openProjectInvoice,
   // Finance
   openAddInvoice, openEditInvoice, handleDeleteInvoice,
   openAddBill, openEditBill, handleDeleteBill,
@@ -353,7 +356,7 @@ Object.assign(window, {
   updateRegistrationStatus: handleUpdateRegistrationStatus,
   openIssueEventInvoice,
   // AI
-  selectTemplate, copyAIOutput, simulateAI,
+  selectTemplate, copyAIOutput, simulateAI, saveAIOutput,
 });
 
 export { showPage };

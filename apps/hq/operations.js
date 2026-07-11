@@ -10,10 +10,10 @@ import {
   getDocumentSignedUrl, removeDocument,
 } from '../../shared/services/documentService.js';
 import { fetchClients, createClient, findClientByName } from '../../shared/services/clientService.js';
-import { createProject } from '../../shared/services/projectService.js';
+import { fetchProjects, createProject } from '../../shared/services/projectService.js';
 import { fetchImpactEntries, createImpactEntry, updateImpactEntry, deleteImpactEntry } from '../../shared/services/impactService.js';
 import { generateNDAContent, buildNDAWindowContent } from '../../shared/business/ndaGenerator.js';
-import { _clients, _partners, _documents, _impactEntries, setClients, setPartners, setDocuments, setImpactEntries } from './state.js';
+import { _clients, _projects, _partners, _documents, _impactEntries, setClients, setProjects, setPartners, setDocuments, setImpactEntries } from './state.js';
 import { toast, openModal, closeModal } from './ui.js';
 import { showPage } from './app.js';
 
@@ -22,7 +22,9 @@ import { showPage } from './app.js';
 let _editingPartnerId = null;
 
 export async function loadPartners() {
-  setPartners(await fetchPartners());
+  const [parts, projs] = await Promise.all([fetchPartners(), _projects.length ? _projects : fetchProjects()]);
+  setPartners(parts);
+  if (!_projects.length) setProjects(projs || []);
   renderPartners(_partners);
 }
 
@@ -49,13 +51,15 @@ export function filterPartners(type, el) {
 }
 
 function partnerFormHTML(p = {}) {
-  const typeOpts = ['School', 'LGU', 'NGO', 'Sponsor', 'Media', 'Startup']
+  const typeOpts    = ['School', 'LGU', 'NGO', 'Sponsor', 'Media', 'Startup']
     .map(t => `<option${t === p.type ? ' selected' : ''}>${t}</option>`).join('');
+  const projectOpts = `<option value="">— no project —</option>` + _projects.map(pr => `<option value="${pr.id}"${p.project_id === pr.id ? ' selected' : ''}>${escapeHtml(pr.name)}</option>`).join('');
   return `<div class="form-grid">
     <div class="form-group full"><div class="form-label">Organization Name</div><input class="form-input" id="fpr-name" value="${escapeHtml(p.name || '')}" placeholder="e.g. BLISTT Consortium"/></div>
     <div class="form-group"><div class="form-label">Type</div><select class="form-input" id="fpr-type">${typeOpts}</select></div>
     <div class="form-group"><div class="form-label">Contact Person</div><input class="form-input" id="fpr-contact" value="${escapeHtml(p.contact || '')}" placeholder="Full name"/></div>
     <div class="form-group full"><div class="form-label">Email</div><input class="form-input" id="fpr-email" type="email" value="${escapeHtml(p.email || '')}" placeholder="email@org.ph"/></div>
+    <div class="form-group full"><div class="form-label">Project (optional)</div><select class="form-input" id="fpr-project">${projectOpts}</select></div>
   </div>`;
 }
 
@@ -75,11 +79,13 @@ export async function savePartner() {
   const name = document.getElementById('fpr-name').value.trim();
   const err = validateRequired(name, 'Organization name');
   if (err) { toast(err, 'error'); return; }
+  const projVal = document.getElementById('fpr-project')?.value;
   const payload = {
     name,
-    type:    document.getElementById('fpr-type').value,
-    contact: document.getElementById('fpr-contact').value,
-    email:   document.getElementById('fpr-email').value,
+    type:       document.getElementById('fpr-type').value,
+    contact:    document.getElementById('fpr-contact').value,
+    email:      document.getElementById('fpr-email').value,
+    project_id: projVal ? +projVal : null,
   };
   if (_editingPartnerId) {
     const ok = await updatePartner(_editingPartnerId, payload);
@@ -195,10 +201,21 @@ export function handleFileSelect(files) {
   if (!files || !files.length) return;
   const file = files[0];
   document.getElementById('file-input').value = '';
-  uploadToStorage(file);
+  const clientOpts  = `<option value="">— no client —</option>` + _clients.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+  const projectOpts = `<option value="">— no project —</option>` + _projects.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+  openModal('Tag Document', `<div style="font-size:12px;color:var(--ink-2);margin-bottom:12px">Uploading: <strong>${escapeHtml(file.name)}</strong></div>
+  <div class="form-grid">
+    <div class="form-group full"><div class="form-label">Client (optional)</div><select class="form-input" id="doc-ctx-client">${clientOpts}</select></div>
+    <div class="form-group full"><div class="form-label">Project (optional)</div><select class="form-input" id="doc-ctx-project">${projectOpts}</select></div>
+  </div>`, () => {
+    const clientVal  = document.getElementById('doc-ctx-client')?.value;
+    const projectVal = document.getElementById('doc-ctx-project')?.value;
+    closeModal();
+    uploadToStorage(file, clientVal ? +clientVal : null, projectVal ? +projectVal : null);
+  });
 }
 
-export async function uploadToStorage(file) {
+export async function uploadToStorage(file, clientId = null, projectId = null) {
   toast('Uploading…');
   try {
     const path = `${Date.now()}-${file.name}`;
@@ -213,6 +230,8 @@ export async function uploadToStorage(file) {
       size: formatBytes(file.size),
       date: todayISO(),
       url, path,
+      client_id:  clientId  || null,
+      project_id: projectId || null,
     });
     if (!saved) {
       toast('File uploaded but metadata could not be saved.', 'error');
@@ -325,7 +344,13 @@ export async function downloadNDA() {
 // ── Impact ────────────────────────────────────────────────────────────────────
 
 export async function loadImpact() {
-  setImpactEntries(await fetchImpactEntries());
+  const [entries, projs] = await Promise.all([fetchImpactEntries(), _projects.length ? _projects : fetchProjects()]);
+  setImpactEntries(entries);
+  if (!_projects.length) setProjects(projs || []);
+  const sel = document.getElementById('imp-project');
+  if (sel) {
+    sel.innerHTML = `<option value="">— no project —</option>` + _projects.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+  }
   renderImpact();
 }
 
@@ -345,19 +370,22 @@ export function renderImpact() {
   el('imp-total-lgus').textContent     = totals.lgus.toLocaleString();
 
   el('impact-entries').innerHTML = _impactEntries.length
-    ? _impactEntries.map(e => `
+    ? _impactEntries.map(e => {
+        const proj = e.project_id ? _projects.find(p => p.id === e.project_id) : null;
+        return `
         <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--ink-4);font-size:12px">
           <div>
             <div style="font-weight:600;color:var(--ink)">${escapeHtml(e.period)} — ${escapeHtml(e.program)}</div>
             <div style="color:var(--ink-3);font-size:10.5px;margin-top:2px">
-              ${e.students_reached || 0} students · ${e.teachers_trained || 0} teachers · ${e.smes_supported || 0} SMEs · ${e.lgus_engaged || 0} LGUs
+              ${e.students_reached || 0} students · ${e.teachers_trained || 0} teachers · ${e.smes_supported || 0} SMEs · ${e.lgus_engaged || 0} LGUs${proj ? ` · <span style="color:var(--blue)">${escapeHtml(proj.name)}</span>` : ''}
             </div>
           </div>
           <div class="flex-gap" style="gap:4px;flex-shrink:0">
             <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="openEditImpact(${e.id})">Edit</button>
             <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--red)" onclick="handleDeleteImpact(${e.id})">Delete</button>
           </div>
-        </div>`).join('')
+        </div>`;
+      }).join('')
     : '<div style="color:var(--ink-3);font-size:11.5px;padding:8px 0">No entries yet — log your first entry.</div>';
 }
 
@@ -366,6 +394,7 @@ export async function saveImpactEntry() {
   const program = document.getElementById('imp-program').value.trim();
   const err = validateRequired(period, 'Period') || validateRequired(program, 'Program');
   if (err) { toast(err, 'error'); return; }
+  const projVal = document.getElementById('imp-project')?.value;
   const result = await createImpactEntry({
     period,
     program,
@@ -373,12 +402,15 @@ export async function saveImpactEntry() {
     teachers_trained: +document.getElementById('imp-teachers').value || 0,
     smes_supported:   +document.getElementById('imp-smes').value    || 0,
     lgus_engaged:     +document.getElementById('imp-lgus').value    || 0,
+    project_id:       projVal ? +projVal : null,
   });
   if (!result) return;
   toast('Impact entry saved', 'success');
   ['imp-period', 'imp-program', 'imp-students', 'imp-teachers', 'imp-smes', 'imp-lgus'].forEach(id => {
     document.getElementById(id).value = '';
   });
+  const projSel = document.getElementById('imp-project');
+  if (projSel) projSel.value = '';
   loadImpact();
 }
 
@@ -393,6 +425,7 @@ export async function handleDeleteImpact(id) {
 let _editingImpactId = null;
 
 function impactFormHTML(e = {}) {
+  const projectOpts = `<option value="">— no project —</option>` + _projects.map(p => `<option value="${p.id}"${e.project_id === p.id ? ' selected' : ''}>${escapeHtml(p.name)}</option>`).join('');
   return `<div class="form-grid">
     <div class="form-group"><div class="form-label">Period</div><input class="form-input" id="imp-edit-period" value="${escapeHtml(e.period || '')}" placeholder="e.g. Q1 2026"/></div>
     <div class="form-group"><div class="form-label">Program</div><input class="form-input" id="imp-edit-program" value="${escapeHtml(e.program || '')}" placeholder="e.g. MSME Capacity Building"/></div>
@@ -400,6 +433,7 @@ function impactFormHTML(e = {}) {
     <div class="form-group"><div class="form-label">Teachers Trained</div><input class="form-input" id="imp-edit-teachers" type="number" value="${e.teachers_trained || 0}" min="0"/></div>
     <div class="form-group"><div class="form-label">SMEs Supported</div><input class="form-input" id="imp-edit-smes" type="number" value="${e.smes_supported || 0}" min="0"/></div>
     <div class="form-group"><div class="form-label">LGUs Engaged</div><input class="form-input" id="imp-edit-lgus" type="number" value="${e.lgus_engaged || 0}" min="0"/></div>
+    <div class="form-group full"><div class="form-label">Project (optional)</div><select class="form-input" id="imp-edit-project">${projectOpts}</select></div>
   </div>`;
 }
 
@@ -415,6 +449,7 @@ async function saveImpactEdit() {
   const program = document.getElementById('imp-edit-program').value.trim();
   const err = validateRequired(period, 'Period') || validateRequired(program, 'Program');
   if (err) { toast(err, 'error'); return; }
+  const editProjVal = document.getElementById('imp-edit-project')?.value;
   const ok = await updateImpactEntry(_editingImpactId, {
     period,
     program,
@@ -422,6 +457,7 @@ async function saveImpactEdit() {
     teachers_trained: +document.getElementById('imp-edit-teachers').value || 0,
     smes_supported:   +document.getElementById('imp-edit-smes').value    || 0,
     lgus_engaged:     +document.getElementById('imp-edit-lgus').value    || 0,
+    project_id:       editProjVal ? +editProjVal : null,
   });
   if (!ok) { toast('Could not update entry', 'error'); return; }
   toast('Impact entry updated', 'success');

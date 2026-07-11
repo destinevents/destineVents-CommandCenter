@@ -1,5 +1,5 @@
 import { formatCurrency } from '../../shared/utils/formatUtils.ts';
-import { formatDateShort } from '../../shared/utils/dateUtils.ts';
+import { formatDateShort, todayISO } from '../../shared/utils/dateUtils.ts';
 import { escapeHtml, statusClass } from '../../shared/utils/helpers.ts';
 import { validateRequired } from '../../shared/utils/validators.ts';
 import { APP_SETTINGS } from '../../config/settings.js';
@@ -10,7 +10,7 @@ import {
   fetchProposals, createProposal, updateProposal, deleteProposal, calcWinRate,
 } from '../../shared/services/proposalService.js';
 import { fetchProjects } from '../../shared/services/projectService.js';
-import { fetchInvoices } from '../../shared/services/financeService.js';
+import { fetchInvoices, createInvoice } from '../../shared/services/financeService.js';
 import { _clients, _proposals, setClients, setProposals } from './state.js';
 import { toast, openModal, closeModal } from './ui.js';
 
@@ -139,6 +139,7 @@ export function renderProposals(proposals) {
           <td>
             <div class="flex-gap" style="gap:4px;flex-wrap:wrap">
               ${p.status === 'Won' ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--green)" onclick="convertProposalToProject(${p.id})">→ Project</button>` : ''}
+              ${p.status === 'Won' ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--blue)" onclick="openProposalInvoice(${p.id})">→ Invoice</button>` : ''}
               <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="openEditProposal(${p.id})">Edit</button>
               <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--red)" onclick="handleDeleteProposal(${p.id})">Delete</button>
             </div>
@@ -217,6 +218,38 @@ export async function handleDeleteProposal(id) {
   if (!ok) { toast('Could not delete proposal', 'error'); return; }
   toast('Proposal deleted', '');
   loadProposals();
+}
+
+// ── Proposal → Invoice shortcut ──────────────────────────────────────────────
+
+export function openProposalInvoice(proposalId) {
+  const p = _proposals.find(x => x.id === proposalId);
+  if (!p) return;
+  openModal('Issue Invoice (from Proposal)', `<div class="form-grid">
+    <div class="form-group"><div class="form-label">OR Number</div><input class="form-input" id="piv-or" placeholder="OR-2026-001"/></div>
+    <div class="form-group"><div class="form-label">Client</div><input class="form-input" id="piv-client" value="${escapeHtml(p.client || '')}" /></div>
+    <div class="form-group"><div class="form-label">Amount (₱)</div><input class="form-input" id="piv-amount" type="number" value="${p.value || 0}" min="0"/></div>
+    <div class="form-group"><div class="form-label">Status</div>
+      <select class="form-input" id="piv-status"><option>Unpaid</option><option>Paid</option></select>
+    </div>
+    <div class="form-group"><div class="form-label">Date Issued</div><input class="form-input" id="piv-date" type="date" value="${todayISO()}"/></div>
+    <div class="form-group"><div class="form-label">Due Date</div><input class="form-input" id="piv-due" type="date"/></div>
+    <div class="form-group full" style="font-size:11px;color:var(--ink-3)">Proposal: <strong>${escapeHtml(p.name)}</strong> · ${formatCurrency(p.value)}</div>
+  </div>`, async () => {
+    const or_num = document.getElementById('piv-or').value.trim();
+    if (!or_num) { toast('OR number is required', 'error'); return; }
+    const result = await createInvoice({
+      or_num,
+      client: document.getElementById('piv-client').value.trim(),
+      amount: +document.getElementById('piv-amount').value || 0,
+      status: document.getElementById('piv-status').value,
+      date:   document.getElementById('piv-date').value || null,
+      due:    document.getElementById('piv-due').value || null,
+    });
+    if (!result) return;
+    toast('Invoice created — check Finance › AR', 'success');
+    closeModal();
+  });
 }
 
 // ── Client detail view ────────────────────────────────────────────────────────

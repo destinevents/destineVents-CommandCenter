@@ -281,11 +281,12 @@ async function saveIssueEventInvoice() {
   if (!or_num) { toast('OR number is required', 'error'); return; }
   const result = await createInvoice({
     or_num,
-    client: document.getElementById('eiv-client').value.trim(),
-    amount: +document.getElementById('eiv-amount').value || 0,
-    status: document.getElementById('eiv-status').value,
-    date:   document.getElementById('eiv-date').value || null,
-    due:    document.getElementById('eiv-due').value || null,
+    client:   document.getElementById('eiv-client').value.trim(),
+    amount:   +document.getElementById('eiv-amount').value || 0,
+    status:   document.getElementById('eiv-status').value,
+    date:     document.getElementById('eiv-date').value || null,
+    due:      document.getElementById('eiv-due').value || null,
+    event_id: _invoiceEventId || null,
   });
   if (!result) return;
   toast('Invoice created — check Finance › AR', 'success');
