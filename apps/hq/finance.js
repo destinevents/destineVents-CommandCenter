@@ -16,7 +16,7 @@ import {
   birFilingStatus, birGrossReceipts, birExpenses, birCompWithholding,
   bir2307Bills, birIsFiled, birFilingsFor,
 } from '../../shared/business/birCalc.js';
-import { _invoices, _bills, _payroll, _birFilings, setInvoices, setBills, setPayroll, setBirFilings } from './state.js';
+import { _clients, _invoices, _bills, _payroll, _birFilings, setInvoices, setBills, setPayroll, setBirFilings } from './state.js';
 import { toast, openModal, closeModal } from './ui.js';
 
 let _editingInvoiceId = null;
@@ -105,10 +105,19 @@ export function renderAR(invoices) {
     : `<tr><td colspan="7"><div class="empty-state">No invoices yet</div></td></tr>`;
 }
 
+function toISODate(val) {
+  if (!val || val === '—') return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
+  const d = new Date(val);
+  return isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
+}
+
 function invoiceFormHTML(i = {}) {
-  return `<div class="form-grid">
+  const clientOpts = _clients.map(c => `<option value="${escapeHtml(c.name)}"/>`).join('');
+  return `<datalist id="hq-client-list">${clientOpts}</datalist>
+  <div class="form-grid">
     <div class="form-group"><div class="form-label">OR Number</div><input class="form-input" id="fi-or" value="${escapeHtml(i.or_num || '')}" placeholder="OR-2026-005"/></div>
-    <div class="form-group"><div class="form-label">Client</div><input class="form-input" id="fi-client" value="${escapeHtml(i.client || '')}" placeholder="Client name"/></div>
+    <div class="form-group"><div class="form-label">Client</div><input class="form-input" id="fi-client" value="${escapeHtml(i.client || '')}" list="hq-client-list" placeholder="Client name" autocomplete="off"/></div>
     <div class="form-group"><div class="form-label">Amount (₱)</div><input class="form-input" id="fi-amount" type="number" value="${i.amount || 0}"/></div>
     <div class="form-group"><div class="form-label">Status</div>
       <select class="form-input" id="fi-status">
@@ -117,8 +126,8 @@ function invoiceFormHTML(i = {}) {
         <option${i.status === 'Overdue' ? ' selected' : ''}>Overdue</option>
       </select>
     </div>
-    <div class="form-group"><div class="form-label">Date Issued</div><input class="form-input" id="fi-date" type="date" value="${i.date || ''}"/></div>
-    <div class="form-group"><div class="form-label">Due Date</div><input class="form-input" id="fi-due" type="date" value="${i.due || ''}"/></div>
+    <div class="form-group"><div class="form-label">Date Issued</div><input class="form-input" id="fi-date" type="date" value="${toISODate(i.date)}"/></div>
+    <div class="form-group"><div class="form-label">Due Date</div><input class="form-input" id="fi-due" type="date" value="${toISODate(i.due)}"/></div>
   </div>`;
 }
 
@@ -143,8 +152,8 @@ export async function saveInvoice() {
     client: document.getElementById('fi-client').value,
     amount: +document.getElementById('fi-amount').value || 0,
     status: document.getElementById('fi-status').value,
-    date:   formatDateShort(document.getElementById('fi-date').value),
-    due:    formatDateShort(document.getElementById('fi-due').value),
+    date:   document.getElementById('fi-date').value || null,
+    due:    document.getElementById('fi-due').value || null,
   };
   if (_editingInvoiceId) {
     const ok = await updateInvoice(_editingInvoiceId, payload);
@@ -203,7 +212,7 @@ function billFormHTML(b = {}) {
     <div class="form-group"><div class="form-label">Amount (₱)</div><input class="form-input" id="fb-amount" type="number" value="${b.amount || 0}"/></div>
     <div class="form-group"><div class="form-label">Category</div><select class="form-input" id="fb-category">${catOpts}</select></div>
     <div class="form-group"><div class="form-label">EWT Rate</div><select class="form-input" id="fb-ewt">${ewtOpts}</select></div>
-    <div class="form-group"><div class="form-label">Date</div><input class="form-input" id="fb-bill-date" type="date" value="${b.date || ''}"/></div>
+    <div class="form-group"><div class="form-label">Date</div><input class="form-input" id="fb-bill-date" type="date" value="${toISODate(b.date)}"/></div>
     <div class="form-group"><div class="form-label">Status</div>
       <select class="form-input" id="fb-status">
         <option${b.status === 'Unpaid' || !b.status ? ' selected' : ''}>Unpaid</option>
@@ -234,7 +243,7 @@ export async function saveBill() {
     amount:   +document.getElementById('fb-amount').value || 0,
     category: document.getElementById('fb-category').value,
     ewt:      document.getElementById('fb-ewt').value,
-    date:     formatDateShort(document.getElementById('fb-bill-date').value),
+    date:     document.getElementById('fb-bill-date').value || null,
     status:   document.getElementById('fb-status').value,
   };
   if (_editingBillId) {

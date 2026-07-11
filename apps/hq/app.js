@@ -17,7 +17,7 @@ import {
 } from './state.js';
 import { toast, closeModal, saveModal, toggleHqNav } from './ui.js';
 import {
-  loadClients, openAddClient, openEditClient, handleDeleteClient,
+  loadClients, openAddClient, openEditClient, handleDeleteClient, openClientDetail,
   loadProposals, openAddProposal, openEditProposal, handleDeleteProposal,
 } from './crm.js';
 import {
@@ -33,12 +33,12 @@ import {
   openAddPayroll, openEditPayroll, handleDeletePayroll,
   estimateDeductions,
 } from './finance.js';
-import { loadProjects, openAddProject, openEditProject, handleDeleteProject } from './projects.js';
+import { loadProjects, openAddProject, openEditProject, handleDeleteProject, convertProposalToProject } from './projects.js';
 import { selectTemplate, copyAIOutput, simulateAI } from './ai.js';
 import {
   loadEvents, openAddEvent, openEditEvent, handleDeleteEvent,
   filterEvents, viewEventRegistrations, backToEvents, copyRegisterUrl,
-  handleUpdateRegistrationStatus,
+  handleUpdateRegistrationStatus, openIssueEventInvoice,
 } from './events.js';
 
 async function init() {
@@ -327,13 +327,13 @@ Object.assign(window, {
   showPage, handleSignIn, handleSignOut, toggleHqNav, filterTable,
   closeModal, saveModal, toast,
   // Clients
-  openAddClient, openEditClient, handleDeleteClient,
+  openAddClient, openEditClient, handleDeleteClient, openClientDetail,
   // Proposals
   openAddProposal, openEditProposal, handleDeleteProposal,
   // Partners
   openAddPartner, openEditPartner, handleDeletePartner,
   // Projects
-  openAddProject, openEditProject, handleDeleteProject,
+  openAddProject, openEditProject, handleDeleteProject, convertProposalToProject,
   // Finance
   openAddInvoice, openEditInvoice, handleDeleteInvoice,
   openAddBill, openEditBill, handleDeleteBill,
@@ -347,6 +347,7 @@ Object.assign(window, {
   loadEvents, openAddEvent, openEditEvent, handleDeleteEvent,
   filterEvents, viewEventRegistrations, backToEvents, copyRegisterUrl,
   updateRegistrationStatus: handleUpdateRegistrationStatus,
+  openIssueEventInvoice,
   // AI
   selectTemplate, copyAIOutput, simulateAI,
 });

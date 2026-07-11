@@ -9,6 +9,8 @@ import {
 import {
   fetchProposals, createProposal, updateProposal, deleteProposal, calcWinRate,
 } from '../../shared/services/proposalService.js';
+import { fetchProjects } from '../../shared/services/projectService.js';
+import { fetchInvoices } from '../../shared/services/financeService.js';
 import { _clients, _proposals, setClients, setProposals } from './state.js';
 import { toast, openModal, closeModal } from './ui.js';
 
@@ -36,6 +38,7 @@ export function renderClients(clients) {
           <td class="project-value">${formatCurrency(c.total_value)}</td>
           <td>
             <div class="flex-gap" style="gap:4px">
+              <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="openClientDetail(${c.id})">View</button>
               <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="openEditClient(${c.id})">Edit</button>
               <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--red)" onclick="handleDeleteClient(${c.id})">Delete</button>
             </div>
@@ -128,11 +131,12 @@ export function renderProposals(proposals) {
         <tr>
           <td><div class="project-name">${escapeHtml(p.name)}</div><div class="project-client">${escapeHtml(p.client)}</div></td>
           <td class="project-value">${formatCurrency(p.value)}</td>
-          <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(p.sent)}</td>
-          <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(p.followup)}</td>
+          <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(p.sent || '—')}</td>
+          <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(p.followup || '—')}</td>
           <td><span class="badge badge-${statusClass(p.status)}">${escapeHtml(p.status)}</span></td>
           <td>
-            <div class="flex-gap" style="gap:4px">
+            <div class="flex-gap" style="gap:4px;flex-wrap:wrap">
+              ${p.status === 'Won' ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--green)" onclick="convertProposalToProject(${p.id})">→ Project</button>` : ''}
               <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="openEditProposal(${p.id})">Edit</button>
               <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--red)" onclick="handleDeleteProposal(${p.id})">Delete</button>
             </div>
@@ -141,14 +145,23 @@ export function renderProposals(proposals) {
     : `<tr><td colspan="6"><div class="empty-state">No proposals yet</div></td></tr>`;
 }
 
+function toISODate(val) {
+  if (!val || val === '—') return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
+  const d = new Date(val);
+  return isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
+}
+
 function proposalFormHTML(p = {}) {
   const statusOpts = APP_SETTINGS.finance.proposalStatuses.map(s => `<option${s === p.status ? ' selected' : ''}>${s}</option>`).join('');
-  return `<div class="form-grid">
+  const clientOpts = _clients.map(c => `<option value="${escapeHtml(c.name)}"/>`).join('');
+  return `<datalist id="hq-client-list">${clientOpts}</datalist>
+  <div class="form-grid">
     <div class="form-group full"><div class="form-label">Proposal Name</div><input class="form-input" id="fp-name" value="${escapeHtml(p.name || '')}" placeholder="e.g. DTI CAR MSME Summit"/></div>
-    <div class="form-group"><div class="form-label">Client</div><input class="form-input" id="fp-client" value="${escapeHtml(p.client || '')}" placeholder="Client name"/></div>
+    <div class="form-group"><div class="form-label">Client</div><input class="form-input" id="fp-client" value="${escapeHtml(p.client || '')}" list="hq-client-list" placeholder="Client name" autocomplete="off"/></div>
     <div class="form-group"><div class="form-label">Value (₱)</div><input class="form-input" id="fp-value" type="number" value="${p.value || 0}"/></div>
-    <div class="form-group"><div class="form-label">Date Sent</div><input class="form-input" id="fp-sent" type="date" value="${p.sent || ''}"/></div>
-    <div class="form-group"><div class="form-label">Follow-up Date</div><input class="form-input" id="fp-followup" type="date" value="${p.followup || ''}"/></div>
+    <div class="form-group"><div class="form-label">Date Sent</div><input class="form-input" id="fp-sent" type="date" value="${toISODate(p.sent)}"/></div>
+    <div class="form-group"><div class="form-label">Follow-up Date</div><input class="form-input" id="fp-followup" type="date" value="${toISODate(p.followup)}"/></div>
     <div class="form-group"><div class="form-label">Status</div><select class="form-input" id="fp-status">${statusOpts}</select></div>
   </div>`;
 }
@@ -173,8 +186,8 @@ export async function saveProposal() {
     name,
     client:   document.getElementById('fp-client').value,
     value:    +document.getElementById('fp-value').value || 0,
-    sent:     formatDateShort(document.getElementById('fp-sent').value),
-    followup: formatDateShort(document.getElementById('fp-followup').value),
+    sent:     document.getElementById('fp-sent').value || null,
+    followup: document.getElementById('fp-followup').value || null,
     status:   document.getElementById('fp-status').value,
   };
   if (_editingProposalId) {
@@ -196,4 +209,68 @@ export async function handleDeleteProposal(id) {
   if (!ok) { toast('Could not delete proposal', 'error'); return; }
   toast('Proposal deleted', '');
   loadProposals();
+}
+
+// ── Client detail view ────────────────────────────────────────────────────────
+
+export async function openClientDetail(id) {
+  const c = _clients.find(x => x.id === id);
+  if (!c) return;
+  openModal(c.name, '<div style="padding:16px;text-align:center;color:var(--ink-3);font-size:12px">Loading…</div>', closeModal, 'Close');
+  const [proposals, projects, invoices] = await Promise.all([
+    fetchProposals(), fetchProjects(), fetchInvoices(),
+  ]);
+  const match     = n => n?.toLowerCase() === c.name.toLowerCase();
+  const cProps    = proposals.filter(p => match(p.client));
+  const cProjs    = projects.filter(p => match(p.client));
+  const cInvs     = invoices.filter(i => match(i.client));
+  const totalPaid = cInvs.filter(i => i.status === 'Paid').reduce((s, i) => s + (i.amount || 0), 0);
+  const totalOwed = cInvs.filter(i => i.status !== 'Paid').reduce((s, i) => s + (i.amount || 0), 0);
+
+  const dot = (st) => {
+    if (st === 'Won' || st === 'Active' || st === 'Paid') return 'green';
+    if (st === 'Lost' || st === 'Overdue') return 'red';
+    return 'blue';
+  };
+
+  document.getElementById('modal-body').innerHTML = `
+    <div style="margin-bottom:12px">
+      <span class="badge badge-${statusClass(c.status)}">${escapeHtml(c.status)}</span>
+      <span style="font-size:11px;color:var(--ink-3);margin-left:8px">${escapeHtml(c.type)} · ${escapeHtml(c.brand || '—')}</span>
+      ${c.contact ? `<span style="font-size:11px;color:var(--ink-3);margin-left:8px">· ${escapeHtml(c.contact)}</span>` : ''}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+      <div class="stat-card" style="padding:10px 12px"><div class="stat-label">Revenue Paid</div><div style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;color:var(--green)">${formatCurrency(totalPaid)}</div></div>
+      <div class="stat-card" style="padding:10px 12px"><div class="stat-label">Outstanding</div><div style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;${totalOwed > 0 ? 'color:var(--amber)' : ''}">${formatCurrency(totalOwed)}</div></div>
+    </div>
+
+    <div class="card-title" style="margin-bottom:6px">Proposals (${cProps.length})</div>
+    ${cProps.length ? cProps.map(p => `
+      <div class="activity-item">
+        <div class="activity-dot ${dot(p.status)}"></div>
+        <div style="flex:1"><div class="activity-text">${escapeHtml(p.name)}</div><div class="activity-time">${escapeHtml(p.sent || '—')}</div></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-family:'Cormorant Garamond',serif;font-size:13px">${formatCurrency(p.value)}</span>
+          <span class="badge badge-${statusClass(p.status)}">${escapeHtml(p.status)}</span>
+        </div>
+      </div>`).join('') : '<div style="font-size:11px;color:var(--ink-3);padding:4px 0 10px">No proposals</div>'}
+
+    <div class="card-title" style="margin:12px 0 6px">Projects (${cProjs.length})</div>
+    ${cProjs.length ? cProjs.map(p => `
+      <div class="activity-item">
+        <div class="activity-dot ${dot(p.status)}"></div>
+        <div style="flex:1"><div class="activity-text">${escapeHtml(p.name)}</div><div class="activity-time">${escapeHtml(p.category || '—')} · ${escapeHtml(p.brand || '—')}</div></div>
+        <span class="badge badge-${statusClass(p.status)}">${escapeHtml(p.status)}</span>
+      </div>`).join('') : '<div style="font-size:11px;color:var(--ink-3);padding:4px 0 10px">No projects</div>'}
+
+    <div class="card-title" style="margin:12px 0 6px">Invoices (${cInvs.length})</div>
+    ${cInvs.length ? cInvs.map(i => `
+      <div class="activity-item">
+        <div class="activity-dot ${dot(i.status)}"></div>
+        <div style="flex:1"><div class="activity-text">${escapeHtml(i.or_num)}</div><div class="activity-time">${escapeHtml(i.date || '—')}</div></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-family:'Cormorant Garamond',serif;font-size:13px">${formatCurrency(i.amount)}</span>
+          <span class="badge badge-${statusClass(i.status)}">${escapeHtml(i.status)}</span>
+        </div>
+      </div>`).join('') : '<div style="font-size:11px;color:var(--ink-3);padding:4px 0">No invoices</div>'}`;
 }

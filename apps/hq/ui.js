@@ -7,13 +7,16 @@ export function toast(msg, type) {
 
 let _onSave = null;
 
-export function openModal(title, bodyHTML, onSave) {
+export function openModal(title, bodyHTML, onSave, saveLabel = 'Save') {
   document.getElementById('modal-title').textContent = title;
   document.getElementById('modal-body').innerHTML = bodyHTML;
   document.getElementById('modal-overlay').classList.add('open');
   _onSave = onSave;
   const saveBtn = document.getElementById('modal-save-btn');
-  if (saveBtn) setTimeout(() => saveBtn.focus(), 100);
+  if (saveBtn) {
+    saveBtn.textContent = saveLabel;
+    setTimeout(() => saveBtn.focus(), 100);
+  }
 }
 
 export function closeModal() {

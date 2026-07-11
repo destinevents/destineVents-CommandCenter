@@ -1,5 +1,6 @@
 import { formatCurrency } from '../../shared/utils/formatUtils.ts';
-import { formatDateShort } from '../../shared/utils/dateUtils.ts';
+import { formatDateShort, todayISO } from '../../shared/utils/dateUtils.ts';
+import { createInvoice } from '../../shared/services/financeService.js';
 import { escapeHtml, statusClass } from '../../shared/utils/helpers.ts';
 import { validateRequired } from '../../shared/utils/validators.ts';
 import { APP_SETTINGS } from '../../config/settings.js';
@@ -135,6 +136,9 @@ function renderEventDetail(event, regs) {
         <button class="btn btn-ghost" onclick="copyRegisterUrl('${regUrl}')">Copy</button>
       </div>
       <div style="font-size:11px;color:var(--ink-3);margin-top:6px">Embed this in Wix via an HTML iframe, or share as a direct link.</div>
+    </div>
+    <div style="margin-top:12px">
+      <button class="btn btn-ghost" style="font-size:12px" onclick="openIssueEventInvoice(${event.id})">Issue Invoice for this Event</button>
     </div>`;
 
   const statusOptions = (current) => ['Registered', 'Attended', 'No-show', 'Cancelled']
@@ -241,4 +245,50 @@ export async function handleDeleteEvent(id) {
   if (!ok) { toast('Could not delete event', 'error'); return; }
   toast('Event deleted', '');
   loadEvents();
+}
+
+// ── Issue invoice from event ──────────────────────────────────────────────────
+
+let _invoiceEventId = null;
+
+export function openIssueEventInvoice(eventId) {
+  const event = _events.find(e => e.id === eventId);
+  if (!event) return;
+  _invoiceEventId = eventId;
+  const eventRegsForThis = _eventRegs.filter(r => r.event_id === eventId);
+  const attended = eventRegsForThis.filter(r => r.status === 'Attended').length;
+  const totalRegs = eventRegsForThis.length;
+  const suggested = (event.price || 0) * (attended || totalRegs || 1);
+  openModal('Issue Invoice', `<div class="form-grid">
+    <div class="form-group"><div class="form-label">OR Number</div><input class="form-input" id="eiv-or" placeholder="OR-2026-001"/></div>
+    <div class="form-group"><div class="form-label">Client / Payee</div><input class="form-input" id="eiv-client" value="${escapeHtml(event.name)}" placeholder="Client name"/></div>
+    <div class="form-group"><div class="form-label">Amount (₱)</div><input class="form-input" id="eiv-amount" type="number" value="${suggested}" min="0"/></div>
+    <div class="form-group"><div class="form-label">Status</div>
+      <select class="form-input" id="eiv-status">
+        <option>Unpaid</option><option>Paid</option>
+      </select>
+    </div>
+    <div class="form-group"><div class="form-label">Date Issued</div><input class="form-input" id="eiv-date" type="date" value="${todayISO()}"/></div>
+    <div class="form-group"><div class="form-label">Due Date</div><input class="form-input" id="eiv-due" type="date"/></div>
+    <div class="form-group full" style="font-size:11px;color:var(--ink-3)">
+      ${totalRegs} registered · ${attended} attended · ₱${(event.price || 0).toLocaleString()} per ticket
+    </div>
+  </div>`, saveIssueEventInvoice);
+}
+
+async function saveIssueEventInvoice() {
+  const or_num = document.getElementById('eiv-or').value.trim();
+  if (!or_num) { toast('OR number is required', 'error'); return; }
+  const result = await createInvoice({
+    or_num,
+    client: document.getElementById('eiv-client').value.trim(),
+    amount: +document.getElementById('eiv-amount').value || 0,
+    status: document.getElementById('eiv-status').value,
+    date:   document.getElementById('eiv-date').value || null,
+    due:    document.getElementById('eiv-due').value || null,
+  });
+  if (!result) return;
+  toast('Invoice created — check Finance › AR', 'success');
+  closeModal();
+  _invoiceEventId = null;
 }

@@ -6,7 +6,7 @@ import { APP_SETTINGS } from '../../config/settings.js';
 import {
   fetchProjects, createProject, updateProject, deleteProject,
 } from '../../shared/services/projectService.js';
-import { _projects, setProjects } from './state.js';
+import { _clients, _proposals, _projects, setProjects } from './state.js';
 import { toast, openModal, closeModal } from './ui.js';
 
 let _editingProjectId = null;
@@ -44,14 +44,16 @@ export function renderProjects(projects) {
 }
 
 function projectFormHTML(p = {}) {
-  const brands   = (APP_SETTINGS.company.brands || ['DestineVents', 'DDC', 'AYA Baguio']).map(b => `<option${b === p.brand ? ' selected' : ''}>${escapeHtml(b)}</option>`).join('');
-  const statuses = ['Lead', 'Proposal Sent', 'NDA Signed', 'Active', 'Completed'].map(s => `<option${s === p.status ? ' selected' : ''}>${s}</option>`).join('');
-  const cats     = ['Events', 'Training', 'Digital', 'CSR', 'Community'].map(c => `<option${c === p.category ? ' selected' : ''}>${c}</option>`).join('');
+  const brands      = (APP_SETTINGS.company.brands || ['DestineVents', 'DDC', 'AYA Baguio']).map(b => `<option${b === p.brand ? ' selected' : ''}>${escapeHtml(b)}</option>`).join('');
+  const statuses    = ['Lead', 'Proposal Sent', 'NDA Signed', 'Active', 'Completed'].map(s => `<option${s === p.status ? ' selected' : ''}>${s}</option>`).join('');
+  const cats        = ['Events', 'Training', 'Digital', 'CSR', 'Community'].map(c => `<option${c === p.category ? ' selected' : ''}>${c}</option>`).join('');
+  const clientOpts  = _clients.map(c => `<option value="${escapeHtml(c.name)}"/>`).join('');
   return `
+    <datalist id="hq-client-list">${clientOpts}</datalist>
     <div id="fp2-error" class="modal-error"></div>
     <div class="form-grid">
       <div class="form-group full"><div class="form-label">Project Name</div><input class="form-input" id="fp2-name" value="${escapeHtml(p.name || '')}" placeholder="e.g. DTI MSME Innovation Summit"/></div>
-      <div class="form-group"><div class="form-label">Client</div><input class="form-input" id="fp2-client" value="${escapeHtml(p.client || '')}" placeholder="Client / org name"/></div>
+      <div class="form-group"><div class="form-label">Client</div><input class="form-input" id="fp2-client" value="${escapeHtml(p.client || '')}" list="hq-client-list" placeholder="Client / org name" autocomplete="off"/></div>
       <div class="form-group"><div class="form-label">Value (₱)</div><input class="form-input" id="fp2-value" type="number" value="${p.value || 0}" min="0"/></div>
       <div class="form-group"><div class="form-label">Brand</div><select class="form-input" id="fp2-brand">${brands}</select></div>
       <div class="form-group"><div class="form-label">Category</div><select class="form-input" id="fp2-category">${cats}</select></div>
@@ -111,4 +113,16 @@ export async function handleDeleteProject(id) {
   if (!ok) { toast('Could not delete project', 'error'); return; }
   toast('Project deleted', '');
   loadProjects();
+}
+
+export function convertProposalToProject(proposalId) {
+  const p = _proposals.find(x => x.id === proposalId);
+  if (!p) return;
+  _editingProjectId = null;
+  openModal('New Project (from Proposal)', projectFormHTML({
+    name:   p.name,
+    client: p.client,
+    value:  p.value,
+    status: 'Active',
+  }), saveProject);
 }
