@@ -4,14 +4,18 @@ import { escapeHtml, statusClass } from '../../shared/utils/helpers.ts';
 import { validateRequired } from '../../shared/utils/validators.ts';
 import { APP_SETTINGS } from '../../config/settings.js';
 import {
-  fetchEvents, createEvent, updateEventStatus,
-  fetchRegistrations, updateRegistrationStatus,
+  fetchEvents, createEvent, updateEvent, deleteEvent,
+  fetchAllRegistrations, fetchRegistrations, updateRegistrationStatus,
 } from '../../shared/services/eventService.js';
 import { _events, _eventRegs, _currentEvent, setEvents, setEventRegs, setCurrentEvent } from './state.js';
 import { toast, openModal, closeModal } from './ui.js';
 
+let _editingEventId = null;
+
 export async function loadEvents() {
-  setEvents(await fetchEvents());
+  const [events, regs] = await Promise.all([fetchEvents(), fetchAllRegistrations()]);
+  setEvents(events);
+  setEventRegs(regs);
   renderEventsList(_events);
   showEventsView('list');
 }
@@ -38,10 +42,10 @@ function statusBadgeClass(status) {
 }
 
 export function renderEventsList(list) {
-  const appUrl = APP_SETTINGS.app?.url || window.location.origin;
-  const upcoming  = _events.filter(e => e.status === 'Upcoming').length;
-  const totalRegs = _events.reduce((s, e) => s + regCount(e.id), 0);
-  const revenue   = _events.filter(e => e.status === 'Completed')
+  const appUrl     = APP_SETTINGS.app?.url || window.location.origin;
+  const upcoming   = _events.filter(e => e.status === 'Upcoming').length;
+  const totalRegs  = _events.reduce((s, e) => s + regCount(e.id), 0);
+  const revenue    = _events.filter(e => e.status === 'Completed')
     .reduce((s, e) => s + (e.price || 0) * regCount(e.id), 0);
 
   document.getElementById('events-summary').innerHTML =
@@ -59,7 +63,7 @@ export function renderEventsList(list) {
 
   document.getElementById('events-tbody').innerHTML = list.length
     ? list.map(e => {
-        const regs = regCount(e.id);
+        const regs   = regCount(e.id);
         const capPct = e.capacity ? Math.min(100, Math.round(regs / e.capacity * 100)) : 0;
         const regUrl = `${appUrl}/register.html?event=${e.id}`;
         return `<tr>
@@ -77,9 +81,11 @@ export function renderEventsList(list) {
           </td>
           <td class="project-value">${formatCurrency(e.price || 0)}</td>
           <td>
-            <div class="flex-gap" style="gap:6px">
-              <button class="btn btn-ghost" style="padding:4px 8px;font-size:11px" onclick="viewEventRegistrations(${e.id})">Registrations</button>
-              <button class="btn btn-ghost" style="padding:4px 8px;font-size:11px" onclick="copyRegisterUrl('${regUrl}')">Copy URL</button>
+            <div class="flex-gap" style="gap:4px;flex-wrap:wrap">
+              <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="viewEventRegistrations(${e.id})">Registrations</button>
+              <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="copyRegisterUrl('${regUrl}')">Copy URL</button>
+              <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="openEditEvent(${e.id})">Edit</button>
+              <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--red)" onclick="handleDeleteEvent(${e.id})">Delete</button>
             </div>
           </td>
         </tr>`;
@@ -98,10 +104,10 @@ export async function viewEventRegistrations(id) {
 }
 
 function renderEventDetail(event, regs) {
-  const appUrl = APP_SETTINGS.app?.url || window.location.origin;
-  const regUrl = `${appUrl}/register.html?event=${event.id}`;
-  const attended = regs.filter(r => r.status === 'Attended').length;
-  const noshow   = regs.filter(r => r.status === 'No-show').length;
+  const appUrl    = APP_SETTINGS.app?.url || window.location.origin;
+  const regUrl    = `${appUrl}/register.html?event=${event.id}`;
+  const attended  = regs.filter(r => r.status === 'Attended').length;
+  const noshow    = regs.filter(r => r.status === 'No-show').length;
 
   document.getElementById('event-detail-header').innerHTML = `
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
@@ -131,7 +137,7 @@ function renderEventDetail(event, regs) {
       <div style="font-size:11px;color:var(--ink-3);margin-top:6px">Embed this in Wix via an HTML iframe, or share as a direct link.</div>
     </div>`;
 
-  const statusOptions = (current) => ['Registered','Attended','No-show','Cancelled']
+  const statusOptions = (current) => ['Registered', 'Attended', 'No-show', 'Cancelled']
     .map(s => `<option${s === current ? ' selected' : ''}>${s}</option>`).join('');
 
   document.getElementById('event-regs-tbody').innerHTML = regs.length
@@ -152,7 +158,7 @@ function renderEventDetail(event, regs) {
 
 export function backToEvents() {
   setCurrentEvent(null);
-  showEventsView('list');
+  loadEvents();
 }
 
 export function copyRegisterUrl(url) {
@@ -169,46 +175,70 @@ export async function handleUpdateRegistrationStatus(id, status) {
   }
 }
 
+// ── Event add / edit ──────────────────────────────────────────────────────────
+
+function eventFormHTML(e = {}) {
+  const brandOpts = APP_SETTINGS.company.brands.map(b => `<option${b === e.brand ? ' selected' : ''}>${b}</option>`).join('');
+  const typeOpts  = APP_SETTINGS.events.types.map(t => `<option${t === e.event_type ? ' selected' : ''}>${t}</option>`).join('');
+  const statusOpts = ['Upcoming', 'Active', 'Completed', 'Cancelled']
+    .map(s => `<option${s === e.status ? ' selected' : ''}>${s}</option>`).join('');
+  return `<div class="form-grid">
+    <div class="form-group full"><div class="form-label">Event Name</div><input class="form-input" id="fev-name" value="${escapeHtml(e.name || '')}" placeholder="e.g. DTI MSME Innovation Summit"/></div>
+    <div class="form-group"><div class="form-label">Brand</div><select class="form-input" id="fev-brand">${brandOpts}</select></div>
+    <div class="form-group"><div class="form-label">Event Type</div><select class="form-input" id="fev-type">${typeOpts}</select></div>
+    <div class="form-group"><div class="form-label">Status</div><select class="form-input" id="fev-status">${statusOpts}</select></div>
+    <div class="form-group"><div class="form-label">Date</div><input class="form-input" id="fev-date" type="date" value="${e.date || ''}"/></div>
+    <div class="form-group"><div class="form-label">Venue</div><input class="form-input" id="fev-venue" value="${escapeHtml(e.venue || '')}" placeholder="e.g. SM City Baguio, Events Hall"/></div>
+    <div class="form-group"><div class="form-label">Capacity</div><input class="form-input" id="fev-capacity" type="number" min="0" value="${e.capacity || 0}" placeholder="0 = unlimited"/></div>
+    <div class="form-group"><div class="form-label">Ticket Price (PHP)</div><input class="form-input" id="fev-price" type="number" min="0" value="${e.price || 0}" placeholder="0 = free"/></div>
+    <div class="form-group full"><div class="form-label">Description (optional)</div><textarea class="form-input" id="fev-desc" rows="3" style="resize:vertical" placeholder="Brief event description…">${escapeHtml(e.description || '')}</textarea></div>
+  </div>`;
+}
+
 export function openAddEvent() {
-  const brandOpts = APP_SETTINGS.company.brands.map(b => `<option>${b}</option>`).join('');
-  const typeOpts  = APP_SETTINGS.events.types.map(t => `<option>${t}</option>`).join('');
-  openModal('New Event', `
-    <div class="form-grid">
-      <div class="form-group full"><div class="form-label">Event Name</div><input class="form-input" id="fev-name" placeholder="e.g. DTI MSME Innovation Summit"/></div>
-      <div class="form-group"><div class="form-label">Brand</div>
-        <select class="form-input" id="fev-brand">${brandOpts}</select></div>
-      <div class="form-group"><div class="form-label">Event Type</div>
-        <select class="form-input" id="fev-type">${typeOpts}</select></div>
-      <div class="form-group"><div class="form-label">Date</div>
-        <input class="form-input" id="fev-date" type="date"/></div>
-      <div class="form-group"><div class="form-label">Venue</div>
-        <input class="form-input" id="fev-venue" placeholder="e.g. SM City Baguio, Events Hall"/></div>
-      <div class="form-group"><div class="form-label">Capacity</div>
-        <input class="form-input" id="fev-capacity" type="number" min="0" placeholder="0 = unlimited"/></div>
-      <div class="form-group"><div class="form-label">Ticket Price (PHP)</div>
-        <input class="form-input" id="fev-price" type="number" min="0" placeholder="0 = free"/></div>
-      <div class="form-group full"><div class="form-label">Description (optional)</div>
-        <textarea class="form-input" id="fev-desc" rows="3" style="resize:vertical" placeholder="Brief event description…"></textarea></div>
-    </div>`, saveEvent);
+  _editingEventId = null;
+  openModal('New Event', eventFormHTML({ status: 'Upcoming' }), saveEvent);
+}
+
+export function openEditEvent(id) {
+  const e = _events.find(x => x.id === id);
+  if (!e) return;
+  _editingEventId = id;
+  openModal('Edit Event', eventFormHTML(e), saveEvent);
 }
 
 async function saveEvent() {
   const name = document.getElementById('fev-name').value.trim();
-  const err = validateRequired(name, 'Event name');
+  const err  = validateRequired(name, 'Event name');
   if (err) { toast(err, 'error'); return; }
-  const result = await createEvent({
+  const payload = {
     name,
-    brand:      document.getElementById('fev-brand').value,
-    event_type: document.getElementById('fev-type').value,
-    date:       document.getElementById('fev-date').value || null,
-    venue:      document.getElementById('fev-venue').value.trim(),
-    capacity:   parseInt(document.getElementById('fev-capacity').value) || 0,
-    price:      parseFloat(document.getElementById('fev-price').value) || 0,
+    brand:       document.getElementById('fev-brand').value,
+    event_type:  document.getElementById('fev-type').value,
+    status:      document.getElementById('fev-status').value,
+    date:        document.getElementById('fev-date').value || null,
+    venue:       document.getElementById('fev-venue').value.trim(),
+    capacity:    parseInt(document.getElementById('fev-capacity').value) || 0,
+    price:       parseFloat(document.getElementById('fev-price').value) || 0,
     description: document.getElementById('fev-desc').value.trim(),
-    status:     'Upcoming',
-  });
-  if (!result) return;
-  toast('Event created', 'success');
+  };
+  if (_editingEventId) {
+    const ok = await updateEvent(_editingEventId, payload);
+    if (!ok) { toast('Could not update event', 'error'); return; }
+    toast('Event updated', 'success');
+  } else {
+    const result = await createEvent({ ...payload, status: payload.status || 'Upcoming' });
+    if (!result) return;
+    toast('Event created', 'success');
+  }
   closeModal();
+  loadEvents();
+}
+
+export async function handleDeleteEvent(id) {
+  if (!confirm('Delete this event? All registrations will also be removed.')) return;
+  const ok = await deleteEvent(id);
+  if (!ok) { toast('Could not delete event', 'error'); return; }
+  toast('Event deleted', '');
   loadEvents();
 }

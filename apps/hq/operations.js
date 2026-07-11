@@ -2,15 +2,21 @@ import { formatBytes } from '../../shared/utils/formatUtils.ts';
 import { formatDateShort, todayISO } from '../../shared/utils/dateUtils.ts';
 import { escapeHtml, docTypeIcon, guessDocType } from '../../shared/utils/helpers.ts';
 import { validateRequired } from '../../shared/utils/validators.ts';
-import { fetchPartners, createPartner, filterPartnersByType } from '../../shared/services/partnerService.js';
+import {
+  fetchPartners, createPartner, updatePartner, deletePartner, filterPartnersByType,
+} from '../../shared/services/partnerService.js';
 import { fetchDocuments, uploadDocument, getDocumentPublicUrl, saveDocumentMeta } from '../../shared/services/documentService.js';
 import { createClient, findClientByName } from '../../shared/services/clientService.js';
 import { createProject } from '../../shared/services/projectService.js';
-import { fetchImpactEntries, createImpactEntry } from '../../shared/services/impactService.js';
+import { fetchImpactEntries, createImpactEntry, deleteImpactEntry } from '../../shared/services/impactService.js';
 import { generateNDAContent, buildNDAWindowContent } from '../../shared/business/ndaGenerator.js';
 import { _clients, _partners, _documents, _impactEntries, setPartners, setDocuments, setImpactEntries } from './state.js';
 import { toast, openModal, closeModal } from './ui.js';
 import { showPage } from './app.js';
+
+// ── Partners ──────────────────────────────────────────────────────────────────
+
+let _editingPartnerId = null;
 
 export async function loadPartners() {
   setPartners(await fetchPartners());
@@ -24,7 +30,11 @@ export function renderPartners(list) {
         <div class="partner-card">
           <div class="partner-type-tag">${escapeHtml(p.type)}</div>
           <div class="partner-name">${escapeHtml(p.name)}</div>
-          <div class="partner-contact">${escapeHtml(p.contact)||''}<br>${escapeHtml(p.email)||''}</div>
+          <div class="partner-contact">${escapeHtml(p.contact) || ''}<br>${escapeHtml(p.email) || ''}</div>
+          <div class="flex-gap" style="gap:4px;margin-top:10px">
+            <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;flex:1" onclick="openEditPartner(${p.id})">Edit</button>
+            <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--red)" onclick="handleDeletePartner(${p.id})">Delete</button>
+          </div>
         </div>`).join('')
     : `<div style="grid-column:1/-1"><div class="empty-state">No partners in this category</div></div>`;
 }
@@ -35,32 +45,61 @@ export function filterPartners(type, el) {
   renderPartners(filterPartnersByType(_partners, type));
 }
 
+function partnerFormHTML(p = {}) {
+  const typeOpts = ['School', 'LGU', 'NGO', 'Sponsor', 'Media', 'Startup']
+    .map(t => `<option${t === p.type ? ' selected' : ''}>${t}</option>`).join('');
+  return `<div class="form-grid">
+    <div class="form-group full"><div class="form-label">Organization Name</div><input class="form-input" id="fpr-name" value="${escapeHtml(p.name || '')}" placeholder="e.g. BLISTT Consortium"/></div>
+    <div class="form-group"><div class="form-label">Type</div><select class="form-input" id="fpr-type">${typeOpts}</select></div>
+    <div class="form-group"><div class="form-label">Contact Person</div><input class="form-input" id="fpr-contact" value="${escapeHtml(p.contact || '')}" placeholder="Full name"/></div>
+    <div class="form-group full"><div class="form-label">Email</div><input class="form-input" id="fpr-email" type="email" value="${escapeHtml(p.email || '')}" placeholder="email@org.ph"/></div>
+  </div>`;
+}
+
 export function openAddPartner() {
-  openModal('Add Partner', `
-    <div class="form-grid">
-      <div class="form-group full"><div class="form-label">Organization Name</div><input class="form-input" id="fpr-name" placeholder="e.g. BLISTT Consortium"/></div>
-      <div class="form-group"><div class="form-label">Type</div>
-        <select class="form-input" id="fpr-type"><option>School</option><option>LGU</option><option>NGO</option><option>Sponsor</option><option>Media</option><option>Startup</option></select>
-      </div>
-      <div class="form-group"><div class="form-label">Contact Person</div><input class="form-input" id="fpr-contact" placeholder="Full name"/></div>
-      <div class="form-group full"><div class="form-label">Email</div><input class="form-input" id="fpr-email" type="email" placeholder="email@org.ph"/></div>
-    </div>`, savePartner);
+  _editingPartnerId = null;
+  openModal('Add Partner', partnerFormHTML(), savePartner);
+}
+
+export function openEditPartner(id) {
+  const p = _partners.find(x => x.id === id);
+  if (!p) return;
+  _editingPartnerId = id;
+  openModal('Edit Partner', partnerFormHTML(p), savePartner);
 }
 
 export async function savePartner() {
   const name = document.getElementById('fpr-name').value.trim();
   const err = validateRequired(name, 'Organization name');
   if (err) { toast(err, 'error'); return; }
-  const result = await createPartner({
+  const payload = {
     name,
     type:    document.getElementById('fpr-type').value,
     contact: document.getElementById('fpr-contact').value,
     email:   document.getElementById('fpr-email').value,
-  });
-  if (!result) return;
-  toast('Partner added', 'success');
-  closeModal(); loadPartners();
+  };
+  if (_editingPartnerId) {
+    const ok = await updatePartner(_editingPartnerId, payload);
+    if (!ok) { toast('Could not update partner', 'error'); return; }
+    toast('Partner updated', 'success');
+  } else {
+    const result = await createPartner(payload);
+    if (!result) return;
+    toast('Partner added', 'success');
+  }
+  closeModal();
+  loadPartners();
 }
+
+export async function handleDeletePartner(id) {
+  if (!confirm('Delete this partner? This cannot be undone.')) return;
+  const ok = await deletePartner(id);
+  if (!ok) { toast('Could not delete partner', 'error'); return; }
+  toast('Partner deleted', '');
+  loadPartners();
+}
+
+// ── Documents ─────────────────────────────────────────────────────────────────
 
 export async function loadDocuments() {
   setDocuments(await fetchDocuments());
@@ -74,13 +113,15 @@ export function renderDocuments(docs) {
           <div class="doc-icon">${docTypeIcon(d.type)}</div>
           <div>
             <div class="doc-name">${escapeHtml(d.name)}</div>
-            <div class="doc-meta">${escapeHtml(d.type)} \u00B7 ${escapeHtml(d.size)} \u00B7 ${escapeHtml(d.date)}</div>
+            <div class="doc-meta">${escapeHtml(d.type)} · ${escapeHtml(d.size)} · ${escapeHtml(d.date)}</div>
           </div>
           <div class="doc-actions">
-            <button class="doc-btn" onclick="toast('Connect Supabase Storage to enable real file downloads','')">Download</button>
+            ${d.url
+              ? `<a class="doc-btn" href="${d.url}" target="_blank" rel="noopener">Download</a>`
+              : `<button class="doc-btn" disabled style="opacity:0.4;cursor:default">No file</button>`}
           </div>
         </div>`).join('')
-    : `<div class="empty-state">No documents yet \u2014 upload your first file above</div>`;
+    : `<div class="empty-state">No documents yet — upload your first file above</div>`;
 }
 
 export function handleFileSelect(files) {
@@ -90,7 +131,7 @@ export function handleFileSelect(files) {
 }
 
 export async function uploadToStorage(file) {
-  toast('Uploading\u2026');
+  toast('Uploading…');
   const path = `${Date.now()}-${file.name}`;
   const uploadResult = await uploadDocument(file, path);
   if (!uploadResult) return;
@@ -105,6 +146,8 @@ export async function uploadToStorage(file) {
   loadDocuments();
 }
 
+// ── NDA / New Project flow ────────────────────────────────────────────────────
+
 export function npGoStep2() {
   const client = document.getElementById('np-client').value.trim();
   if (!client) { toast('Client name is required', 'error'); return; }
@@ -115,10 +158,11 @@ export function npGoStep2() {
   const email   = document.getElementById('np-email').value.trim();
   const brand   = document.getElementById('np-brand').value;
 
-  document.getElementById('np-nda-content').innerHTML = generateNDAContent(client, address, contact, email, purpose, dateVal, brand);
+  document.getElementById('np-nda-content').innerHTML =
+    generateNDAContent(client, address, contact, email, purpose, dateVal, brand);
 
   document.getElementById('np-circle-1').className = 'step-circle done';
-  document.getElementById('np-circle-1').textContent = '\u2713';
+  document.getElementById('np-circle-1').textContent = '✓';
   document.getElementById('np-label-1').className = 'step-label';
   document.getElementById('np-circle-2').className = 'step-circle active';
   document.getElementById('np-circle-2').textContent = '2';
@@ -165,7 +209,7 @@ export async function npFinish() {
   });
 
   document.getElementById('np-circle-2').className = 'step-circle done';
-  document.getElementById('np-circle-2').textContent = '\u2713';
+  document.getElementById('np-circle-2').textContent = '✓';
   document.getElementById('np-label-2').className = 'step-label';
   document.getElementById('np-circle-3').className = 'step-circle active';
   document.getElementById('np-circle-3').textContent = '3';
@@ -175,6 +219,24 @@ export async function npFinish() {
   setTimeout(() => showPage('projects'), 1400);
 }
 
+export async function downloadNDA() {
+  const client  = document.getElementById('np-client').value.trim() || 'Client';
+  const address = document.getElementById('np-address').value.trim();
+  const purpose = document.getElementById('np-purpose').value.trim() || 'Business Engagement';
+  const dateVal = document.getElementById('np-date').value;
+  const contact = document.getElementById('np-contact').value.trim();
+  const email   = document.getElementById('np-email').value.trim();
+  const brand   = document.getElementById('np-brand').value;
+
+  const html = buildNDAWindowContent(client, address, contact, email, purpose, dateVal, brand);
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(() => { w.focus(); w.print(); }, 400);
+}
+
+// ── Impact ────────────────────────────────────────────────────────────────────
+
 export async function loadImpact() {
   setImpactEntries(await fetchImpactEntries());
   renderImpact();
@@ -183,10 +245,10 @@ export async function loadImpact() {
 export function renderImpact() {
   const totals = { students: 0, teachers: 0, smes: 0, lgus: 0 };
   _impactEntries.forEach(e => {
-    totals.students += e.students_reached  || 0;
-    totals.teachers += e.teachers_trained  || 0;
-    totals.smes     += e.smes_supported    || 0;
-    totals.lgus     += e.lgus_engaged      || 0;
+    totals.students += e.students_reached || 0;
+    totals.teachers += e.teachers_trained || 0;
+    totals.smes     += e.smes_supported   || 0;
+    totals.lgus     += e.lgus_engaged     || 0;
   });
 
   const el = id => document.getElementById(id);
@@ -199,13 +261,14 @@ export function renderImpact() {
     ? _impactEntries.map(e => `
         <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--ink-4);font-size:12px">
           <div>
-            <div style="font-weight:600;color:var(--ink)">${escapeHtml(e.period)} \u2014 ${escapeHtml(e.program)}</div>
+            <div style="font-weight:600;color:var(--ink)">${escapeHtml(e.period)} — ${escapeHtml(e.program)}</div>
             <div style="color:var(--ink-3);font-size:10.5px;margin-top:2px">
-              ${e.students_reached || 0} students \u00b7 ${e.teachers_trained || 0} teachers \u00b7 ${e.smes_supported || 0} SMEs \u00b7 ${e.lgus_engaged || 0} LGUs
+              ${e.students_reached || 0} students · ${e.teachers_trained || 0} teachers · ${e.smes_supported || 0} SMEs · ${e.lgus_engaged || 0} LGUs
             </div>
           </div>
+          <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--red);flex-shrink:0" onclick="handleDeleteImpact(${e.id})">Delete</button>
         </div>`).join('')
-    : '<div style="color:var(--ink-3);font-size:11.5px;padding:8px 0">No entries yet \u2014 log your first entry.</div>';
+    : '<div style="color:var(--ink-3);font-size:11.5px;padding:8px 0">No entries yet — log your first entry.</div>';
 }
 
 export async function saveImpactEntry() {
@@ -223,24 +286,16 @@ export async function saveImpactEntry() {
   });
   if (!result) return;
   toast('Impact entry saved', 'success');
-  ['imp-period','imp-program','imp-students','imp-teachers','imp-smes','imp-lgus'].forEach(id => {
+  ['imp-period', 'imp-program', 'imp-students', 'imp-teachers', 'imp-smes', 'imp-lgus'].forEach(id => {
     document.getElementById(id).value = '';
   });
   loadImpact();
 }
 
-export function downloadNDA() {
-  const client  = document.getElementById('np-client').value.trim() || 'Client';
-  const address = document.getElementById('np-address').value.trim();
-  const purpose = document.getElementById('np-purpose').value.trim() || 'Business Engagement';
-  const dateVal = document.getElementById('np-date').value;
-  const contact = document.getElementById('np-contact').value.trim();
-  const email   = document.getElementById('np-email').value.trim();
-  const brand   = document.getElementById('np-brand').value;
-
-  const html = buildNDAWindowContent(client, address, contact, email, purpose, dateVal, brand);
-  const w = window.open('', '_blank');
-  w.document.write(html);
-  w.document.close();
-  setTimeout(() => { w.focus(); w.print(); }, 400);
+export async function handleDeleteImpact(id) {
+  if (!confirm('Delete this impact entry? This cannot be undone.')) return;
+  const ok = await deleteImpactEntry(id);
+  if (!ok) { toast('Could not delete entry', 'error'); return; }
+  toast('Entry deleted', '');
+  loadImpact();
 }

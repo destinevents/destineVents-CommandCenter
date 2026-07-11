@@ -16,3 +16,9 @@ export async function createImpactEntry(entry) {
   if (error) { logger.error('createImpactEntry', error.message, error); showToast('Could not save impact entry.', 'error', 3000); return null; }
   return data;
 }
+
+export async function deleteImpactEntry(id) {
+  const { error } = await sb.from('impact_entries').delete().eq('id', id);
+  if (error) { logger.error('deleteImpactEntry', error.message, error); return false; }
+  return true;
+}

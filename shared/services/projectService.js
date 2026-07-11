@@ -27,3 +27,18 @@ export async function updateProjectStatus(id, status) {
   if (error) { logger.error('updateProjectStatus', error.message, error); return null; }
   return data;
 }
+
+export async function updateProject(id, data) {
+  const { error } = await sb
+    .from('projects')
+    .update({ ...data, updated_at: new Date().toISOString() })
+    .eq('id', id);
+  if (error) { logger.error('updateProject', error.message, error); return false; }
+  return true;
+}
+
+export async function deleteProject(id) {
+  const { error } = await sb.from('projects').delete().eq('id', id);
+  if (error) { logger.error('deleteProject', error.message, error); return false; }
+  return true;
+}

@@ -25,6 +25,27 @@ export async function updateEventStatus(id, status) {
   return true;
 }
 
+export async function updateEvent(id, data) {
+  const { error } = await sb.from('events').update(data).eq('id', id);
+  if (error) { handleServiceError('updateEvent', error); return false; }
+  return true;
+}
+
+export async function deleteEvent(id) {
+  const { error } = await sb.from('events').delete().eq('id', id);
+  if (error) { handleServiceError('deleteEvent', error); return false; }
+  return true;
+}
+
+export async function fetchAllRegistrations() {
+  const { data, error } = await sb
+    .from('event_registrations')
+    .select('*')
+    .order('registered_at', { ascending: true });
+  if (error) { handleServiceError('fetchAllRegistrations', error); return []; }
+  return data;
+}
+
 export async function fetchRegistrations(eventId) {
   const { data, error } = await sb
     .from('event_registrations')

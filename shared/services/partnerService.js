@@ -13,6 +13,18 @@ export async function createPartner(data) {
   return result?.[0] || null;
 }
 
+export async function updatePartner(id, data) {
+  const { error } = await sb.from('partners').update(data).eq('id', id);
+  if (error) { handleServiceError('updatePartner', error); return false; }
+  return true;
+}
+
+export async function deletePartner(id) {
+  const { error } = await sb.from('partners').delete().eq('id', id);
+  if (error) { handleServiceError('deletePartner', error); return false; }
+  return true;
+}
+
 export function filterPartnersByType(partners, type) {
   if (!type || type === 'all') return partners;
   return partners.filter(p => p.type === type);

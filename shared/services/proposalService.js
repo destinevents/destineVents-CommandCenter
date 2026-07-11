@@ -13,6 +13,18 @@ export async function createProposal(data) {
   return result?.[0] || null;
 }
 
+export async function updateProposal(id, data) {
+  const { error } = await sb.from('proposals').update(data).eq('id', id);
+  if (error) { handleServiceError('updateProposal', error); return false; }
+  return true;
+}
+
+export async function deleteProposal(id) {
+  const { error } = await sb.from('proposals').delete().eq('id', id);
+  if (error) { handleServiceError('deleteProposal', error); return false; }
+  return true;
+}
+
 export function calcWinRate(proposals) {
   const closed = proposals.filter(p => p.status === 'Won' || p.status === 'Lost');
   const won = proposals.filter(p => p.status === 'Won');

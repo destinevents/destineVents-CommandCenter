@@ -13,6 +13,18 @@ export async function createClient(data) {
   return result?.[0] || null;
 }
 
+export async function updateClient(id, data) {
+  const { error } = await sb.from('clients').update(data).eq('id', id);
+  if (error) { handleServiceError('updateClient', error); return false; }
+  return true;
+}
+
+export async function deleteClient(id) {
+  const { error } = await sb.from('clients').delete().eq('id', id);
+  if (error) { handleServiceError('deleteClient', error); return false; }
+  return true;
+}
+
 export function getClientTotalValue(clients) {
   return clients.reduce((s, c) => s + (c.total_value || 0), 0);
 }

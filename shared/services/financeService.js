@@ -13,6 +13,18 @@ export async function createInvoice(data) {
   return result?.[0] || null;
 }
 
+export async function updateInvoice(id, data) {
+  const { error } = await sb.from('invoices').update(data).eq('id', id);
+  if (error) { handleServiceError('updateInvoice', error); return false; }
+  return true;
+}
+
+export async function deleteInvoice(id) {
+  const { error } = await sb.from('invoices').delete().eq('id', id);
+  if (error) { handleServiceError('deleteInvoice', error); return false; }
+  return true;
+}
+
 export async function fetchBills() {
   const { data, error } = await sb.from('bills').select('*').order('date', { ascending: false });
   if (error) { handleServiceError('fetchBills', error); return []; }
@@ -25,6 +37,18 @@ export async function createBill(data) {
   return result?.[0] || null;
 }
 
+export async function updateBill(id, data) {
+  const { error } = await sb.from('bills').update(data).eq('id', id);
+  if (error) { handleServiceError('updateBill', error); return false; }
+  return true;
+}
+
+export async function deleteBill(id) {
+  const { error } = await sb.from('bills').delete().eq('id', id);
+  if (error) { handleServiceError('deleteBill', error); return false; }
+  return true;
+}
+
 export async function fetchPayrollRuns() {
   const { data, error } = await sb.from('payroll_runs').select('*').order('period', { ascending: false });
   if (error) { handleServiceError('fetchPayrollRuns', error); return []; }
@@ -35,6 +59,18 @@ export async function createPayrollRun(data) {
   const { data: result, error } = await sb.from('payroll_runs').insert(data).select();
   if (error) { handleServiceError('createPayrollRun', error); return null; }
   return result?.[0] || null;
+}
+
+export async function updatePayrollRun(id, data) {
+  const { error } = await sb.from('payroll_runs').update(data).eq('id', id);
+  if (error) { handleServiceError('updatePayrollRun', error); return false; }
+  return true;
+}
+
+export async function deletePayrollRun(id) {
+  const { error } = await sb.from('payroll_runs').delete().eq('id', id);
+  if (error) { handleServiceError('deletePayrollRun', error); return false; }
+  return true;
 }
 
 export function calcFinanceSummary(invoices, bills) {

@@ -16,15 +16,30 @@ import {
   setClients, setProposals, setPartners, setInvoices, setBills, setProjects,
 } from './state.js';
 import { toast, closeModal, saveModal, toggleHqNav } from './ui.js';
-import { loadClients, openAddClient, loadProposals, openAddProposal } from './crm.js';
 import {
-  loadPartners, filterPartners, openAddPartner, loadDocuments, handleFileSelect,
-  npGoStep2, npGoStep1, npFinish, downloadNDA, loadImpact, saveImpactEntry,
+  loadClients, openAddClient, openEditClient, handleDeleteClient,
+  loadProposals, openAddProposal, openEditProposal, handleDeleteProposal,
+} from './crm.js';
+import {
+  loadPartners, filterPartners, openAddPartner, openEditPartner, handleDeletePartner,
+  loadDocuments, handleFileSelect,
+  npGoStep2, npGoStep1, npFinish, downloadNDA,
+  loadImpact, saveImpactEntry, handleDeleteImpact,
 } from './operations.js';
-import { loadFinance, showFinanceTab, openFileBir, openAddInvoice, openAddBill, openAddPayroll, estimateDeductions } from './finance.js';
-import { loadProjects, openAddProject } from './projects.js';
+import {
+  loadFinance, showFinanceTab, openFileBir,
+  openAddInvoice, openEditInvoice, handleDeleteInvoice,
+  openAddBill, openEditBill, handleDeleteBill,
+  openAddPayroll, openEditPayroll, handleDeletePayroll,
+  estimateDeductions,
+} from './finance.js';
+import { loadProjects, openAddProject, openEditProject, handleDeleteProject } from './projects.js';
 import { selectTemplate, copyAIOutput, simulateAI } from './ai.js';
-import { loadEvents, openAddEvent, filterEvents, viewEventRegistrations, backToEvents, copyRegisterUrl, handleUpdateRegistrationStatus } from './events.js';
+import {
+  loadEvents, openAddEvent, openEditEvent, handleDeleteEvent,
+  filterEvents, viewEventRegistrations, backToEvents, copyRegisterUrl,
+  handleUpdateRegistrationStatus,
+} from './events.js';
 
 async function init() {
   const session = await getSession();
@@ -110,9 +125,8 @@ function setupRealtime() {
       }
     });
   });
-  ch.subscribe((status) => {
-    if (status === 'SUBSCRIBED') console.log('Realtime connected');
-  });
+  ch.subscribe();
+
 }
 
 async function handleSignIn() {
@@ -312,12 +326,28 @@ function filterTable(input, tbodyId) {
 Object.assign(window, {
   showPage, handleSignIn, handleSignOut, toggleHqNav, filterTable,
   closeModal, saveModal, toast,
-  openAddClient, openAddProposal, openAddPartner, openAddProject,
-  openAddInvoice, openAddBill, openAddPayroll, openFileBir, showFinanceTab, estimateDeductions,
+  // Clients
+  openAddClient, openEditClient, handleDeleteClient,
+  // Proposals
+  openAddProposal, openEditProposal, handleDeleteProposal,
+  // Partners
+  openAddPartner, openEditPartner, handleDeletePartner,
+  // Projects
+  openAddProject, openEditProject, handleDeleteProject,
+  // Finance
+  openAddInvoice, openEditInvoice, handleDeleteInvoice,
+  openAddBill, openEditBill, handleDeleteBill,
+  openAddPayroll, openEditPayroll, handleDeletePayroll,
+  openFileBir, showFinanceTab, estimateDeductions,
+  // Operations
   filterPartners, handleFileSelect, npGoStep1, npGoStep2, npFinish, downloadNDA,
-  saveImpactEntry, selectTemplate, copyAIOutput, simulateAI,
-  loadEvents, openAddEvent, filterEvents, viewEventRegistrations, backToEvents, copyRegisterUrl,
+  saveImpactEntry, handleDeleteImpact,
+  // Events
+  loadEvents, openAddEvent, openEditEvent, handleDeleteEvent,
+  filterEvents, viewEventRegistrations, backToEvents, copyRegisterUrl,
   updateRegistrationStatus: handleUpdateRegistrationStatus,
+  // AI
+  selectTemplate, copyAIOutput, simulateAI,
 });
 
 export { showPage };
