@@ -38,6 +38,7 @@ export function openAddProject() {
   const statuses  = ['Lead', 'Proposal Sent', 'NDA Signed', 'Active', 'Completed'].map(s => `<option>${s}</option>`).join('');
   const cats      = ['Events', 'Training', 'Digital', 'CSR', 'Community'].map(c => `<option>${c}</option>`).join('');
   openModal('New Project', `
+    <div id="fp2-error" class="modal-error"></div>
     <div class="form-grid">
       <div class="form-group full"><div class="form-label">Project Name</div><input class="form-input" id="fp2-name" placeholder="e.g. DTI MSME Innovation Summit"/></div>
       <div class="form-group"><div class="form-label">Client</div><input class="form-input" id="fp2-client" placeholder="Client / org name"/></div>
@@ -49,10 +50,17 @@ export function openAddProject() {
     </div>`, saveProject);
 }
 
+function showProjectError(msg) {
+  const el = document.getElementById('fp2-error');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add('visible');
+}
+
 export async function saveProject() {
   const name = document.getElementById('fp2-name').value.trim();
   const err  = validateRequired(name, 'Project name');
-  if (err) { toast(err, 'error'); return; }
+  if (err) { showProjectError(err); return; }
   const result = await createProject({
     name,
     client:   document.getElementById('fp2-client').value.trim(),
@@ -63,7 +71,10 @@ export async function saveProject() {
     notes:    document.getElementById('fp2-notes').value.trim(),
     updated_at: new Date().toISOString(),
   });
-  if (!result) return;
+  if (!result.ok) {
+    showProjectError(result.message || 'Could not save project. Please try again.');
+    return;
+  }
   toast('Project added', 'success');
   closeModal();
   loadProjects();
