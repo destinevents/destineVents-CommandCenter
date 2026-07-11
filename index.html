@@ -559,5 +559,25 @@
 </main>
 
 <script type="module" src="apps/hq/app.js"></script>
+
+<!-- Document Preview Overlay -->
+<div id="doc-preview-overlay"
+     onclick="if(event.target===this)closeDocPreview()"
+     style="display:none;position:fixed;inset:0;background:rgba(20,20,20,0.65);z-index:150;align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--linen);width:min(860px,100%);max-height:90vh;border-radius:6px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,0.3)">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--ink-4);flex-shrink:0">
+      <div>
+        <div id="doc-preview-name" style="font-size:14px;font-weight:600;color:var(--ink)"></div>
+        <div id="doc-preview-meta" style="font-size:10.5px;color:var(--ink-3);margin-top:2px"></div>
+      </div>
+      <button class="modal-close" onclick="closeDocPreview()" aria-label="Close preview">✕</button>
+    </div>
+    <div id="doc-preview-body" style="flex:1;overflow:auto;background:var(--linen-2);min-height:420px;display:flex;align-items:center;justify-content:center"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-top:1px solid var(--ink-4);flex-shrink:0">
+      <button class="btn btn-ghost" onclick="handleDeleteDocument()" style="color:var(--red)">Delete file</button>
+      <a id="doc-preview-download" class="btn btn-primary" target="_blank" rel="noopener" style="text-decoration:none">Download</a>
+    </div>
+  </div>
+</div>
 </body>
 </html>

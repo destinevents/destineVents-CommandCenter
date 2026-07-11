@@ -22,3 +22,19 @@ export async function saveDocumentMeta(data) {
   if (error) { handleServiceError('saveDocumentMeta', error); return null; }
   return result?.[0] || null;
 }
+
+export async function getDocumentSignedUrl(path, expiresIn = 3600) {
+  const { data, error } = await sb.storage.from('documents').createSignedUrl(path, expiresIn);
+  if (error) { handleServiceError('getDocumentSignedUrl', error); return null; }
+  return data?.signedUrl || null;
+}
+
+export async function removeDocument(id, path) {
+  if (path) {
+    const { error: storageError } = await sb.storage.from('documents').remove([path]);
+    if (storageError) handleServiceError('removeDocument (storage)', storageError);
+  }
+  const { error } = await sb.from('documents').delete().eq('id', id);
+  if (error) { handleServiceError('removeDocument (db)', error); return false; }
+  return true;
+}

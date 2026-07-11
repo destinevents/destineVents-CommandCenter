@@ -22,7 +22,7 @@ import {
 } from './crm.js';
 import {
   loadPartners, filterPartners, openAddPartner, openEditPartner, handleDeletePartner,
-  loadDocuments, handleFileSelect,
+  loadDocuments, handleFileSelect, openDocPreview, closeDocPreview, handleDeleteDocument,
   npGoStep2, npGoStep1, npFinish, downloadNDA,
   loadImpact, saveImpactEntry, handleDeleteImpact,
 } from './operations.js';
@@ -342,6 +342,7 @@ Object.assign(window, {
   // Operations
   filterPartners, handleFileSelect, npGoStep1, npGoStep2, npFinish, downloadNDA,
   saveImpactEntry, handleDeleteImpact,
+  openDocPreview, closeDocPreview, handleDeleteDocument,
   // Events
   loadEvents, openAddEvent, openEditEvent, handleDeleteEvent,
   filterEvents, viewEventRegistrations, backToEvents, copyRegisterUrl,

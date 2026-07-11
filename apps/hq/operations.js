@@ -5,7 +5,10 @@ import { validateRequired } from '../../shared/utils/validators.ts';
 import {
   fetchPartners, createPartner, updatePartner, deletePartner, filterPartnersByType,
 } from '../../shared/services/partnerService.js';
-import { fetchDocuments, uploadDocument, getDocumentPublicUrl, saveDocumentMeta } from '../../shared/services/documentService.js';
+import {
+  fetchDocuments, uploadDocument, getDocumentPublicUrl, saveDocumentMeta,
+  getDocumentSignedUrl, removeDocument,
+} from '../../shared/services/documentService.js';
 import { createClient, findClientByName } from '../../shared/services/clientService.js';
 import { createProject } from '../../shared/services/projectService.js';
 import { fetchImpactEntries, createImpactEntry, deleteImpactEntry } from '../../shared/services/impactService.js';
@@ -101,6 +104,8 @@ export async function handleDeletePartner(id) {
 
 // ── Documents ─────────────────────────────────────────────────────────────────
 
+let _previewDoc = null;
+
 export async function loadDocuments() {
   setDocuments(await fetchDocuments());
   renderDocuments(_documents);
@@ -109,19 +114,81 @@ export async function loadDocuments() {
 export function renderDocuments(docs) {
   document.getElementById('doc-list').innerHTML = docs.length
     ? docs.map(d => `
-        <div class="doc-item">
+        <div class="doc-item" style="cursor:pointer" onclick="openDocPreview(${d.id})">
           <div class="doc-icon">${docTypeIcon(d.type)}</div>
-          <div>
+          <div style="flex:1">
             <div class="doc-name">${escapeHtml(d.name)}</div>
-            <div class="doc-meta">${escapeHtml(d.type)} · ${escapeHtml(d.size)} · ${escapeHtml(d.date)}</div>
+            <div class="doc-meta">${escapeHtml(d.type || '—')} · ${escapeHtml(d.size || '—')} · ${escapeHtml(d.date || '—')}</div>
           </div>
-          <div class="doc-actions">
-            ${d.url
-              ? `<a class="doc-btn" href="${d.url}" target="_blank" rel="noopener">Download</a>`
-              : `<button class="doc-btn" disabled style="opacity:0.4;cursor:default">No file</button>`}
-          </div>
+          <span class="doc-btn">View →</span>
         </div>`).join('')
     : `<div class="empty-state">No documents yet — upload your first file above</div>`;
+}
+
+export async function openDocPreview(id) {
+  const doc = _documents.find(d => d.id == id);
+  if (!doc) return;
+  _previewDoc = doc;
+
+  const overlay = document.getElementById('doc-preview-overlay');
+  overlay.style.display = 'flex';
+  document.getElementById('doc-preview-name').textContent = doc.name;
+  document.getElementById('doc-preview-meta').textContent =
+    [doc.type, doc.size, doc.date].filter(Boolean).join(' · ');
+  document.getElementById('doc-preview-body').innerHTML =
+    '<div style="color:var(--ink-3);font-size:12px">Loading preview…</div>';
+
+  const signedUrl = doc.path ? await getDocumentSignedUrl(doc.path) : null;
+
+  const dlBtn = document.getElementById('doc-preview-download');
+  if (signedUrl) {
+    dlBtn.href = signedUrl;
+    dlBtn.style.opacity = '';
+    dlBtn.style.pointerEvents = '';
+  } else {
+    dlBtn.removeAttribute('href');
+    dlBtn.style.opacity = '0.4';
+    dlBtn.style.pointerEvents = 'none';
+  }
+
+  document.getElementById('doc-preview-body').innerHTML = buildPreview(doc.type, signedUrl, doc.name);
+}
+
+function buildPreview(type, signedUrl, name) {
+  if (!signedUrl) {
+    return `<div style="text-align:center;padding:40px 24px">
+      <div style="font-size:36px;margin-bottom:12px">📄</div>
+      <div style="font-size:13px;color:var(--ink-2);margin-bottom:6px">No preview available</div>
+      <div style="font-size:11px;color:var(--ink-3)">File path is missing — this entry may have been created manually.</div>
+    </div>`;
+  }
+  const t = (type || '').toUpperCase();
+  if (t === 'PDF') {
+    return `<iframe src="${signedUrl}" style="width:100%;height:100%;min-height:500px;border:none;display:block"></iframe>`;
+  }
+  if (['PNG', 'JPG', 'JPEG', 'GIF', 'WEBP'].includes(t)) {
+    return `<img src="${signedUrl}" alt="${escapeHtml(name)}" style="max-width:100%;max-height:70vh;object-fit:contain;display:block;margin:auto;padding:20px">`;
+  }
+  return `<div style="text-align:center;padding:40px 24px">
+    <div style="font-size:36px;margin-bottom:12px">📄</div>
+    <div style="font-size:13px;color:var(--ink-2);margin-bottom:6px">Preview not available for ${escapeHtml(type || 'this file type')}</div>
+    <div style="font-size:11px;color:var(--ink-3)">Use the Download button to open it.</div>
+  </div>`;
+}
+
+export function closeDocPreview() {
+  document.getElementById('doc-preview-overlay').style.display = 'none';
+  _previewDoc = null;
+}
+
+export async function handleDeleteDocument() {
+  if (!_previewDoc) return;
+  if (!confirm(`Delete "${_previewDoc.name}"? This removes the file permanently.`)) return;
+  const ok = await removeDocument(_previewDoc.id, _previewDoc.path);
+  if (!ok) { toast('Could not delete document', 'error'); return; }
+  toast('Document deleted', '');
+  closeDocPreview();
+  loadDocuments();
 }
 
 export function handleFileSelect(files) {
