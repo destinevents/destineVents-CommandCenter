@@ -2,6 +2,7 @@
 .vercel
 node_modules/
 dist/
+.env
 .env.local
 config/config.js
 coverage/

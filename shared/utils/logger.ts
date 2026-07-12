@@ -1,6 +1,6 @@
 // Structured console logging with levels (debug/info/warn/error).
 const LOG_LEVELS = { DEBUG: 0, INFO: 1, WARN: 2, ERROR: 3 };
-let _logLevel = LOG_LEVELS.INFO;
+let _logLevel = import.meta.env.PROD ? LOG_LEVELS.WARN : LOG_LEVELS.INFO;
 
 export function setLogLevel(level: number): void {
   _logLevel = level;
