@@ -206,11 +206,13 @@ export async function saveInvoice() {
   const or_num = gVal('fi-or').trim();
   const err = validateRequired(or_num, 'OR number');
   if (err) { toast(err, 'error'); return; }
+  const amount = +gVal('fi-amount');
+  if (!amount || amount <= 0) { toast('Amount must be greater than ₱0', 'error'); return; }
   const projVal = (document.getElementById('fi-project') as HTMLInputElement | null)?.value;
   const payload = {
     or_num,
     client:     gVal('fi-client'),
-    amount:     +gVal('fi-amount') || 0,
+    amount,
     status:     gVal('fi-status'),
     date:       gVal('fi-date') || null,
     due:        gVal('fi-due') || null,
@@ -301,10 +303,12 @@ export async function saveBill() {
   const payee = gVal('fb-payee').trim();
   const err = validateRequired(payee, 'Payee');
   if (err) { toast(err, 'error'); return; }
+  const amount = +gVal('fb-amount');
+  if (!amount || amount <= 0) { toast('Amount must be greater than ₱0', 'error'); return; }
   const partVal = (document.getElementById('fb-partner') as HTMLInputElement | null)?.value;
   const payload = {
     payee,
-    amount:     +gVal('fb-amount') || 0,
+    amount,
     category:   gVal('fb-category'),
     ewt:        gVal('fb-ewt'),
     date:       gVal('fb-bill-date') || null,

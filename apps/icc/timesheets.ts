@@ -97,6 +97,11 @@ export async function renderTimesheets() {
 // renders, or a realtime event / search keystroke would rebuild the skill
 // picker and wipe the intern's in-progress selections mid-form.
 export function openLogHours() {
+  // Clear stale form state from previous opens
+  ['lh-date', 'lh-hours', 'lh-activity'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) (el as HTMLInputElement).value = '';
+  });
   // Active tasks first; status suffix disambiguates same-titled tasks
   const activeFirst = [...myTasks()].sort((a, b) =>
     (['completed','reviewed'].includes(a.status) ? 1 : 0) - (['completed','reviewed'].includes(b.status) ? 1 : 0)
@@ -151,7 +156,7 @@ export async function approveSheet(id) {
     approved_by: currentUser.id,
     approved_at: new Date().toISOString()
   });
-  if (!result) return;
+  if (!result) { toast('Could not approve entry. Please try again.'); return; }
 
   logAudit('approved_timesheet', 'timesheet', id, { approved_by: currentUser.id }, currentUser.id);
 
