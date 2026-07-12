@@ -176,12 +176,16 @@ async function handleSignIn() {
     errEl.textContent = 'Sign in failed. Please try again.';
     return;
   }
-  const { data: profile } = await sb
+  const { data: profile, error: profileError } = await sb
     .from('intern_users')
     .select('role')
     .eq('id', data.user.id)
     .single();
-  const role = (profile?.role || 'pending') as UserRole;
+  if (profileError || !profile) {
+    errEl.textContent = 'Could not load your account. Please try again or contact support.';
+    return;
+  }
+  const role = profile.role as UserRole;
   if (role === 'pending') {
     errEl.textContent = 'Your account is pending approval. Jenn will assign your access shortly.';
     return;
