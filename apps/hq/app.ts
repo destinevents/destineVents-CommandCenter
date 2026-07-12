@@ -204,7 +204,7 @@ async function handleSignIn() {
 
 async function handleSignOut() {
   await signOut();
-  location.reload();
+  window.location.href = 'login.html';
 }
 
 function showPage(name: string) {
