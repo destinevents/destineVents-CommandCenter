@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { formatBytes } from '../../shared/utils/formatUtils.ts';
 import { formatDateShort, todayISO } from '../../shared/utils/dateUtils.ts';
 import { escapeHtml, docTypeIcon, guessDocType } from '../../shared/utils/helpers.ts';
@@ -17,10 +16,14 @@ import { generateNDAContent, buildNDAWindowContent } from '../../shared/business
 import { _clients, _projects, _partners, _documents, _impactEntries, setClients, setProjects, setPartners, setDocuments, setImpactEntries } from './state.ts';
 import { toast, openModal, closeModal } from './ui.ts';
 import { showPage } from './app.ts';
+import type { Partner, Document as HQDocument, ImpactEntry } from '../../shared/types.ts';
+
+const gEl = (id: string) => document.getElementById(id)!;
+const gVal = (id: string) => (document.getElementById(id) as HTMLInputElement).value;
 
 // ── Partners ──────────────────────────────────────────────────────────────────
 
-let _editingPartnerId = null;
+let _editingPartnerId: number | null = null;
 
 export async function loadPartners() {
   const [parts, projs] = await Promise.all([fetchPartners(), _projects.length ? _projects : fetchProjects()]);
@@ -29,8 +32,8 @@ export async function loadPartners() {
   renderPartners(_partners);
 }
 
-export function renderPartners(list) {
-  const grid = document.getElementById('partners-grid');
+export function renderPartners(list: Partner[]) {
+  const grid = gEl('partners-grid');
   grid.innerHTML = list.length
     ? list.map(p => `
         <div class="partner-card">
@@ -45,13 +48,13 @@ export function renderPartners(list) {
     : `<div style="grid-column:1/-1"><div class="empty-state">No partners in this category</div></div>`;
 }
 
-export function filterPartners(type, el) {
+export function filterPartners(type: string, el: HTMLElement) {
   document.querySelectorAll('.partner-filter-btn').forEach(b => b.classList.remove('active'));
   el.classList.add('active');
-  renderPartners(filterPartnersByType(_partners, type));
+  renderPartners(filterPartnersByType(_partners, type) as Partner[]);
 }
 
-function partnerFormHTML(p = {}) {
+function partnerFormHTML(p: Partial<Partner> = {}) {
   const typeOpts    = ['School', 'LGU', 'NGO', 'Sponsor', 'Media', 'Startup']
     .map(t => `<option${t === p.type ? ' selected' : ''}>${t}</option>`).join('');
   const projectOpts = `<option value="">— no project —</option>` + _projects.map(pr => `<option value="${pr.id}"${p.project_id === pr.id ? ' selected' : ''}>${escapeHtml(pr.name)}</option>`).join('');
@@ -69,7 +72,7 @@ export function openAddPartner() {
   openModal('Add Partner', partnerFormHTML(), savePartner);
 }
 
-export function openEditPartner(id) {
+export function openEditPartner(id: number) {
   const p = _partners.find(x => x.id === id);
   if (!p) return;
   _editingPartnerId = id;
@@ -77,15 +80,15 @@ export function openEditPartner(id) {
 }
 
 export async function savePartner() {
-  const name = document.getElementById('fpr-name').value.trim();
+  const name = gVal('fpr-name').trim();
   const err = validateRequired(name, 'Organization name');
   if (err) { toast(err, 'error'); return; }
-  const projVal = document.getElementById('fpr-project')?.value;
+  const projVal = (document.getElementById('fpr-project') as HTMLInputElement | null)?.value;
   const payload = {
     name,
-    type:       document.getElementById('fpr-type').value,
-    contact:    document.getElementById('fpr-contact').value,
-    email:      document.getElementById('fpr-email').value,
+    type:       gVal('fpr-type'),
+    contact:    gVal('fpr-contact'),
+    email:      gVal('fpr-email'),
     project_id: projVal ? +projVal : null,
   };
   if (_editingPartnerId) {
@@ -101,7 +104,7 @@ export async function savePartner() {
   loadPartners();
 }
 
-export async function handleDeletePartner(id) {
+export async function handleDeletePartner(id: number) {
   if (!confirm('Delete this partner? This cannot be undone.')) return;
   const ok = await deletePartner(id);
   if (!ok) { toast('Could not delete partner', 'error'); return; }
@@ -111,18 +114,18 @@ export async function handleDeletePartner(id) {
 
 // ── Documents ─────────────────────────────────────────────────────────────────
 
-let _previewDoc = null;
+let _previewDoc: HQDocument | null = null;
 
 export async function loadDocuments() {
   setDocuments(await fetchDocuments());
   renderDocuments(_documents);
 }
 
-export function renderDocuments(docs) {
-  document.getElementById('doc-list').innerHTML = docs.length
+export function renderDocuments(docs: HQDocument[]) {
+  gEl('doc-list').innerHTML = docs.length
     ? docs.map(d => `
         <div class="doc-item" style="cursor:pointer" onclick="openDocPreview(${d.id})">
-          <div class="doc-icon">${docTypeIcon(d.type)}</div>
+          <div class="doc-icon">${docTypeIcon(d.type ?? '')}</div>
           <div style="flex:1">
             <div class="doc-name">${escapeHtml(d.name)}</div>
             <div class="doc-meta">${escapeHtml(d.type || '—')} · ${escapeHtml(d.size || '—')} · ${escapeHtml(d.date || '—')}</div>
@@ -132,22 +135,22 @@ export function renderDocuments(docs) {
     : `<div class="empty-state">No documents yet — upload your first file above</div>`;
 }
 
-export async function openDocPreview(id) {
-  const doc = _documents.find(d => d.id == id);
+export async function openDocPreview(id: number) {
+  const doc = _documents.find(d => d.id === id);
   if (!doc) return;
   _previewDoc = doc;
 
-  const overlay = document.getElementById('doc-preview-overlay');
+  const overlay = gEl('doc-preview-overlay') as HTMLElement;
   overlay.style.display = 'flex';
-  document.getElementById('doc-preview-name').textContent = doc.name;
-  document.getElementById('doc-preview-meta').textContent =
+  gEl('doc-preview-name').textContent = doc.name;
+  gEl('doc-preview-meta').textContent =
     [doc.type, doc.size, doc.date].filter(Boolean).join(' · ');
-  document.getElementById('doc-preview-body').innerHTML =
+  gEl('doc-preview-body').innerHTML =
     '<div style="color:var(--ink-3);font-size:12px">Loading preview…</div>';
 
   const signedUrl = doc.path ? await getDocumentSignedUrl(doc.path) : null;
 
-  const dlBtn = document.getElementById('doc-preview-download');
+  const dlBtn = gEl('doc-preview-download') as HTMLAnchorElement;
   if (signedUrl) {
     dlBtn.href = signedUrl;
     dlBtn.style.opacity = '';
@@ -158,10 +161,10 @@ export async function openDocPreview(id) {
     dlBtn.style.pointerEvents = 'none';
   }
 
-  document.getElementById('doc-preview-body').innerHTML = buildPreview(signedUrl, doc.name);
+  gEl('doc-preview-body').innerHTML = buildPreview(signedUrl, doc.name);
 }
 
-function buildPreview(signedUrl, name) {
+function buildPreview(signedUrl: string | null, name: string) {
   if (!signedUrl) {
     return `<div style="text-align:center;padding:40px 24px">
       <div style="font-size:36px;margin-bottom:12px">📄</div>
@@ -169,7 +172,7 @@ function buildPreview(signedUrl, name) {
       <div style="font-size:11px;color:var(--ink-3)">File path is missing — this entry may have been created manually.</div>
     </div>`;
   }
-  const ext = (name || '').split('.').pop().toLowerCase();
+  const ext = (name || '').split('.').pop()?.toLowerCase() ?? '';
   if (ext === 'pdf') {
     return `<iframe src="${signedUrl}" style="width:100%;height:100%;min-height:500px;border:none;display:block"></iframe>`;
   }
@@ -184,7 +187,7 @@ function buildPreview(signedUrl, name) {
 }
 
 export function closeDocPreview() {
-  document.getElementById('doc-preview-overlay').style.display = 'none';
+  (gEl('doc-preview-overlay') as HTMLElement).style.display = 'none';
   _previewDoc = null;
 }
 
@@ -198,10 +201,10 @@ export async function handleDeleteDocument() {
   loadDocuments();
 }
 
-export function handleFileSelect(files) {
+export function handleFileSelect(files: FileList) {
   if (!files || !files.length) return;
   const file = files[0];
-  document.getElementById('file-input').value = '';
+  (gEl('file-input') as HTMLInputElement).value = '';
   const clientOpts  = `<option value="">— no client —</option>` + _clients.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
   const projectOpts = `<option value="">— no project —</option>` + _projects.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
   openModal('Tag Document', `<div style="font-size:12px;color:var(--ink-2);margin-bottom:12px">Uploading: <strong>${escapeHtml(file.name)}</strong></div>
@@ -209,14 +212,14 @@ export function handleFileSelect(files) {
     <div class="form-group full"><div class="form-label">Client (optional)</div><select class="form-input" id="doc-ctx-client">${clientOpts}</select></div>
     <div class="form-group full"><div class="form-label">Project (optional)</div><select class="form-input" id="doc-ctx-project">${projectOpts}</select></div>
   </div>`, () => {
-    const clientVal  = document.getElementById('doc-ctx-client')?.value;
-    const projectVal = document.getElementById('doc-ctx-project')?.value;
+    const clientVal  = (document.getElementById('doc-ctx-client') as HTMLInputElement | null)?.value;
+    const projectVal = (document.getElementById('doc-ctx-project') as HTMLInputElement | null)?.value;
     closeModal();
     uploadToStorage(file, clientVal ? +clientVal : null, projectVal ? +projectVal : null);
   });
 }
 
-export async function uploadToStorage(file, clientId = null, projectId = null) {
+export async function uploadToStorage(file: File, clientId: number | null = null, projectId: number | null = null) {
   toast('Uploading…');
   try {
     const path = `${Date.now()}-${file.name}`;
@@ -241,7 +244,7 @@ export async function uploadToStorage(file, clientId = null, projectId = null) {
     toast('File uploaded', 'success');
     loadDocuments();
   } catch (err) {
-    toast(`Upload error: ${err?.message || 'Unknown error'}`, 'error');
+    toast(`Upload error: ${(err as Error)?.message || 'Unknown error'}`, 'error');
   }
 }
 
@@ -255,45 +258,45 @@ export async function loadNDA() {
 }
 
 export function npGoStep2() {
-  const client = document.getElementById('np-client').value.trim();
+  const client = (gEl('np-client') as HTMLInputElement).value.trim();
   if (!client) { toast('Client name is required', 'error'); return; }
-  const address = document.getElementById('np-address').value.trim();
-  const purpose = document.getElementById('np-purpose').value.trim() || 'business engagement';
-  const dateVal = document.getElementById('np-date').value;
-  const contact = document.getElementById('np-contact').value.trim();
-  const email   = document.getElementById('np-email').value.trim();
-  const brand   = document.getElementById('np-brand').value;
+  const address = (gEl('np-address') as HTMLInputElement).value.trim();
+  const purpose = (gEl('np-purpose') as HTMLInputElement).value.trim() || 'business engagement';
+  const dateVal = (gEl('np-date') as HTMLInputElement).value;
+  const contact = (gEl('np-contact') as HTMLInputElement).value.trim();
+  const email   = (gEl('np-email') as HTMLInputElement).value.trim();
+  const brand   = (gEl('np-brand') as HTMLInputElement).value;
 
-  document.getElementById('np-nda-content').innerHTML =
-    generateNDAContent(client, address, contact, email, purpose, dateVal, brand);
+  gEl('np-nda-content').innerHTML =
+    generateNDAContent(client, address, contact, email, purpose, dateVal);
 
-  document.getElementById('np-circle-1').className = 'step-circle done';
-  document.getElementById('np-circle-1').textContent = '✓';
-  document.getElementById('np-label-1').className = 'step-label';
-  document.getElementById('np-circle-2').className = 'step-circle active';
-  document.getElementById('np-circle-2').textContent = '2';
-  document.getElementById('np-label-2').className = 'step-label active';
-  document.getElementById('np-step1').style.display = 'none';
-  document.getElementById('np-step2').style.display = 'block';
+  gEl('np-circle-1').className = 'step-circle done';
+  gEl('np-circle-1').textContent = '✓';
+  gEl('np-label-1').className = 'step-label';
+  gEl('np-circle-2').className = 'step-circle active';
+  gEl('np-circle-2').textContent = '2';
+  gEl('np-label-2').className = 'step-label active';
+  (gEl('np-step1') as HTMLElement).style.display = 'none';
+  (gEl('np-step2') as HTMLElement).style.display = 'block';
 }
 
 export function npGoStep1() {
-  document.getElementById('np-step1').style.display = 'block';
-  document.getElementById('np-step2').style.display = 'none';
-  document.getElementById('np-circle-1').className = 'step-circle active';
-  document.getElementById('np-circle-1').textContent = '1';
-  document.getElementById('np-label-1').className = 'step-label active';
-  document.getElementById('np-circle-2').className = 'step-circle';
-  document.getElementById('np-circle-2').textContent = '2';
-  document.getElementById('np-label-2').className = 'step-label';
+  (gEl('np-step1') as HTMLElement).style.display = 'block';
+  (gEl('np-step2') as HTMLElement).style.display = 'none';
+  gEl('np-circle-1').className = 'step-circle active';
+  gEl('np-circle-1').textContent = '1';
+  gEl('np-label-1').className = 'step-label active';
+  gEl('np-circle-2').className = 'step-circle';
+  gEl('np-circle-2').textContent = '2';
+  gEl('np-label-2').className = 'step-label';
 }
 
 export async function npFinish() {
-  const client  = document.getElementById('np-client').value.trim();
-  const contact = document.getElementById('np-contact').value.trim();
-  const email   = document.getElementById('np-email').value.trim();
-  const brand   = document.getElementById('np-brand').value;
-  const purpose = document.getElementById('np-purpose').value.trim() || 'Project';
+  const client  = (gEl('np-client') as HTMLInputElement).value.trim();
+  const contact = (gEl('np-contact') as HTMLInputElement).value.trim();
+  const email   = (gEl('np-email') as HTMLInputElement).value.trim();
+  const brand   = (gEl('np-brand') as HTMLInputElement).value;
+  const purpose = (gEl('np-purpose') as HTMLInputElement).value.trim() || 'Project';
 
   const freshClients = await fetchClients();
   const exists = findClientByName(client, freshClients);
@@ -315,27 +318,27 @@ export async function npFinish() {
     updated_at: new Date().toISOString(),
   });
 
-  document.getElementById('np-circle-2').className = 'step-circle done';
-  document.getElementById('np-circle-2').textContent = '✓';
-  document.getElementById('np-label-2').className = 'step-label';
-  document.getElementById('np-circle-3').className = 'step-circle active';
-  document.getElementById('np-circle-3').textContent = '3';
-  document.getElementById('np-label-3').className = 'step-label active';
+  gEl('np-circle-2').className = 'step-circle done';
+  gEl('np-circle-2').textContent = '✓';
+  gEl('np-label-2').className = 'step-label';
+  gEl('np-circle-3').className = 'step-circle active';
+  gEl('np-circle-3').textContent = '3';
+  gEl('np-label-3').className = 'step-label active';
 
   toast(`Project created for ${client}`, 'success');
   setTimeout(() => showPage('projects'), 1400);
 }
 
 export async function downloadNDA() {
-  const client  = document.getElementById('np-client').value.trim() || 'Client';
-  const address = document.getElementById('np-address').value.trim();
-  const purpose = document.getElementById('np-purpose').value.trim() || 'Business Engagement';
-  const dateVal = document.getElementById('np-date').value;
-  const contact = document.getElementById('np-contact').value.trim();
-  const email   = document.getElementById('np-email').value.trim();
-  const brand   = document.getElementById('np-brand').value;
+  const client  = (gEl('np-client') as HTMLInputElement).value.trim() || 'Client';
+  const address = (gEl('np-address') as HTMLInputElement).value.trim();
+  const purpose = (gEl('np-purpose') as HTMLInputElement).value.trim() || 'Business Engagement';
+  const dateVal = (gEl('np-date') as HTMLInputElement).value;
+  const contact = (gEl('np-contact') as HTMLInputElement).value.trim();
+  const email   = (gEl('np-email') as HTMLInputElement).value.trim();
+  const brand   = (gEl('np-brand') as HTMLInputElement).value;
 
-  const html = buildNDAWindowContent(client, address, contact, email, purpose, dateVal, brand);
+  const html = buildNDAWindowContent(client, address, contact, email, purpose, dateVal);
   const w = window.open('', '_blank');
   if (!w) return;
   w.document.write(html);
@@ -365,7 +368,7 @@ export function renderImpact() {
     totals.lgus     += e.lgus_engaged     || 0;
   });
 
-  const el = id => document.getElementById(id);
+  const el = (id: string) => document.getElementById(id)!;
   el('imp-total-students').textContent = totals.students.toLocaleString();
   el('imp-total-teachers').textContent = totals.teachers.toLocaleString();
   el('imp-total-smes').textContent     = totals.smes.toLocaleString();
@@ -392,31 +395,31 @@ export function renderImpact() {
 }
 
 export async function saveImpactEntry() {
-  const period  = document.getElementById('imp-period').value.trim();
-  const program = document.getElementById('imp-program').value.trim();
+  const period  = gVal('imp-period').trim();
+  const program = gVal('imp-program').trim();
   const err = validateRequired(period, 'Period') || validateRequired(program, 'Program');
   if (err) { toast(err, 'error'); return; }
-  const projVal = document.getElementById('imp-project')?.value;
+  const projVal = (document.getElementById('imp-project') as HTMLInputElement | null)?.value;
   const result = await createImpactEntry({
     period,
     program,
-    students_reached: +document.getElementById('imp-students').value || 0,
-    teachers_trained: +document.getElementById('imp-teachers').value || 0,
-    smes_supported:   +document.getElementById('imp-smes').value    || 0,
-    lgus_engaged:     +document.getElementById('imp-lgus').value    || 0,
+    students_reached: +gVal('imp-students') || 0,
+    teachers_trained: +gVal('imp-teachers') || 0,
+    smes_supported:   +gVal('imp-smes')     || 0,
+    lgus_engaged:     +gVal('imp-lgus')     || 0,
     project_id:       projVal ? +projVal : null,
   });
   if (!result) return;
   toast('Impact entry saved', 'success');
   ['imp-period', 'imp-program', 'imp-students', 'imp-teachers', 'imp-smes', 'imp-lgus'].forEach(id => {
-    document.getElementById(id).value = '';
+    (document.getElementById(id) as HTMLInputElement).value = '';
   });
-  const projSel = document.getElementById('imp-project');
+  const projSel = document.getElementById('imp-project') as HTMLInputElement | null;
   if (projSel) projSel.value = '';
   loadImpact();
 }
 
-export async function handleDeleteImpact(id) {
+export async function handleDeleteImpact(id: number) {
   if (!confirm('Delete this impact entry? This cannot be undone.')) return;
   const ok = await deleteImpactEntry(id);
   if (!ok) { toast('Could not delete entry', 'error'); return; }
@@ -424,9 +427,9 @@ export async function handleDeleteImpact(id) {
   loadImpact();
 }
 
-let _editingImpactId = null;
+let _editingImpactId: number | null = null;
 
-function impactFormHTML(e = {}) {
+function impactFormHTML(e: Partial<ImpactEntry> = {}) {
   const projectOpts = `<option value="">— no project —</option>` + _projects.map(p => `<option value="${p.id}"${e.project_id === p.id ? ' selected' : ''}>${escapeHtml(p.name)}</option>`).join('');
   return `<div class="form-grid">
     <div class="form-group"><div class="form-label">Period</div><input class="form-input" id="imp-edit-period" value="${escapeHtml(e.period || '')}" placeholder="e.g. Q1 2026"/></div>
@@ -439,7 +442,7 @@ function impactFormHTML(e = {}) {
   </div>`;
 }
 
-export function openEditImpact(id) {
+export function openEditImpact(id: number) {
   const e = _impactEntries.find(x => x.id === id);
   if (!e) return;
   _editingImpactId = id;
@@ -447,18 +450,19 @@ export function openEditImpact(id) {
 }
 
 async function saveImpactEdit() {
-  const period  = document.getElementById('imp-edit-period').value.trim();
-  const program = document.getElementById('imp-edit-program').value.trim();
+  if (!_editingImpactId) return;
+  const period  = gVal('imp-edit-period').trim();
+  const program = gVal('imp-edit-program').trim();
   const err = validateRequired(period, 'Period') || validateRequired(program, 'Program');
   if (err) { toast(err, 'error'); return; }
-  const editProjVal = document.getElementById('imp-edit-project')?.value;
+  const editProjVal = (document.getElementById('imp-edit-project') as HTMLInputElement | null)?.value;
   const ok = await updateImpactEntry(_editingImpactId, {
     period,
     program,
-    students_reached: +document.getElementById('imp-edit-students').value || 0,
-    teachers_trained: +document.getElementById('imp-edit-teachers').value || 0,
-    smes_supported:   +document.getElementById('imp-edit-smes').value    || 0,
-    lgus_engaged:     +document.getElementById('imp-edit-lgus').value    || 0,
+    students_reached: +gVal('imp-edit-students') || 0,
+    teachers_trained: +gVal('imp-edit-teachers') || 0,
+    smes_supported:   +gVal('imp-edit-smes')     || 0,
+    lgus_engaged:     +gVal('imp-edit-lgus')     || 0,
     project_id:       editProjVal ? +editProjVal : null,
   });
   if (!ok) { toast('Could not update entry', 'error'); return; }

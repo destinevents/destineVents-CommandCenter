@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { formatCurrency } from '../../shared/utils/formatUtils.ts';
 import { formatDateShort, todayISO } from '../../shared/utils/dateUtils.ts';
 import { createInvoice } from '../../shared/services/financeService.ts';
@@ -11,8 +10,12 @@ import {
 } from '../../shared/services/eventService.ts';
 import { _events, _eventRegs, _currentEvent, setEvents, setEventRegs, setCurrentEvent } from './state.ts';
 import { toast, openModal, closeModal } from './ui.ts';
+import type { Event, EventRegistration } from '../../shared/types.ts';
 
-let _editingEventId = null;
+const gEl = (id: string) => document.getElementById(id)!;
+const gVal = (id: string) => (document.getElementById(id) as HTMLInputElement).value;
+
+let _editingEventId: number | null = null;
 
 export async function loadEvents() {
   const [events, regs] = await Promise.all([fetchEvents(), fetchAllRegistrations()]);
@@ -22,38 +25,38 @@ export async function loadEvents() {
   showEventsView('list');
 }
 
-function showEventsView(view) {
-  document.getElementById('events-list-view').style.display   = view === 'list'   ? '' : 'none';
-  document.getElementById('events-detail-view').style.display = view === 'detail' ? '' : 'none';
+function showEventsView(view: string) {
+  gEl('events-list-view').style.display   = view === 'list'   ? '' : 'none';
+  gEl('events-detail-view').style.display = view === 'detail' ? '' : 'none';
 }
 
-export function filterEvents(status, el) {
+export function filterEvents(status: string, el: HTMLElement) {
   document.querySelectorAll('.event-filter-btn').forEach(b => b.classList.remove('active'));
   el.classList.add('active');
   const list = status === 'all' ? _events : _events.filter(e => e.status === status);
   renderEventsList(list);
 }
 
-function regCount(eventId) {
+function regCount(eventId: number) {
   return _eventRegs.filter(r => r.event_id == eventId).length;
 }
 
-function statusBadgeClass(status) {
-  const map = { Upcoming: 'blue', Active: 'green', Completed: 'gray', Cancelled: 'red' };
+function statusBadgeClass(status: string) {
+  const map: Record<string, string> = { Upcoming: 'blue', Active: 'green', Completed: 'gray', Cancelled: 'red' };
   return map[status] || 'gray';
 }
 
-export function renderEventsList(list) {
+export function renderEventsList(list: Event[]) {
   const appUrl     = APP_SETTINGS.app?.url || window.location.origin;
   const upcoming   = _events.filter(e => e.status === 'Upcoming').length;
   const totalRegs  = _events.reduce((s, e) => s + regCount(e.id), 0);
   const revenue    = _events.filter(e => e.status === 'Completed')
     .reduce((s, e) => s + (e.price || 0) * regCount(e.id), 0);
 
-  document.getElementById('events-summary').innerHTML =
+  gEl('events-summary').innerHTML =
     `${_events.length} event${_events.length !== 1 ? 's' : ''} &nbsp;·&nbsp; ${upcoming} upcoming &nbsp;·&nbsp; ${totalRegs} total registrations`;
 
-  document.getElementById('events-stats').innerHTML = `
+  gEl('events-stats').innerHTML = `
     <div class="stat-card"><div class="stat-accent" style="background:var(--gold)"></div>
       <div class="stat-label">Total Events</div><div class="stat-value">${_events.length}</div></div>
     <div class="stat-card"><div class="stat-accent" style="background:var(--blue)"></div>
@@ -63,7 +66,7 @@ export function renderEventsList(list) {
     <div class="stat-card"><div class="stat-accent" style="background:var(--ink-1)"></div>
       <div class="stat-label">Est. Revenue</div><div class="stat-value" style="font-size:18px">${formatCurrency(revenue)}</div></div>`;
 
-  document.getElementById('events-tbody').innerHTML = list.length
+  gEl('events-tbody').innerHTML = list.length
     ? list.map(e => {
         const regs   = regCount(e.id);
         const capPct = e.capacity ? Math.min(100, Math.round(regs / e.capacity * 100)) : 0;
@@ -95,7 +98,7 @@ export function renderEventsList(list) {
     : `<tr><td colspan="8"><div class="empty-state">No events yet — create your first one</div></td></tr>`;
 }
 
-export async function viewEventRegistrations(id) {
+export async function viewEventRegistrations(id: number) {
   const event = _events.find(e => e.id == id) || null;
   if (!event) return;
   setCurrentEvent(event);
@@ -105,13 +108,13 @@ export async function viewEventRegistrations(id) {
   showEventsView('detail');
 }
 
-function renderEventDetail(event, regs) {
+function renderEventDetail(event: Event, regs: EventRegistration[]) {
   const appUrl    = APP_SETTINGS.app?.url || window.location.origin;
   const regUrl    = `${appUrl}/register.html?event=${event.id}`;
   const attended  = regs.filter(r => r.status === 'Attended').length;
   const noshow    = regs.filter(r => r.status === 'No-show').length;
 
-  document.getElementById('event-detail-header').innerHTML = `
+  gEl('event-detail-header').innerHTML = `
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <div>
         <div class="page-eyebrow">events</div>
@@ -142,10 +145,10 @@ function renderEventDetail(event, regs) {
       <button class="btn btn-ghost" style="font-size:12px" onclick="openIssueEventInvoice(${event.id})">Issue Invoice for this Event</button>
     </div>`;
 
-  const statusOptions = (current) => ['Registered', 'Attended', 'No-show', 'Cancelled']
+  const statusOptions = (current: string) => ['Registered', 'Attended', 'No-show', 'Cancelled']
     .map(s => `<option${s === current ? ' selected' : ''}>${s}</option>`).join('');
 
-  document.getElementById('event-regs-tbody').innerHTML = regs.length
+  gEl('event-regs-tbody').innerHTML = regs.length
     ? regs.map(r => `<tr>
         <td><div class="project-name">${escapeHtml(r.name)}</div></td>
         <td style="font-size:12px">${escapeHtml(r.email)}</td>
@@ -166,11 +169,11 @@ export function backToEvents() {
   loadEvents();
 }
 
-export function copyRegisterUrl(url) {
+export function copyRegisterUrl(url: string) {
   navigator.clipboard.writeText(url).then(() => toast('URL copied to clipboard', 'success'));
 }
 
-export async function handleUpdateRegistrationStatus(id, status) {
+export async function handleUpdateRegistrationStatus(id: number, status: string) {
   const ok = await updateRegistrationStatus(id, status);
   if (!ok) { toast('Could not update status', 'error'); return; }
   if (_currentEvent) {
@@ -182,9 +185,9 @@ export async function handleUpdateRegistrationStatus(id, status) {
 
 // ── Event add / edit ──────────────────────────────────────────────────────────
 
-function eventFormHTML(e = {}) {
-  const brandOpts = APP_SETTINGS.company.brands.map(b => `<option${b === e.brand ? ' selected' : ''}>${b}</option>`).join('');
-  const typeOpts  = APP_SETTINGS.events.types.map(t => `<option${t === e.event_type ? ' selected' : ''}>${t}</option>`).join('');
+function eventFormHTML(e: Partial<Event> = {}) {
+  const brandOpts = APP_SETTINGS.company.brands.map((b: string) => `<option${b === e.brand ? ' selected' : ''}>${b}</option>`).join('');
+  const typeOpts  = APP_SETTINGS.events.types.map((t: string) => `<option${t === e.event_type ? ' selected' : ''}>${t}</option>`).join('');
   const statusOpts = ['Upcoming', 'Active', 'Completed', 'Cancelled']
     .map(s => `<option${s === e.status ? ' selected' : ''}>${s}</option>`).join('');
   return `<div class="form-grid">
@@ -205,7 +208,7 @@ export function openAddEvent() {
   openModal('New Event', eventFormHTML({ status: 'Upcoming' }), saveEvent);
 }
 
-export function openEditEvent(id) {
+export function openEditEvent(id: number) {
   const e = _events.find(x => x.id === id);
   if (!e) return;
   _editingEventId = id;
@@ -213,19 +216,19 @@ export function openEditEvent(id) {
 }
 
 async function saveEvent() {
-  const name = document.getElementById('fev-name').value.trim();
+  const name = gVal('fev-name').trim();
   const err  = validateRequired(name, 'Event name');
   if (err) { toast(err, 'error'); return; }
   const payload = {
     name,
-    brand:       document.getElementById('fev-brand').value,
-    event_type:  document.getElementById('fev-type').value,
-    status:      document.getElementById('fev-status').value,
-    date:        document.getElementById('fev-date').value || null,
-    venue:       document.getElementById('fev-venue').value.trim(),
-    capacity:    parseInt(document.getElementById('fev-capacity').value) || 0,
-    price:       parseFloat(document.getElementById('fev-price').value) || 0,
-    description: document.getElementById('fev-desc').value.trim(),
+    brand:       gVal('fev-brand'),
+    event_type:  gVal('fev-type'),
+    status:      gVal('fev-status'),
+    date:        gVal('fev-date') || null,
+    venue:       gVal('fev-venue').trim(),
+    capacity:    parseInt(gVal('fev-capacity')) || 0,
+    price:       parseFloat(gVal('fev-price')) || 0,
+    description: gVal('fev-desc').trim(),
   };
   if (_editingEventId) {
     const ok = await updateEvent(_editingEventId, payload);
@@ -240,7 +243,7 @@ async function saveEvent() {
   loadEvents();
 }
 
-export async function handleDeleteEvent(id) {
+export async function handleDeleteEvent(id: number) {
   if (!confirm('Delete this event? All registrations will also be removed.')) return;
   const ok = await deleteEvent(id);
   if (!ok) { toast('Could not delete event', 'error'); return; }
@@ -250,9 +253,9 @@ export async function handleDeleteEvent(id) {
 
 // ── Issue invoice from event ──────────────────────────────────────────────────
 
-let _invoiceEventId = null;
+let _invoiceEventId: number | null = null;
 
-export function openIssueEventInvoice(eventId) {
+export function openIssueEventInvoice(eventId: number) {
   const event = _events.find(e => e.id === eventId);
   if (!event) return;
   _invoiceEventId = eventId;
@@ -278,15 +281,15 @@ export function openIssueEventInvoice(eventId) {
 }
 
 async function saveIssueEventInvoice() {
-  const or_num = document.getElementById('eiv-or').value.trim();
+  const or_num = gVal('eiv-or').trim();
   if (!or_num) { toast('OR number is required', 'error'); return; }
   const result = await createInvoice({
     or_num,
-    client:   document.getElementById('eiv-client').value.trim(),
-    amount:   +document.getElementById('eiv-amount').value || 0,
-    status:   document.getElementById('eiv-status').value,
-    date:     document.getElementById('eiv-date').value || null,
-    due:      document.getElementById('eiv-due').value || null,
+    client:   gVal('eiv-client').trim(),
+    amount:   +gVal('eiv-amount') || 0,
+    status:   gVal('eiv-status'),
+    date:     gVal('eiv-date') || null,
+    due:      gVal('eiv-due') || null,
     event_id: _invoiceEventId || null,
   });
   if (!result) return;

@@ -1,4 +1,3 @@
-// @ts-nocheck
 // ─── HQ APP SHELL: auth, routing, realtime, dashboard, window shims ──────────
 // Top of the module graph. index.html keeps its inline onclick handlers, so
 // every function they reference is re-attached to window at the bottom.
@@ -42,6 +41,8 @@ import {
   handleUpdateRegistrationStatus, openIssueEventInvoice,
 } from './events.ts';
 
+const gEl = (id: string) => document.getElementById(id)!;
+
 async function init() {
   const session = await getSession();
   if (session) {
@@ -51,8 +52,8 @@ async function init() {
       .eq('id', session.user.id)
       .single();
     if (profileError || !profile) {
-      document.getElementById('login-screen').style.display = 'flex';
-      document.getElementById('login-error').textContent =
+      (gEl('login-screen') as HTMLElement).style.display = 'flex';
+      gEl('login-error').textContent =
         'Could not verify your account. Please sign in again.';
       return;
     }
@@ -63,15 +64,15 @@ async function init() {
     const name = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
     enterApp(session.user.email, name);
   } else {
-    document.getElementById('login-screen').style.display = 'flex';
+    (gEl('login-screen') as HTMLElement).style.display = 'flex';
   }
 }
 
-function enterApp(email, name) {
-  document.getElementById('login-screen').style.display = 'none';
+function enterApp(email: string | undefined, name: string) {
+  (gEl('login-screen') as HTMLElement).style.display = 'none';
   const hour = new Date().getHours();
   const timeOfDay = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
-  document.getElementById('dashboard-greeting').textContent = name
+  gEl('dashboard-greeting').textContent = name
     ? `${timeOfDay}, ${name}.`
     : `${timeOfDay}.`;
   const now = new Date();
@@ -98,7 +99,7 @@ function enterApp(email, name) {
 
 function setupRealtime() {
   if (!sb) return;
-  const pageMap = {
+  const pageMap: Record<string, { page: string; reload: () => void }> = {
     clients: { page: 'clients', reload: () => loadClients() },
     proposals: { page: 'proposals', reload: () => loadProposals() },
     partners: { page: 'partners', reload: () => loadPartners() },
@@ -131,9 +132,9 @@ function setupRealtime() {
 }
 
 async function handleSignIn() {
-  const email = document.getElementById('login-email').value.trim();
-  const pass = document.getElementById('login-pass').value;
-  const errEl = document.getElementById('login-error');
+  const email = (gEl('login-email') as HTMLInputElement).value.trim();
+  const pass  = (gEl('login-pass') as HTMLInputElement).value;
+  const errEl = gEl('login-error');
   errEl.textContent = '';
   if (!email || !pass) {
     errEl.textContent = 'Email and password required.';
@@ -141,10 +142,10 @@ async function handleSignIn() {
   }
   const { data, error } = await signIn(email, pass);
   if (error) {
-    errEl.textContent = error.message;
+    errEl.textContent = (error as { message: string }).message;
     return;
   }
-  if (!data.user) {
+  if (!data || !data.user) {
     errEl.textContent = 'Sign in failed. Please try again.';
     return;
   }
@@ -167,7 +168,7 @@ async function handleSignOut() {
   location.reload();
 }
 
-function showPage(name) {
+function showPage(name: string) {
   toggleHqNav(false);
   document.querySelectorAll('.page').forEach((p) => p.classList.remove('active'));
   const page = document.getElementById('page-' + name);
@@ -183,7 +184,7 @@ function showPage(name) {
   if (activeTab) activeTab.classList.add('active');
 }
 
-function loadPage(name) {
+function loadPage(name: string) {
   switch (name) {
     case 'dashboard':
       loadDashboard();
@@ -240,7 +241,7 @@ async function loadDashboard() {
 }
 
 function renderDashboard() {
-  const el = id => document.getElementById(id);
+  const el = (id: string) => document.getElementById(id)!;
 
   // ── Stat cards ──
   const activeProjects  = _projects.filter(p => p.status === 'Active').length;
@@ -255,7 +256,7 @@ function renderDashboard() {
     <div class="stat-card"><div class="stat-accent" style="background:var(--forest)"></div><div class="stat-label">Total Clients</div><div class="stat-value">${totalClients}</div><div class="stat-change up">across all brands</div></div>`;
 
   // ── Pipeline by proposal status ──
-  const stageCounts = {};
+  const stageCounts: Record<string, number> = {};
   _proposals.forEach(p => { stageCounts[p.status] = (stageCounts[p.status] || 0) + 1; });
   const maxStage = Math.max(1, ...Object.values(stageCounts));
   el('dash-pipeline').innerHTML = Object.keys(stageCounts).length
@@ -288,7 +289,7 @@ function renderDashboard() {
     const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
     return { label: d.toLocaleString('en-US', { month: 'short' }), key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` };
   });
-  const revByMonth = {};
+  const revByMonth: Record<string, number> = {};
   _invoices.filter(i => i.status === 'Paid').forEach(i => {
     const k = (i.date || '').slice(0, 7);
     if (k) revByMonth[k] = (revByMonth[k] || 0) + (i.amount || 0);
@@ -304,7 +305,7 @@ function renderDashboard() {
   const today = todayISO();
   const followups = _proposals
     .filter(p => p.followup && p.followup >= today && p.status !== 'Won' && p.status !== 'Lost')
-    .sort((a, b) => a.followup.localeCompare(b.followup))
+    .sort((a, b) => (a.followup ?? '').localeCompare(b.followup ?? ''))
     .slice(0, 4);
   el('dash-followups').innerHTML = followups.length
     ? followups.map(p => `<div>${escapeHtml(p.followup)} — <strong>${escapeHtml(p.client || p.name)}</strong></div>`).join('')
@@ -320,10 +321,10 @@ function renderDashboard() {
     <div>${_partners.length} partner${_partners.length !== 1 ? 's' : ''}</div>`;
 }
 
-function filterTable(input, tbodyId) {
+function filterTable(input: HTMLInputElement, tbodyId: string) {
   const q = input.value.toLowerCase();
   document.querySelectorAll('#' + tbodyId + ' tr').forEach((tr) => {
-    tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+    (tr as HTMLElement).style.display = (tr.textContent || '').toLowerCase().includes(q) ? '' : 'none';
   });
 }
 

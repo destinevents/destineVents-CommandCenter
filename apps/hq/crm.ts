@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { formatCurrency } from '../../shared/utils/formatUtils.ts';
 import { formatDateShort, todayISO } from '../../shared/utils/dateUtils.ts';
 import { escapeHtml, statusClass } from '../../shared/utils/helpers.ts';
@@ -14,25 +13,29 @@ import { fetchProjects } from '../../shared/services/projectService.ts';
 import { fetchInvoices, createInvoice } from '../../shared/services/financeService.ts';
 import { _clients, _proposals, setClients, setProposals } from './state.ts';
 import { toast, openModal, closeModal } from './ui.ts';
+import type { Client, Proposal } from '../../shared/types.ts';
+
+const gEl = (id: string) => document.getElementById(id)!;
+const gVal = (id: string) => (document.getElementById(id) as HTMLInputElement).value;
 
 // ── Clients ──────────────────────────────────────────────────────────────────
 
-let _editingClientId = null;
+let _editingClientId: number | null = null;
 
 export async function loadClients() {
   setClients(await fetchClients());
   renderClients(_clients);
 }
 
-export function renderClients(clients) {
+export function renderClients(clients: Client[]) {
   const total = clients.reduce((s, c) => s + (c.total_value || 0), 0);
-  document.getElementById('clients-summary').textContent =
+  gEl('clients-summary').textContent =
     `${clients.length} clients · ${formatCurrency(total)} total value`;
-  document.getElementById('clients-tbody').innerHTML = clients.length
+  gEl('clients-tbody').innerHTML = clients.length
     ? clients.map(c => `
         <tr>
           <td><div class="project-name">${escapeHtml(c.name)}</div><div class="project-client">${escapeHtml(c.type)}</div></td>
-          <td><span class="badge badge-${statusClass(c.status)}">${escapeHtml(c.status)}</span></td>
+          <td><span class="badge badge-${statusClass(c.status ?? '')}">${escapeHtml(c.status)}</span></td>
           <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(c.brand) || '—'}</td>
           <td style="font-size:12px">${escapeHtml(c.contact) || '—'}</td>
           <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(c.email) || '—'}</td>
@@ -48,10 +51,10 @@ export function renderClients(clients) {
     : `<tr><td colspan="7"><div class="empty-state">No clients yet — add your first one</div></td></tr>`;
 }
 
-function clientFormHTML(c = {}) {
-  const typeOpts    = APP_SETTINGS.finance.clientTypes.map(t => `<option${t === c.type ? ' selected' : ''}>${t}</option>`).join('');
-  const brandOpts   = APP_SETTINGS.company.brands.map(b => `<option${b === c.brand ? ' selected' : ''}>${b}</option>`).join('');
-  const statusOpts  = APP_SETTINGS.finance.clientStatuses.map(s => `<option${s === c.status ? ' selected' : ''}>${s}</option>`).join('');
+function clientFormHTML(c: Partial<Client> = {}) {
+  const typeOpts    = APP_SETTINGS.finance.clientTypes.map((t: string) => `<option${t === c.type ? ' selected' : ''}>${t}</option>`).join('');
+  const brandOpts   = APP_SETTINGS.company.brands.map((b: string) => `<option${b === c.brand ? ' selected' : ''}>${b}</option>`).join('');
+  const statusOpts  = APP_SETTINGS.finance.clientStatuses.map((s: string) => `<option${s === c.status ? ' selected' : ''}>${s}</option>`).join('');
   return `<div class="form-grid">
     <div class="form-group"><div class="form-label">Client Name</div><input class="form-input" id="fc-name" value="${escapeHtml(c.name || '')}" placeholder="e.g. DTI CAR"/></div>
     <div class="form-group"><div class="form-label">Type</div><select class="form-input" id="fc-type">${typeOpts}</select></div>
@@ -67,7 +70,7 @@ export function openAddClient() {
   openModal('Add Client', clientFormHTML(), saveClient);
 }
 
-export function openEditClient(id) {
+export function openEditClient(id: number) {
   const c = _clients.find(x => x.id === id);
   if (!c) return;
   _editingClientId = id;
@@ -75,16 +78,16 @@ export function openEditClient(id) {
 }
 
 export async function saveClient() {
-  const name = document.getElementById('fc-name').value.trim();
+  const name = gVal('fc-name').trim();
   const err = validateRequired(name, 'Client name');
   if (err) { toast(err, 'error'); return; }
   const payload = {
     name,
-    type:    document.getElementById('fc-type').value,
-    brand:   document.getElementById('fc-brand').value,
-    status:  document.getElementById('fc-status').value,
-    contact: document.getElementById('fc-contact').value,
-    email:   document.getElementById('fc-email').value,
+    type:    gVal('fc-type'),
+    brand:   gVal('fc-brand'),
+    status:  gVal('fc-status'),
+    contact: gVal('fc-contact'),
+    email:   gVal('fc-email'),
   };
   if (_editingClientId) {
     const ok = await updateClient(_editingClientId, payload);
@@ -99,7 +102,7 @@ export async function saveClient() {
   loadClients();
 }
 
-export async function handleDeleteClient(id) {
+export async function handleDeleteClient(id: number) {
   if (!confirm('Delete this client? This cannot be undone.')) return;
   const ok = await deleteClient(id);
   if (!ok) { toast('Could not delete client', 'error'); return; }
@@ -109,7 +112,7 @@ export async function handleDeleteClient(id) {
 
 // ── Proposals ─────────────────────────────────────────────────────────────────
 
-let _editingProposalId = null;
+let _editingProposalId: number | null = null;
 
 export async function loadProposals() {
   const [proposals, clients] = await Promise.all([fetchProposals(), fetchClients()]);
@@ -118,18 +121,18 @@ export async function loadProposals() {
   renderProposals(_proposals);
 }
 
-export function renderProposals(proposals) {
+export function renderProposals(proposals: Proposal[]) {
   const stats = calcWinRate(proposals);
-  document.getElementById('win-rate-pct').textContent = stats.winRate + '%';
-  document.getElementById('win-rate-breakdown').innerHTML =
+  gEl('win-rate-pct').textContent = stats.winRate + '%';
+  gEl('win-rate-breakdown').innerHTML =
     `<div>${stats.won} won · ${stats.lost} lost · ${stats.total - stats.closed} open</div>
      <div>Closed: <strong>${stats.closed} of ${stats.total}</strong></div>`;
-  document.getElementById('proposals-value-summary').innerHTML =
+  gEl('proposals-value-summary').innerHTML =
     `<div>Total: <strong>${formatCurrency(stats.wonValue + stats.pipelineValue)}</strong></div>
      <div>Won: <strong style="color:var(--green)">${formatCurrency(stats.wonValue)}</strong></div>
      <div>In pipeline: <strong style="color:var(--blue)">${formatCurrency(stats.pipelineValue)}</strong></div>`;
-  document.getElementById('proposals-summary').textContent = `${stats.total} proposals`;
-  document.getElementById('proposals-tbody').innerHTML = proposals.length
+  gEl('proposals-summary').textContent = `${stats.total} proposals`;
+  gEl('proposals-tbody').innerHTML = proposals.length
     ? proposals.map(p => `
         <tr>
           <td><div class="project-name">${escapeHtml(p.name)}</div><div class="project-client">${escapeHtml(p.client)}</div></td>
@@ -149,21 +152,21 @@ export function renderProposals(proposals) {
     : `<tr><td colspan="6"><div class="empty-state">No proposals yet</div></td></tr>`;
 }
 
-function toISODate(val) {
+function toISODate(val: string | null | undefined) {
   if (!val || val === '—') return '';
   if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
   const d = new Date(val);
   return isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
 }
 
-function displayDate(val) {
+function displayDate(val: string | null | undefined) {
   if (!val || val === '—') return '—';
   if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return formatDateShort(val);
   return escapeHtml(String(val));
 }
 
-function proposalFormHTML(p = {}) {
-  const statusOpts = APP_SETTINGS.finance.proposalStatuses.map(s => `<option${s === p.status ? ' selected' : ''}>${s}</option>`).join('');
+function proposalFormHTML(p: Partial<Proposal> = {}) {
+  const statusOpts = APP_SETTINGS.finance.proposalStatuses.map((s: string) => `<option${s === p.status ? ' selected' : ''}>${s}</option>`).join('');
   const clientOpts = _clients.map(c => `<option value="${escapeHtml(c.name)}"/>`).join('');
   return `<datalist id="hq-client-list">${clientOpts}</datalist>
   <div class="form-grid">
@@ -181,7 +184,7 @@ export function openAddProposal() {
   openModal('New Proposal', proposalFormHTML(), saveProposal);
 }
 
-export function openEditProposal(id) {
+export function openEditProposal(id: number) {
   const p = _proposals.find(x => x.id === id);
   if (!p) return;
   _editingProposalId = id;
@@ -189,16 +192,16 @@ export function openEditProposal(id) {
 }
 
 export async function saveProposal() {
-  const name = document.getElementById('fp-name').value.trim();
+  const name = gVal('fp-name').trim();
   const err = validateRequired(name, 'Proposal name');
   if (err) { toast(err, 'error'); return; }
   const payload = {
     name,
-    client:   document.getElementById('fp-client').value,
-    value:    +document.getElementById('fp-value').value || 0,
-    sent:     document.getElementById('fp-sent').value || null,
-    followup: document.getElementById('fp-followup').value || null,
-    status:   document.getElementById('fp-status').value,
+    client:   gVal('fp-client'),
+    value:    +gVal('fp-value') || 0,
+    sent:     gVal('fp-sent') || null,
+    followup: gVal('fp-followup') || null,
+    status:   gVal('fp-status'),
   };
   if (_editingProposalId) {
     const ok = await updateProposal(_editingProposalId, payload);
@@ -213,7 +216,7 @@ export async function saveProposal() {
   loadProposals();
 }
 
-export async function handleDeleteProposal(id) {
+export async function handleDeleteProposal(id: number) {
   if (!confirm('Delete this proposal? This cannot be undone.')) return;
   const ok = await deleteProposal(id);
   if (!ok) { toast('Could not delete proposal', 'error'); return; }
@@ -223,7 +226,7 @@ export async function handleDeleteProposal(id) {
 
 // ── Proposal → Invoice shortcut ──────────────────────────────────────────────
 
-export function openProposalInvoice(proposalId) {
+export function openProposalInvoice(proposalId: number) {
   const p = _proposals.find(x => x.id === proposalId);
   if (!p) return;
   openModal('Issue Invoice (from Proposal)', `<div class="form-grid">
@@ -237,15 +240,15 @@ export function openProposalInvoice(proposalId) {
     <div class="form-group"><div class="form-label">Due Date</div><input class="form-input" id="piv-due" type="date"/></div>
     <div class="form-group full" style="font-size:11px;color:var(--ink-3)">Proposal: <strong>${escapeHtml(p.name)}</strong> · ${formatCurrency(p.value)}</div>
   </div>`, async () => {
-    const or_num = document.getElementById('piv-or').value.trim();
+    const or_num = gVal('piv-or').trim();
     if (!or_num) { toast('OR number is required', 'error'); return; }
     const result = await createInvoice({
       or_num,
-      client: document.getElementById('piv-client').value.trim(),
-      amount: +document.getElementById('piv-amount').value || 0,
-      status: document.getElementById('piv-status').value,
-      date:   document.getElementById('piv-date').value || null,
-      due:    document.getElementById('piv-due').value || null,
+      client: gVal('piv-client').trim(),
+      amount: +gVal('piv-amount') || 0,
+      status: gVal('piv-status'),
+      date:   gVal('piv-date') || null,
+      due:    gVal('piv-due') || null,
     });
     if (!result) return;
     toast('Invoice created — check Finance › AR', 'success');
@@ -255,29 +258,29 @@ export function openProposalInvoice(proposalId) {
 
 // ── Client detail view ────────────────────────────────────────────────────────
 
-export async function openClientDetail(id) {
+export async function openClientDetail(id: number) {
   const c = _clients.find(x => x.id === id);
   if (!c) return;
   openModal(c.name, '<div style="padding:16px;text-align:center;color:var(--ink-3);font-size:12px">Loading…</div>', closeModal, 'Close');
   const [proposals, projects, invoices] = await Promise.all([
     fetchProposals(), fetchProjects(), fetchInvoices(),
   ]);
-  const match     = n => n?.toLowerCase() === c.name.toLowerCase();
+  const match     = (n: string | null | undefined) => n?.toLowerCase() === c.name.toLowerCase();
   const cProps    = proposals.filter(p => match(p.client));
   const cProjs    = projects.filter(p => match(p.client));
   const cInvs     = invoices.filter(i => match(i.client));
   const totalPaid = cInvs.filter(i => i.status === 'Paid').reduce((s, i) => s + (i.amount || 0), 0);
   const totalOwed = cInvs.filter(i => i.status !== 'Paid').reduce((s, i) => s + (i.amount || 0), 0);
 
-  const dot = (st) => {
+  const dot = (st: string) => {
     if (st === 'Won' || st === 'Active' || st === 'Paid') return 'green';
     if (st === 'Lost' || st === 'Overdue') return 'red';
     return 'blue';
   };
 
-  document.getElementById('modal-body').innerHTML = `
+  gEl('modal-body').innerHTML = `
     <div style="margin-bottom:12px">
-      <span class="badge badge-${statusClass(c.status)}">${escapeHtml(c.status)}</span>
+      <span class="badge badge-${statusClass(c.status ?? '')}">${escapeHtml(c.status)}</span>
       <span style="font-size:11px;color:var(--ink-3);margin-left:8px">${escapeHtml(c.type)} · ${escapeHtml(c.brand || '—')}</span>
       ${c.contact ? `<span style="font-size:11px;color:var(--ink-3);margin-left:8px">· ${escapeHtml(c.contact)}</span>` : ''}
     </div>

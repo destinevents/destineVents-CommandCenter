@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { formatCurrency } from '../../shared/utils/formatUtils.ts';
 import { formatDateShort, todayISO } from '../../shared/utils/dateUtils.ts';
 import { escapeHtml, statusClass } from '../../shared/utils/helpers.ts';
@@ -12,8 +11,12 @@ import { fetchProposals } from '../../shared/services/proposalService.ts';
 import { fetchInvoices, createInvoice } from '../../shared/services/financeService.ts';
 import { _clients, _proposals, _projects, setClients, setProjects } from './state.ts';
 import { toast, openModal, closeModal } from './ui.ts';
+import type { Project, Proposal } from '../../shared/types.ts';
 
-let _editingProjectId = null;
+const gEl = (id: string) => document.getElementById(id)!;
+const gVal = (id: string) => (document.getElementById(id) as HTMLInputElement).value;
+
+let _editingProjectId: number | null = null;
 
 export async function loadProjects() {
   const [projs, clients] = await Promise.all([fetchProjects(), fetchClients()]);
@@ -22,12 +25,12 @@ export async function loadProjects() {
   renderProjects(_projects);
 }
 
-export function renderProjects(projects) {
+export function renderProjects(projects: Project[]) {
   const total = projects.reduce((s, p) => s + (p.value || 0), 0);
-  document.getElementById('projects-summary').textContent =
+  gEl('projects-summary').textContent =
     `${projects.length} project${projects.length !== 1 ? 's' : ''} · ${formatCurrency(total)} total value`;
 
-  document.getElementById('projects-tbody').innerHTML = projects.length
+  gEl('projects-tbody').innerHTML = projects.length
     ? projects.map(p => `
         <tr>
           <td>
@@ -51,8 +54,8 @@ export function renderProjects(projects) {
     : `<tr><td colspan="7"><div class="empty-state">No projects yet — start one with \\ New Project</div></td></tr>`;
 }
 
-function projectFormHTML(p = {}) {
-  const brands      = (APP_SETTINGS.company.brands || ['DestineVents', 'DDC', 'AYA Baguio']).map(b => `<option${b === p.brand ? ' selected' : ''}>${escapeHtml(b)}</option>`).join('');
+function projectFormHTML(p: Partial<Project> = {}) {
+  const brands      = (APP_SETTINGS.company.brands || ['DestineVents', 'DDC', 'AYA Baguio']).map((b: string) => `<option${b === p.brand ? ' selected' : ''}>${escapeHtml(b)}</option>`).join('');
   const statuses    = ['Lead', 'Proposal Sent', 'NDA Signed', 'Active', 'Completed'].map(s => `<option${s === p.status ? ' selected' : ''}>${s}</option>`).join('');
   const cats        = ['Events', 'Training', 'Digital', 'CSR', 'Community'].map(c => `<option${c === p.category ? ' selected' : ''}>${c}</option>`).join('');
   const clientOpts  = _clients.map(c => `<option value="${escapeHtml(c.name)}"/>`).join('');
@@ -70,7 +73,7 @@ function projectFormHTML(p = {}) {
     </div>`;
 }
 
-function showProjectError(msg) {
+function showProjectError(msg: string) {
   const el = document.getElementById('fp2-error');
   if (!el) return;
   el.textContent = msg;
@@ -82,7 +85,7 @@ export function openAddProject() {
   openModal('New Project', projectFormHTML(), saveProject);
 }
 
-export function openEditProject(id) {
+export function openEditProject(id: number) {
   const p = _projects.find(x => x.id === id);
   if (!p) return;
   _editingProjectId = id;
@@ -90,17 +93,17 @@ export function openEditProject(id) {
 }
 
 export async function saveProject() {
-  const name = document.getElementById('fp2-name').value.trim();
+  const name = gVal('fp2-name').trim();
   const err  = validateRequired(name, 'Project name');
   if (err) { showProjectError(err); return; }
   const payload = {
     name,
-    client:   document.getElementById('fp2-client').value.trim(),
-    value:    +document.getElementById('fp2-value').value || 0,
-    brand:    document.getElementById('fp2-brand').value,
-    category: document.getElementById('fp2-category').value,
-    status:   document.getElementById('fp2-status').value,
-    notes:    document.getElementById('fp2-notes').value.trim(),
+    client:   gVal('fp2-client').trim(),
+    value:    +gVal('fp2-value') || 0,
+    brand:    gVal('fp2-brand'),
+    category: gVal('fp2-category'),
+    status:   gVal('fp2-status'),
+    notes:    gVal('fp2-notes').trim(),
   };
   if (_editingProjectId) {
     const ok = await updateProject(_editingProjectId, payload);
@@ -115,7 +118,7 @@ export async function saveProject() {
   loadProjects();
 }
 
-export async function handleDeleteProject(id) {
+export async function handleDeleteProject(id: number) {
   if (!confirm('Delete this project? This cannot be undone.')) return;
   const ok = await deleteProject(id);
   if (!ok) { toast('Could not delete project', 'error'); return; }
@@ -125,19 +128,19 @@ export async function handleDeleteProject(id) {
 
 // ── Project detail view ───────────────────────────────────────────────────────
 
-export async function openProjectDetail(id) {
+export async function openProjectDetail(id: number) {
   const p = _projects.find(x => x.id === id);
   if (!p) return;
   openModal(p.name, '<div style="padding:16px;text-align:center;color:var(--ink-3);font-size:12px">Loading…</div>', closeModal, 'Close');
   const [proposals, invoices] = await Promise.all([fetchProposals(), fetchInvoices()]);
-  const match   = n => n?.toLowerCase() === (p.client || '').toLowerCase();
-  const pProps  = proposals.filter(x => match(x.client));
+  const match   = (n: string | null | undefined) => n?.toLowerCase() === (p.client || '').toLowerCase();
+  const pProps  = proposals.filter((x: Proposal) => match(x.client));
   const pInvs   = invoices.filter(i => match(i.client));
   const paid    = pInvs.filter(i => i.status === 'Paid').reduce((s, i) => s + (i.amount || 0), 0);
   const owed    = pInvs.filter(i => i.status !== 'Paid').reduce((s, i) => s + (i.amount || 0), 0);
-  const dot     = st => (st === 'Won' || st === 'Active' || st === 'Paid') ? 'green' : (st === 'Lost' || st === 'Overdue') ? 'red' : 'blue';
+  const dot     = (st: string) => (st === 'Won' || st === 'Active' || st === 'Paid') ? 'green' : (st === 'Lost' || st === 'Overdue') ? 'red' : 'blue';
 
-  document.getElementById('modal-body').innerHTML = `
+  gEl('modal-body').innerHTML = `
     <div style="margin-bottom:12px">
       <span class="badge badge-${statusClass(p.status)}">${escapeHtml(p.status)}</span>
       <span style="font-size:11px;color:var(--ink-3);margin-left:8px">${escapeHtml(p.category || '—')} · ${escapeHtml(p.brand || '—')}</span>
@@ -150,7 +153,7 @@ export async function openProjectDetail(id) {
     </div>
     ${p.notes ? `<div style="font-size:11.5px;color:var(--ink-2);margin-bottom:14px;padding:8px 10px;background:var(--ink-5);border-radius:6px">${escapeHtml(p.notes)}</div>` : ''}
     <div class="card-title" style="margin-bottom:6px">Client Proposals (${pProps.length})</div>
-    ${pProps.length ? pProps.map(x => `
+    ${pProps.length ? pProps.map((x: Proposal) => `
       <div class="activity-item">
         <div class="activity-dot ${dot(x.status)}"></div>
         <div style="flex:1"><div class="activity-text">${escapeHtml(x.name)}</div></div>
@@ -173,7 +176,7 @@ export async function openProjectDetail(id) {
 
 // ── Project → Invoice shortcut ────────────────────────────────────────────────
 
-export function openProjectInvoice(id) {
+export function openProjectInvoice(id: number) {
   const p = _projects.find(x => x.id === id);
   if (!p) return;
   openModal('Issue Invoice (from Project)', `<div class="form-grid">
@@ -187,15 +190,15 @@ export function openProjectInvoice(id) {
     <div class="form-group"><div class="form-label">Due Date</div><input class="form-input" id="priv-due" type="date"/></div>
     <div class="form-group full" style="font-size:11px;color:var(--ink-3)">Project: <strong>${escapeHtml(p.name)}</strong> · ${formatCurrency(p.value)}</div>
   </div>`, async () => {
-    const or_num = document.getElementById('priv-or').value.trim();
+    const or_num = gVal('priv-or').trim();
     if (!or_num) { toast('OR number is required', 'error'); return; }
     const result = await createInvoice({
       or_num,
-      client:     document.getElementById('priv-client').value.trim(),
-      amount:     +document.getElementById('priv-amount').value || 0,
-      status:     document.getElementById('priv-status').value,
-      date:       document.getElementById('priv-date').value || null,
-      due:        document.getElementById('priv-due').value || null,
+      client:     gVal('priv-client').trim(),
+      amount:     +gVal('priv-amount') || 0,
+      status:     gVal('priv-status'),
+      date:       gVal('priv-date') || null,
+      due:        gVal('priv-due') || null,
       project_id: p.id,
     });
     if (!result) return;
@@ -204,13 +207,13 @@ export function openProjectInvoice(id) {
   });
 }
 
-export function convertProposalToProject(proposalId) {
+export function convertProposalToProject(proposalId: number) {
   const p = _proposals.find(x => x.id === proposalId);
   if (!p) return;
   _editingProjectId = null;
   openModal('New Project (from Proposal)', projectFormHTML({
     name:   p.name,
-    client: p.client,
+    client: p.client ?? undefined,
     value:  p.value,
     status: 'Active',
   }), saveProject);

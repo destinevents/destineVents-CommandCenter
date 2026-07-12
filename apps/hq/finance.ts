@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { formatCurrency } from '../../shared/utils/formatUtils.ts';
 import { formatDateShort, todayISO } from '../../shared/utils/dateUtils.ts';
 import { escapeHtml, statusClass } from '../../shared/utils/helpers.ts';
@@ -22,10 +21,14 @@ import {
 } from '../../shared/business/birCalc.js';
 import { _clients, _projects, _partners, _invoices, _bills, _payroll, _birFilings, setClients, setProjects, setPartners, setInvoices, setBills, setPayroll, setBirFilings } from './state.ts';
 import { toast, openModal, closeModal } from './ui.ts';
+import type { Invoice, Bill, PayrollRun, BirFiling } from '../../shared/types.ts';
 
-let _editingInvoiceId = null;
-let _editingBillId    = null;
-let _editingPayrollId = null;
+const gEl = (id: string) => document.getElementById(id)!;
+const gVal = (id: string) => (document.getElementById(id) as HTMLInputElement).value;
+
+let _editingInvoiceId: number | null = null;
+let _editingBillId: number | null    = null;
+let _editingPayrollId: number | null = null;
 
 export async function loadFinance() {
   const [inv, bil, pay, bir, clients, projs, parts] = await Promise.all([
@@ -51,17 +54,17 @@ export async function loadFinance() {
   renderBIR();
 }
 
-export function showFinanceTab(name, el) {
+export function showFinanceTab(name: string, el: HTMLElement) {
   document.querySelectorAll('.ftab').forEach(t => t.classList.remove('active'));
-  document.getElementById('ftab-' + name).classList.add('active');
+  gEl('ftab-' + name).classList.add('active');
   document.querySelectorAll('#finance-subtabs .sub-tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
 }
 
-function renderRevenueByProject(invoices, projects) {
+function renderRevenueByProject(invoices: Invoice[], projects: typeof _projects) {
   const el = document.getElementById('finance-revenue-by-project');
   if (!el) return;
-  const grouped = {};
+  const grouped: Record<string | number, Invoice[]> = {};
   invoices.forEach(inv => {
     const key = inv.project_id ?? 'unassigned';
     if (!grouped[key]) grouped[key] = [];
@@ -94,11 +97,11 @@ function renderRevenueByProject(invoices, projects) {
     </table>`;
 }
 
-export function renderFinanceOverview(invoices, bills) {
+export function renderFinanceOverview(invoices: Invoice[], bills: Bill[]) {
   const summary = calcFinanceSummary(invoices, bills);
   const net     = summary.arOutstanding - summary.apOutstanding;
 
-  document.getElementById('finance-stats').innerHTML = `
+  gEl('finance-stats').innerHTML = `
     <div class="stat-card"><div class="stat-label">AR Outstanding</div><div class="stat-value" style="font-size:22px">${formatCurrency(summary.arOutstanding)}</div><div class="stat-change">${summary.overdueCount} overdue invoice${summary.overdueCount !== 1 ? 's' : ''}</div></div>
     <div class="stat-card"><div class="stat-label">AP Outstanding</div><div class="stat-value" style="font-size:22px">${formatCurrency(summary.apOutstanding)}</div><div class="stat-change">${summary.pendingBillsCount} pending bills</div></div>
     <div class="stat-card"><div class="stat-label">Revenue Collected</div><div class="stat-value" style="font-size:22px">${formatCurrency(summary.revenueCollected)}</div><div class="stat-change up">This quarter</div></div>
@@ -106,7 +109,7 @@ export function renderFinanceOverview(invoices, bills) {
 
   renderRevenueByProject(invoices, _projects);
 
-  document.getElementById('finance-recent-ar').innerHTML = invoices.slice(0, 4).map(i => `
+  gEl('finance-recent-ar').innerHTML = invoices.slice(0, 4).map(i => `
     <div class="activity-item">
       <div class="activity-dot ${i.status === 'Paid' ? 'green' : i.status === 'Overdue' ? 'red' : 'blue'}"></div>
       <div style="flex:1"><div class="activity-text">${escapeHtml(i.client)} — ${escapeHtml(i.or_num)}</div><div class="activity-time">${displayDate(i.date)}</div></div>
@@ -116,7 +119,7 @@ export function renderFinanceOverview(invoices, bills) {
       </div>
     </div>`).join('');
 
-  document.getElementById('finance-recent-ap').innerHTML = bills.slice(0, 4).map(b => `
+  gEl('finance-recent-ap').innerHTML = bills.slice(0, 4).map(b => `
     <div class="activity-item">
       <div class="activity-dot ${b.status === 'Paid' ? 'green' : 'blue'}"></div>
       <div style="flex:1"><div class="activity-text">${escapeHtml(b.payee)}</div><div class="activity-time">${displayDate(b.date)} · EWT ${escapeHtml(b.ewt)}</div></div>
@@ -129,12 +132,12 @@ export function renderFinanceOverview(invoices, bills) {
 
 // ── AR (Invoices) ─────────────────────────────────────────────────────────────
 
-export function renderAR(invoices) {
+export function renderAR(invoices: Invoice[]) {
   const total = invoices.reduce((s, i) => s + i.amount, 0);
   const out   = invoices.filter(i => i.status !== 'Paid').reduce((s, i) => s + i.amount, 0);
-  document.getElementById('ar-summary').textContent =
+  gEl('ar-summary').textContent =
     `${invoices.length} invoices · ${formatCurrency(total)} total · ${formatCurrency(out)} outstanding`;
-  document.getElementById('ar-tbody').innerHTML = invoices.length
+  gEl('ar-tbody').innerHTML = invoices.length
     ? invoices.map(i => `
         <tr>
           <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(i.or_num)}</td>
@@ -153,20 +156,20 @@ export function renderAR(invoices) {
     : `<tr><td colspan="7"><div class="empty-state">No invoices yet</div></td></tr>`;
 }
 
-function toISODate(val) {
+function toISODate(val: string | null | undefined) {
   if (!val || val === '—') return '';
   if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
   const d = new Date(val);
   return isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
 }
 
-function displayDate(val) {
+function displayDate(val: string | null | undefined) {
   if (!val || val === '—') return '—';
   if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return formatDateShort(val);
   return escapeHtml(String(val));
 }
 
-function invoiceFormHTML(i = {}) {
+function invoiceFormHTML(i: Partial<Invoice> = {}) {
   const clientOpts  = _clients.map(c => `<option value="${escapeHtml(c.name)}"/>`).join('');
   const projectOpts = `<option value="">— no project —</option>` + _projects.map(p => `<option value="${p.id}"${i.project_id === p.id ? ' selected' : ''}>${escapeHtml(p.name)}</option>`).join('');
   return `<datalist id="hq-client-list">${clientOpts}</datalist>
@@ -192,7 +195,7 @@ export function openAddInvoice() {
   openModal('New Invoice (AR)', invoiceFormHTML(), saveInvoice);
 }
 
-export function openEditInvoice(id) {
+export function openEditInvoice(id: number) {
   const i = _invoices.find(x => x.id === id);
   if (!i) return;
   _editingInvoiceId = id;
@@ -200,17 +203,17 @@ export function openEditInvoice(id) {
 }
 
 export async function saveInvoice() {
-  const or_num = document.getElementById('fi-or').value.trim();
+  const or_num = gVal('fi-or').trim();
   const err = validateRequired(or_num, 'OR number');
   if (err) { toast(err, 'error'); return; }
-  const projVal = document.getElementById('fi-project')?.value;
+  const projVal = (document.getElementById('fi-project') as HTMLInputElement | null)?.value;
   const payload = {
     or_num,
-    client:     document.getElementById('fi-client').value,
-    amount:     +document.getElementById('fi-amount').value || 0,
-    status:     document.getElementById('fi-status').value,
-    date:       document.getElementById('fi-date').value || null,
-    due:        document.getElementById('fi-due').value || null,
+    client:     gVal('fi-client'),
+    amount:     +gVal('fi-amount') || 0,
+    status:     gVal('fi-status'),
+    date:       gVal('fi-date') || null,
+    due:        gVal('fi-due') || null,
     project_id: projVal ? +projVal : null,
   };
   if (_editingInvoiceId) {
@@ -226,7 +229,7 @@ export async function saveInvoice() {
   loadFinance();
 }
 
-export async function handleDeleteInvoice(id) {
+export async function handleDeleteInvoice(id: number) {
   if (!confirm('Delete this invoice? This cannot be undone.')) return;
   const ok = await deleteInvoice(id);
   if (!ok) { toast('Could not delete invoice', 'error'); return; }
@@ -236,12 +239,12 @@ export async function handleDeleteInvoice(id) {
 
 // ── AP (Bills) ────────────────────────────────────────────────────────────────
 
-export function renderAP(bills) {
+export function renderAP(bills: Bill[]) {
   const total = bills.reduce((s, b) => s + b.amount, 0);
   const out   = bills.filter(b => b.status !== 'Paid').reduce((s, b) => s + b.amount, 0);
-  document.getElementById('ap-summary').textContent =
+  gEl('ap-summary').textContent =
     `${bills.length} bills · ${formatCurrency(total)} total · ${formatCurrency(out)} outstanding`;
-  document.getElementById('ap-tbody').innerHTML = bills.length
+  gEl('ap-tbody').innerHTML = bills.length
     ? bills.map(b => `
         <tr>
           <td style="font-weight:500;color:var(--ink)">${escapeHtml(b.payee)}</td>
@@ -260,7 +263,7 @@ export function renderAP(bills) {
     : `<tr><td colspan="7"><div class="empty-state">No bills yet</div></td></tr>`;
 }
 
-function billFormHTML(b = {}) {
+function billFormHTML(b: Partial<Bill> = {}) {
   const catOpts     = ['Venue', 'Catering', 'Equipment', 'Services', 'Transport', 'Supplies', 'Other']
     .map(c => `<option${c === b.category ? ' selected' : ''}>${c}</option>`).join('');
   const ewtOpts     = ['0%', '2%', '5%', '10%', '15%']
@@ -287,7 +290,7 @@ export function openAddBill() {
   openModal('New Bill (AP)', billFormHTML(), saveBill);
 }
 
-export function openEditBill(id) {
+export function openEditBill(id: number) {
   const b = _bills.find(x => x.id === id);
   if (!b) return;
   _editingBillId = id;
@@ -295,17 +298,17 @@ export function openEditBill(id) {
 }
 
 export async function saveBill() {
-  const payee = document.getElementById('fb-payee').value.trim();
+  const payee = gVal('fb-payee').trim();
   const err = validateRequired(payee, 'Payee');
   if (err) { toast(err, 'error'); return; }
-  const partVal = document.getElementById('fb-partner')?.value;
+  const partVal = (document.getElementById('fb-partner') as HTMLInputElement | null)?.value;
   const payload = {
     payee,
-    amount:     +document.getElementById('fb-amount').value || 0,
-    category:   document.getElementById('fb-category').value,
-    ewt:        document.getElementById('fb-ewt').value,
-    date:       document.getElementById('fb-bill-date').value || null,
-    status:     document.getElementById('fb-status').value,
+    amount:     +gVal('fb-amount') || 0,
+    category:   gVal('fb-category'),
+    ewt:        gVal('fb-ewt'),
+    date:       gVal('fb-bill-date') || null,
+    status:     gVal('fb-status'),
     partner_id: partVal ? +partVal : null,
   };
   if (_editingBillId) {
@@ -321,7 +324,7 @@ export async function saveBill() {
   loadFinance();
 }
 
-export async function handleDeleteBill(id) {
+export async function handleDeleteBill(id: number) {
   if (!confirm('Delete this bill? This cannot be undone.')) return;
   const ok = await deleteBill(id);
   if (!ok) { toast('Could not delete bill', 'error'); return; }
@@ -331,8 +334,8 @@ export async function handleDeleteBill(id) {
 
 // ── Payroll ───────────────────────────────────────────────────────────────────
 
-export function renderPayroll(runs) {
-  document.getElementById('payroll-tbody').innerHTML = runs.length
+export function renderPayroll(runs: PayrollRun[]) {
+  gEl('payroll-tbody').innerHTML = runs.length
     ? runs.map(r => `
         <tr>
           <td style="font-weight:500;color:var(--ink)">${escapeHtml(r.period)}</td>
@@ -351,7 +354,7 @@ export function renderPayroll(runs) {
     : `<tr><td colspan="7"><div class="empty-state">No payroll runs yet</div></td></tr>`;
 }
 
-function payrollFormHTML(r = {}) {
+function payrollFormHTML(r: Partial<PayrollRun> = {}) {
   return `<div class="form-grid">
     <div class="form-group"><div class="form-label">Period</div><input class="form-input" id="pp-period" value="${escapeHtml(r.period || '')}" placeholder="e.g. Jun 2026"/></div>
     <div class="form-group"><div class="form-label">No. of Employees</div><input class="form-input" id="pp-emp" type="number" value="${r.employees || 0}"/></div>
@@ -373,7 +376,7 @@ export function openAddPayroll() {
   openModal('New Payroll Run', payrollFormHTML(), savePayroll);
 }
 
-export function openEditPayroll(id) {
+export function openEditPayroll(id: number) {
   const r = _payroll.find(x => x.id === id);
   if (!r) return;
   _editingPayrollId = id;
@@ -388,16 +391,16 @@ export function estimateDeductions(): void {
 }
 
 export async function savePayroll() {
-  const period = document.getElementById('pp-period').value.trim();
+  const period = gVal('pp-period').trim();
   const err = validateRequired(period, 'Period');
   if (err) { toast(err, 'error'); return; }
-  const gross = +document.getElementById('pp-gross').value || 0;
-  const ded   = +document.getElementById('pp-ded').value  || 0;
+  const gross = +gVal('pp-gross') || 0;
+  const ded   = +gVal('pp-ded')   || 0;
   const payload = {
     period,
-    employees:  +document.getElementById('pp-emp').value || 0,
+    employees:  +gVal('pp-emp') || 0,
     gross, deductions: ded, net: gross - ded,
-    status: document.getElementById('pp-status').value,
+    status: gVal('pp-status'),
   };
   if (_editingPayrollId) {
     const ok = await updatePayrollRun(_editingPayrollId, payload);
@@ -412,7 +415,7 @@ export async function savePayroll() {
   loadFinance();
 }
 
-export async function handleDeletePayroll(id) {
+export async function handleDeletePayroll(id: number) {
   if (!confirm('Delete this payroll run? This cannot be undone.')) return;
   const ok = await deletePayrollRun(id);
   if (!ok) { toast('Could not delete payroll run', 'error'); return; }
@@ -422,7 +425,7 @@ export async function handleDeletePayroll(id) {
 
 // ── BIR ───────────────────────────────────────────────────────────────────────
 
-function birBadgeClass(status) {
+function birBadgeClass(status: string) {
   return status === 'Filed'    ? 'paid'
        : status === 'Overdue'  ? 'overdue'
        : status === 'Due Soon' ? 'unpaid'
@@ -430,8 +433,8 @@ function birBadgeClass(status) {
        : 'lead';
 }
 
-function birHistoryLine(form) {
-  const past = birFilingsFor(_birFilings, form);
+function birHistoryLine(form: string) {
+  const past = birFilingsFor(_birFilings, form) as BirFiling[];
   if (!past.length) return `<span style="color:var(--ink-3)">No filings recorded yet</span>`;
   const last = past[0];
   return `${escapeHtml(last.period)} — <span style="color:var(--green);font-weight:600">Filed ✓</span>`
@@ -439,7 +442,7 @@ function birHistoryLine(form) {
        + `${past.length > 1 ? ` · ${past.length} total` : ''}</span>`;
 }
 
-function birPeriodicCard(form, desc, period, deadlineISO, baseLabel, baseValue) {
+function birPeriodicCard(form: string, desc: string, period: string, deadlineISO: string | null, baseLabel: string, baseValue: number) {
   const filed  = birIsFiled(_birFilings, form, period);
   const status = birFilingStatus(deadlineISO, filed, new Date());
   const dline  = deadlineISO ? formatDateShort(deadlineISO) : '—';
@@ -467,12 +470,12 @@ export function renderBIR() {
   const netInc   = Math.max(0, receipts - expenses);
   const withheld = birCompWithholding(_payroll, APP_SETTINGS.finance.birYear);
 
-  const twoThreeOhSeven = bir2307Bills(_bills);
+  const twoThreeOhSeven = bir2307Bills(_bills) as Bill[];
   const last2307 = twoThreeOhSeven
     .slice()
     .sort((a, b) => String(b.date).localeCompare(String(a.date)))[0];
 
-  document.getElementById('bir-cards').innerHTML = `
+  gEl('bir-cards').innerHTML = `
     ${birPeriodicCard('2551Q', 'Quarterly Percentage Tax Return<br>Non-VAT · 3% of gross receipts',
         period, bir2551qDeadline(q, year), 'Gross receipts this quarter', receipts)}
     ${birPeriodicCard('1701Q', 'Quarterly Income Tax Return<br>For self-employed / OPC founders',
@@ -491,12 +494,12 @@ export function renderBIR() {
     </div>`;
 }
 
-export function openFileBir(form) {
+export function openFileBir(form: string) {
   const today  = new Date();
   const { q, year } = birMostRecentCompletedQuarter(today);
   const birYear = APP_SETTINGS.finance.birYear;
 
-  let period, base, suggestedTax, baseLabel, note;
+  let period: string, base: number, suggestedTax: number, baseLabel: string, note: string;
   if (form === '2551Q') {
     period = birQuarterLabel(q, year);
     base = birGrossReceipts(_invoices, q, year);
@@ -531,18 +534,18 @@ export function openFileBir(form) {
 }
 
 export async function saveBirFiling() {
-  const form   = document.getElementById('bir-form').value.trim();
-  const period = document.getElementById('bir-period').value.trim();
+  const form   = gVal('bir-form').trim();
+  const period = gVal('bir-period').trim();
   const err = validateRequired(period, 'Period');
   if (err) { toast(err, 'error'); return; }
   const result = await createBirFiling({
     form,
     period,
-    tax_base:     +document.getElementById('bir-base').value  || 0,
-    tax_due:      +document.getElementById('bir-tax').value   || 0,
-    reference_no: document.getElementById('bir-ref').value.trim(),
-    notes:        document.getElementById('bir-notes').value.trim(),
-    filed_at:     document.getElementById('bir-date').value || todayISO(),
+    tax_base:     +gVal('bir-base')  || 0,
+    tax_due:      +gVal('bir-tax')   || 0,
+    reference_no: gVal('bir-ref').trim(),
+    notes:        gVal('bir-notes').trim(),
+    filed_at:     gVal('bir-date') || todayISO(),
   });
   if (!result) return;
   toast(`${form} filing recorded for ${period}`, 'success');

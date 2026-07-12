@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { escapeHtml } from '../../shared/utils/helpers.ts';
 import { todayISO } from '../../shared/utils/dateUtils.ts';
 import { fetchClients } from '../../shared/services/clientService.ts';
@@ -8,6 +7,10 @@ import { fetchInvoices } from '../../shared/services/financeService.ts';
 import { uploadDocument, saveDocumentMeta, getDocumentPublicUrl } from '../../shared/services/documentService.ts';
 import { _clients, _projects, _proposals, _invoices, setClients, setProjects, setProposals, setInvoices } from './state.ts';
 import { toast } from './ui.ts';
+import type { Client, Project } from '../../shared/types.ts';
+
+const gEl = (id: string) => document.getElementById(id)!;
+const gVal = (id: string) => (document.getElementById(id) as HTMLInputElement).value;
 
 export async function initAIAutocomplete() {
   const [clients, projects] = await Promise.all([
@@ -19,25 +22,25 @@ export async function initAIAutocomplete() {
 
   const cl = document.getElementById('ai-client-list');
   const pl = document.getElementById('ai-project-list');
-  if (cl) cl.innerHTML = (clients || []).map(c => `<option value="${escapeHtml(c.name)}"/>`).join('');
-  if (pl) pl.innerHTML = (projects || []).map(p => `<option value="${escapeHtml(p.name)}"/>`).join('');
+  if (cl) cl.innerHTML = (clients || []).map((c: Client) => `<option value="${escapeHtml(c.name)}"/>`).join('');
+  if (pl) pl.innerHTML = (projects || []).map((p: Project) => `<option value="${escapeHtml(p.name)}"/>`).join('');
 }
 
-export function selectTemplate(el) {
+export function selectTemplate(el: HTMLElement) {
   document.querySelectorAll('.ai-template').forEach(t => t.classList.remove('selected'));
   el.classList.add('selected');
 }
 
 export function copyAIOutput() {
-  const text = document.getElementById('ai-result').innerText;
+  const text = (gEl('ai-result') as HTMLElement).innerText;
   navigator.clipboard.writeText(text).then(() => toast('Copied to clipboard', 'success'));
 }
 
 export async function saveAIOutput() {
-  const text = document.getElementById('ai-result').innerText?.trim();
+  const text = (gEl('ai-result') as HTMLElement).innerText?.trim();
   if (!text || text.startsWith('Your generated')) { toast('Nothing to save yet', 'error'); return; }
   const templateName = document.querySelector('.ai-template.selected .ai-template-name')?.textContent || 'AI Output';
-  const client = document.getElementById('ai-client').value.trim();
+  const client = gVal('ai-client').trim();
   const filename = `${templateName.replace(/\s+/g, '-')}${client ? '-' + client.replace(/\s+/g, '-') : ''}-${todayISO()}.txt`;
   try {
     toast('Saving to Documents…');
@@ -60,7 +63,7 @@ export async function saveAIOutput() {
   }
 }
 
-async function fetchAIContextData(clientName, projectName) {
+async function fetchAIContextData(clientName: string, projectName: string) {
   const [proposals, invoices] = await Promise.all([
     _proposals.length ? _proposals : fetchProposals(),
     _invoices.length ? _invoices : fetchInvoices(),
@@ -68,8 +71,8 @@ async function fetchAIContextData(clientName, projectName) {
   if (!_proposals.length) setProposals(proposals || []);
   if (!_invoices.length) setInvoices(invoices || []);
 
-  const matchClient = n => n?.toLowerCase() === clientName.toLowerCase();
-  const matchProject = n => n?.toLowerCase() === projectName.toLowerCase();
+  const matchClient = (n: string | null | undefined) => n?.toLowerCase() === clientName.toLowerCase();
+  const matchProject = (n: string | null | undefined) => n?.toLowerCase() === projectName.toLowerCase();
 
   const clientRecord = _clients.find(c => matchClient(c.name));
   const projectRecord = _projects.find(p => matchProject(p.name));
@@ -79,7 +82,13 @@ async function fetchAIContextData(clientName, projectName) {
   return { clientRecord, projectRecord, clientProposals, clientInvoices };
 }
 
-function buildAIPrompt(template, client, project, context, contextData) {
+function buildAIPrompt(
+  template: string,
+  client: string,
+  project: string,
+  context: string,
+  contextData: Awaited<ReturnType<typeof fetchAIContextData>> | null,
+) {
   const base = `You are a professional business writer for DestineVents Collective OPC, an event management and community development company in Baguio City, Philippines. Write in a warm, professional, and confident tone. Be concise and specific.`;
   const c = client || 'the client';
   const p = project || 'our collaboration';
@@ -88,7 +97,7 @@ function buildAIPrompt(template, client, project, context, contextData) {
   let dataContext = '';
   if (contextData) {
     const { clientRecord, projectRecord, clientProposals, clientInvoices } = contextData;
-    const lines = [];
+    const lines: string[] = [];
     if (clientRecord) lines.push(`Client status: ${clientRecord.status}, Type: ${clientRecord.type}`);
     if (projectRecord) lines.push(`Project: ${projectRecord.name} (${projectRecord.status}, ${projectRecord.category || '—'}, ₱${(projectRecord.value || 0).toLocaleString()})`);
     if (clientProposals.length) {
@@ -105,7 +114,7 @@ function buildAIPrompt(template, client, project, context, contextData) {
 
   const fullContext = x + dataContext;
 
-  const map = {
+  const map: Record<string, string> = {
     'Follow-up Email':  `${base}\n\nWrite a professional follow-up email to ${c} regarding "${p}".${fullContext}\nInclude: subject line, greeting, brief re-cap, clear next step, and warm closing from Jennifer Castro, Founder.`,
     'Proposal Summary': `${base}\n\nWrite an executive proposal summary for ${c} for the project "${p}".${fullContext}\nInclude: intro, scope overview, key deliverables (3-4 bullets), investment note, and compelling close.`,
     'Project Brief':    `${base}\n\nWrite a structured project brief for "${p}" with ${c}.${fullContext}\nInclude: overview, objectives (3 points), scope of work, timeline note, and team note.`,
@@ -117,11 +126,11 @@ function buildAIPrompt(template, client, project, context, contextData) {
 }
 
 export async function simulateAI() {
-  const client       = document.getElementById('ai-client').value.trim();
-  const project      = document.getElementById('ai-project').value.trim();
-  const context      = document.getElementById('ai-context').value.trim();
+  const client       = gVal('ai-client').trim();
+  const project      = gVal('ai-project').trim();
+  const context      = gVal('ai-context').trim();
   const templateName = document.querySelector('.ai-template.selected .ai-template-name')?.textContent || 'Follow-up Email';
-  const r            = document.getElementById('ai-result');
+  const r            = gEl('ai-result') as HTMLElement;
 
   r.style.color      = '';
   r.style.whiteSpace = '';
@@ -152,10 +161,11 @@ export async function simulateAI() {
     r.textContent = text;
     r.style.whiteSpace = 'pre-line';
   } catch (e) {
-    const isNetworkError = e.message.includes('Failed to fetch') || e.message.includes('NetworkError') || e.message.includes('ERR_CONNECTION');
-    const msg = isNetworkError
+    const msg = (e instanceof Error && (
+      e.message.includes('Failed to fetch') || e.message.includes('NetworkError') || e.message.includes('ERR_CONNECTION')
+    ))
       ? 'AI endpoint is not reachable. In local development, run npm run dev:full (uses vercel dev). In production, deploy to Vercel with ANTHROPIC_API_KEY set.'
-      : e.message;
+      : (e instanceof Error ? e.message : 'Unknown error');
     r.style.color = 'var(--red)';
     r.style.whiteSpace = 'normal';
     r.textContent = msg;
