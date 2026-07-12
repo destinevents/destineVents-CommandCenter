@@ -77,7 +77,7 @@ export async function loadUsers() {
   const pendingBody = document.getElementById('users-pending-body');
   const allBody = document.getElementById('users-all-body');
   if (pendingBody) pendingBody.innerHTML = renderPending(pending);
-  if (allBody) allBody.innerHTML = renderAll(all.filter(u => u.role !== 'pending'));
+  if (allBody) allBody.innerHTML = renderAll(all.filter(u => u.role !== 'pending' && u.role !== 'admin'));
 }
 
 export async function approveUser(id: string) {
