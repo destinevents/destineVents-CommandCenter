@@ -20,6 +20,22 @@ export function calNext() {
   renderCalendar();
 }
 
+export function calGoToToday() {
+  const now = new Date();
+  calYear  = now.getFullYear();
+  calMonth = now.getMonth();
+  renderCalendar();
+}
+
+export function calGoToStart() {
+  if (!liveTimesheets.length) return;
+  const earliest = liveTimesheets.reduce((min, ts) => ts.date < min ? ts.date : min, liveTimesheets[0].date);
+  const parts = earliest.split('-');
+  calYear  = parseInt(parts[0], 10);
+  calMonth = parseInt(parts[1], 10) - 1;
+  renderCalendar();
+}
+
 export function renderCalendar() {
   const label = new Date(calYear, calMonth, 1)
     .toLocaleDateString('en-PH', { month: 'long', year: 'numeric' });

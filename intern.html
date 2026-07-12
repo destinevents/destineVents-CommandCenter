@@ -308,9 +308,11 @@
     <div class="page" id="page-calendar">
       <div class="page-head" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
         <div class="cal-nav">
+          <button class="cal-nav-btn" data-action="cal-start" title="Jump to earliest entry">«</button>
           <button class="cal-nav-btn" data-action="cal-prev">‹</button>
           <h2 id="cal-month-label" style="font-size:18px;font-weight:800;color:var(--forest);min-width:150px;text-align:center;margin:0"></h2>
           <button class="cal-nav-btn" data-action="cal-next">›</button>
+          <button class="cal-nav-btn" data-action="cal-today" title="Go to current month">Today</button>
         </div>
       </div>
       <div class="cal-grid" id="cal-grid"></div>

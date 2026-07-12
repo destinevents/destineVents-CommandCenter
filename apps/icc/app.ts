@@ -30,7 +30,7 @@ import {
   exportExcel, exportPDF, completeIntern, reopenIntern, setInternTab,
 } from './admin.ts';
 import { renderAccount } from './account.ts';
-import { renderCalendar, calPrev, calNext } from './calendar.ts';
+import { renderCalendar, calPrev, calNext, calGoToStart, calGoToToday } from './calendar.ts';
 import {
   loadNotifications, toggleNotifCenter, openNotification,
   markAllNotificationsRead, handleIncomingNotification,
@@ -342,14 +342,10 @@ document.addEventListener('click', async (e) => {
     outputPager.loadMore();
     return;
   }
-  if (a === 'cal-prev') {
-    calPrev();
-    return;
-  }
-  if (a === 'cal-next') {
-    calNext();
-    return;
-  }
+  if (a === 'cal-prev') { calPrev(); return; }
+  if (a === 'cal-next') { calNext(); return; }
+  if (a === 'cal-start') { calGoToStart(); return; }
+  if (a === 'cal-today') { calGoToToday(); return; }
 });
 
 // ─── INITIALIZATION ───────────────────────────────────────────────────────────
