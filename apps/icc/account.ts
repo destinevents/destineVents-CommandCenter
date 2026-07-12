@@ -1,7 +1,8 @@
+// @ts-nocheck
 import { updateProfile, updatePassword } from '../../shared/services/authService.ts';
 import { validatePassword } from '../../shared/utils/validators.ts';
-import { currentUser } from './state.js';
-import { toast } from './ui.js';
+import { currentUser } from './state.ts';
+import { toast } from './ui.ts';
 
 const PW_RULES = [
   { id: 'req-len',     test: p => p.length >= 8,             label: 'Minimum 8 characters' },
@@ -132,14 +133,14 @@ export async function renderAccount() {
   `;
 
   // ── Event wiring ──
-  document.getElementById('ep-save-btn').addEventListener('click', saveProfile);
-  document.getElementById('cp-save-btn').addEventListener('click', changePassword);
-  document.getElementById('cp-new').addEventListener('input', checkPasswordReqs);
-  document.getElementById('cp-confirm').addEventListener('input', checkPasswordReqs);
+  document.getElementById('ep-save-btn')!.addEventListener('click', saveProfile);
+  document.getElementById('cp-save-btn')!.addEventListener('click', changePassword);
+  document.getElementById('cp-new')!.addEventListener('input', checkPasswordReqs);
+  document.getElementById('cp-confirm')!.addEventListener('input', checkPasswordReqs);
 
   el.querySelectorAll('.pw-toggle-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      const input = document.getElementById(btn.dataset.target);
+      const input = document.getElementById((btn as HTMLElement).dataset.target!) as HTMLInputElement;
       const hide = input.type === 'password';
       input.type = hide ? 'text' : 'password';
       btn.textContent = hide ? 'Hide' : 'Show';
@@ -265,7 +266,7 @@ async function changePassword() {
     }
 
     toast('Password updated successfully!');
-    ['cp-new', 'cp-confirm'].forEach(id => { document.getElementById(id).value = ''; });
+    ['cp-new', 'cp-confirm'].forEach(id => { (document.getElementById(id) as HTMLInputElement).value = ''; });
     checkPasswordReqs();
     if (btn) btn.textContent = 'Update Password';
   } catch (err) {

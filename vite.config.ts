@@ -26,7 +26,7 @@ export default mergeConfig(
       exclude: ['node_modules/**', 'dist/**'],
       coverage: {
         provider: 'v8',
-        include: ['shared/**/*.js', 'shared/**/*.ts', 'apps/**/*.js'],
+        include: ['shared/**/*.ts', 'apps/**/*.ts'],
         exclude: ['**/*.test.js', '**/*.test.ts', 'shared/types.ts'],
       },
     },

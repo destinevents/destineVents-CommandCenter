@@ -1,6 +1,7 @@
+// @ts-nocheck
 import { createPager, attachFilterToolbar, escapeHtml, badge, avatarEl, skillPill } from '../../shared/utils/helpers.ts';
 import { OUTPUT_ICONS } from '../../shared/constants.ts';
-import { liveUsers, myTasks } from './state.js';
+import { liveUsers, myTasks } from './state.ts';
 
 export const outputPager = createPager(30, () => renderOutputs());
 

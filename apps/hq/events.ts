@@ -1,15 +1,16 @@
+// @ts-nocheck
 import { formatCurrency } from '../../shared/utils/formatUtils.ts';
 import { formatDateShort, todayISO } from '../../shared/utils/dateUtils.ts';
-import { createInvoice } from '../../shared/services/financeService.js';
+import { createInvoice } from '../../shared/services/financeService.ts';
 import { escapeHtml, statusClass } from '../../shared/utils/helpers.ts';
 import { validateRequired } from '../../shared/utils/validators.ts';
 import { APP_SETTINGS } from '../../config/settings.js';
 import {
   fetchEvents, createEvent, updateEvent, deleteEvent,
   fetchAllRegistrations, fetchRegistrations, updateRegistrationStatus,
-} from '../../shared/services/eventService.js';
-import { _events, _eventRegs, _currentEvent, setEvents, setEventRegs, setCurrentEvent } from './state.js';
-import { toast, openModal, closeModal } from './ui.js';
+} from '../../shared/services/eventService.ts';
+import { _events, _eventRegs, _currentEvent, setEvents, setEventRegs, setCurrentEvent } from './state.ts';
+import { toast, openModal, closeModal } from './ui.ts';
 
 let _editingEventId = null;
 

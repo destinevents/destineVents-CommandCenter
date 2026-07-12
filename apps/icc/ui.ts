@@ -5,29 +5,30 @@
 import { showToast } from '../../shared/components/toast.ts';
 import { logger } from '../../shared/utils/logger.ts';
 import { todayISO } from '../../shared/utils/dateUtils.ts';
-import { currentUser, liveTimesheets, pendingApprovals } from './state.js';
+import { currentUser, liveTimesheets, pendingApprovals } from './state.ts';
 
-export function toast(msg) {
+export function toast(msg: string): void {
   showToast(msg, '', 2400);
 }
 
-export function handleError(context, error) {
-  logger.error(context, error?.message || 'Unknown error', error);
-  toast(`Something went wrong: ${error?.message || 'Unknown error'}. Try refreshing.`);
+export function handleError(context: string, error: unknown): void {
+  const msg = (error as Error)?.message || 'Unknown error';
+  logger.error(context, msg, error);
+  toast(`Something went wrong: ${msg}. Try refreshing.`);
 }
 
-export function openModal(id) {
-  const overlay = document.getElementById(id);
+export function openModal(id: string): void {
+  const overlay = document.getElementById(id)!;
   overlay.classList.remove('closing');
   overlay.classList.add('open');
 }
 
 // Per-modal cleanup run on EVERY close path (Cancel, overlay, save).
-// Modules register their own hook (e.g. icc/tasks.js clears edit mode)
+// Modules register their own hook (e.g. icc/tasks.ts clears edit mode)
 // instead of closeModal reaching into other files' state.
-export const MODAL_CLOSE_HOOKS = {};
+export const MODAL_CLOSE_HOOKS: Record<string, (() => void) | undefined> = {};
 
-export function closeModal(id, onClose) {
+export function closeModal(id: string, onClose?: () => void): void {
   const overlay = document.getElementById(id);
   if (!overlay || overlay.classList.contains('closing')) return;
   overlay.classList.add('closing');
@@ -44,29 +45,29 @@ export function applyRoleVisibility() {
   const isSup = currentUser.role === 'supervisor' || isAdmin;
   const isIntern = currentUser.role === 'intern';
   document
-    .querySelectorAll('.admin-only')
+    .querySelectorAll<HTMLElement>('.admin-only')
     .forEach((el) => (el.style.display = isAdmin ? '' : 'none'));
   document
-    .querySelectorAll('.supervisor-only')
+    .querySelectorAll<HTMLElement>('.supervisor-only')
     .forEach((el) => (el.style.display = isSup ? '' : 'none'));
   document
-    .querySelectorAll('.intern-only')
+    .querySelectorAll<HTMLElement>('.intern-only')
     .forEach((el) => (el.style.display = isIntern ? '' : 'none'));
 }
 
 let sidebarOpen = true;
 
-export function toggleSidebar() {
+export function toggleSidebar(): void {
   sidebarOpen = !sidebarOpen;
-  const sidebarEl = document.getElementById('sidebar');
+  const sidebarEl = document.getElementById('sidebar')!;
   sidebarEl.classList.toggle('collapsed', !sidebarOpen);
-  document.querySelector('.sb-collapse').textContent = sidebarOpen ? '◀' : '▶';
+  (document.querySelector('.sb-collapse') as HTMLElement).textContent = sidebarOpen ? '◀' : '▶';
 }
 
 // Phone-width off-canvas nav (hamburger in the topbar, backdrop behind)
-export function toggleMobileNav(open) {
-  const sidebar = document.getElementById('sidebar');
-  const backdrop = document.getElementById('sidebar-backdrop');
+export function toggleMobileNav(open?: boolean): void {
+  const sidebar = document.getElementById('sidebar')!;
+  const backdrop = document.getElementById('sidebar-backdrop')!;
   const next = open ?? !sidebar.classList.contains('mobile-open');
   sidebar.classList.toggle('mobile-open', next);
   backdrop.classList.toggle('show', next);
@@ -76,15 +77,15 @@ export function toggleMobileNav(open) {
   if (next && !sidebarOpen) toggleSidebar();
 }
 
-export function updateBadges() {
+export function updateBadges(): void {
   const count = pendingApprovals().length;
-  document.getElementById('approval-badge').textContent = count;
-  document.getElementById('approval-badge').style.display = count > 0 ? 'inline' : 'none';
+  document.getElementById('approval-badge')!.textContent = String(count);
+  document.getElementById('approval-badge')!.style.display = count > 0 ? 'inline' : 'none';
   const nb = document.getElementById('notif-btn');
   if (nb) {
     nb.style.display = currentUser.role !== 'intern' && count > 0 ? 'flex' : 'none';
   }
-  document.getElementById('notif-count').textContent = count;
+  document.getElementById('notif-count')!.textContent = String(count);
   updateTodayHours();
 }
 

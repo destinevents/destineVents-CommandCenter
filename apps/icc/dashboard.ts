@@ -1,8 +1,9 @@
+// @ts-nocheck
 import { renderStatCards } from '../../shared/components/statCard.ts';
 import { escapeHtml, badge } from '../../shared/utils/helpers.ts';
 import { formatDateShort } from '../../shared/utils/dateUtils.ts';
-import { currentUser, myTasks, mySheets, pendingApprovals } from './state.js';
-import { isOverdue } from './tasks.js';
+import { currentUser, myTasks, mySheets, pendingApprovals } from './state.ts';
+import { isOverdue } from './tasks.ts';
 
 export async function renderDashboard() {
   const first = (currentUser.name || 'there').split(' ')[0];

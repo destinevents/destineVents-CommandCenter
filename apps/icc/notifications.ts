@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Notification center: history + unread badge in the topbar bell, fed by the
 // intern_notifications table (rows are created by DB triggers — see
 // database/schema/notifications.sql). Live toasts come from the realtime
@@ -6,8 +7,8 @@ import { fetchNotifications, markNotificationsRead } from '../../shared/services
 import { showToast } from '../../shared/components/toast.ts';
 import { escapeHtml } from '../../shared/utils/helpers.ts';
 import { formatDateShort } from '../../shared/utils/dateUtils.ts';
-import { currentUser } from './state.js';
-import { goPage } from './app.js';
+import { currentUser } from './state.ts';
+import { goPage } from './app.ts';
 
 let liveNotifications = [];
 

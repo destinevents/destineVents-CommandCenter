@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { createPager, attachFilterToolbar, escapeHtml, badge, pBadge, skillPill } from '../../shared/utils/helpers.ts';
 import { emptyStateHTML } from '../../shared/components/emptyState.ts';
 import { renderSkillPicker, resetSkillPicker } from '../../shared/components/skillPicker.ts';
@@ -6,10 +7,10 @@ import { formatDateShort, todayISO } from '../../shared/utils/dateUtils.ts';
 import { validateRequired } from '../../shared/utils/validators.ts';
 import { createTask, updateTask, deleteTask } from '../../shared/services/taskService.ts';
 import { logAudit } from '../../shared/services/auditService.ts';
-import { currentUser, taskFilter, setTaskFilterValue, liveTasks, liveUsers, liveTimesheets, myTasks, user } from './state.js';
-import { toast, openModal, closeModal, MODAL_CLOSE_HOOKS } from './ui.js';
-import { loadLiveTasks, loadLiveTimesheets, loadLiveUsers } from './data.js';
-import { renderDashboard } from './dashboard.js';
+import { currentUser, taskFilter, setTaskFilterValue, liveTasks, liveUsers, liveTimesheets, myTasks, user } from './state.ts';
+import { toast, openModal, closeModal, MODAL_CLOSE_HOOKS } from './ui.ts';
+import { loadLiveTasks, loadLiveTimesheets, loadLiveUsers } from './data.ts';
+import { renderDashboard } from './dashboard.ts';
 
 const TASK_PREVIEW_COUNT = 3;
 

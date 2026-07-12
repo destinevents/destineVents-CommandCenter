@@ -1,10 +1,11 @@
+// @ts-nocheck
 import { sb } from '../../shared/services/supabase';
 import { fetchAuditLogs } from '../../shared/services/auditService.ts';
 import { escapeHtml, avatarEl, skillPill, skillPillGreen } from '../../shared/utils/helpers.ts';
 import { formatDateShort, formatTime } from '../../shared/utils/dateUtils.ts';
-import { liveUsers, liveTasks, liveTimesheets, pendingApprovals } from './state.js';
-import { toast } from './ui.js';
-import { loadLiveUsers } from './data.js';
+import { liveUsers, liveTasks, liveTimesheets, pendingApprovals } from './state.ts';
+import { toast } from './ui.ts';
+import { loadLiveUsers } from './data.ts';
 
 let showCompletedInterns = false;
 

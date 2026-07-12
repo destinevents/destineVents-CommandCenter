@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { formatCurrency } from '../../shared/utils/formatUtils.ts';
 import { formatDateShort, todayISO } from '../../shared/utils/dateUtils.ts';
 import { escapeHtml, statusClass } from '../../shared/utils/helpers.ts';
@@ -8,19 +9,19 @@ import {
   fetchBills, createBill, updateBill, deleteBill,
   fetchPayrollRuns, createPayrollRun, updatePayrollRun, deletePayrollRun,
   calcFinanceSummary,
-} from '../../shared/services/financeService.js';
-import { fetchClients } from '../../shared/services/clientService.js';
-import { fetchProjects } from '../../shared/services/projectService.js';
-import { fetchPartners } from '../../shared/services/partnerService.js';
-import { fetchBirFilings, createBirFiling } from '../../shared/services/birService.js';
+} from '../../shared/services/financeService.ts';
+import { fetchClients } from '../../shared/services/clientService.ts';
+import { fetchProjects } from '../../shared/services/projectService.ts';
+import { fetchPartners } from '../../shared/services/partnerService.ts';
+import { fetchBirFilings, createBirFiling } from '../../shared/services/birService.ts';
 import {
   BIR_PERCENTAGE_TAX_RATE, BIR_8PCT_OPTION_RATE, birMostRecentCompletedQuarter,
   birQuarterLabel, bir2551qDeadline, bir1701qDeadline, bir1604cDeadline,
   birFilingStatus, birGrossReceipts, birExpenses, birCompWithholding,
   bir2307Bills, birIsFiled, birFilingsFor,
 } from '../../shared/business/birCalc.js';
-import { _clients, _projects, _partners, _invoices, _bills, _payroll, _birFilings, setClients, setProjects, setPartners, setInvoices, setBills, setPayroll, setBirFilings } from './state.js';
-import { toast, openModal, closeModal } from './ui.js';
+import { _clients, _projects, _partners, _invoices, _bills, _payroll, _birFilings, setClients, setProjects, setPartners, setInvoices, setBills, setPayroll, setBirFilings } from './state.ts';
+import { toast, openModal, closeModal } from './ui.ts';
 
 let _editingInvoiceId = null;
 let _editingBillId    = null;
@@ -379,11 +380,11 @@ export function openEditPayroll(id) {
   openModal('Edit Payroll Run', payrollFormHTML(r), savePayroll);
 }
 
-export function estimateDeductions() {
-  const gross = +document.getElementById('pp-gross').value || 0;
+export function estimateDeductions(): void {
+  const gross = +(document.getElementById('pp-gross') as HTMLInputElement).value || 0;
   const ded = Math.round(gross * 0.15);
-  document.getElementById('pp-ded').value = ded;
-  document.getElementById('pp-net').value = gross - ded;
+  (document.getElementById('pp-ded') as HTMLInputElement).value = String(ded);
+  (document.getElementById('pp-net') as HTMLInputElement).value = String(gross - ded);
 }
 
 export async function savePayroll() {

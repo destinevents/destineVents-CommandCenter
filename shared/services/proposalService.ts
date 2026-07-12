@@ -1,31 +1,32 @@
 import { sb } from './supabase';
 import { handleServiceError } from './serviceError.ts';
+import type { Proposal, ProposalStats } from '../types';
 
-export async function fetchProposals() {
+export async function fetchProposals(): Promise<Proposal[]> {
   const { data, error } = await sb.from('proposals').select('*').order('sent', { ascending: false });
   if (error) { handleServiceError('fetchProposals', error); return []; }
-  return data;
+  return (data ?? []) as Proposal[];
 }
 
-export async function createProposal(data) {
+export async function createProposal(data: Partial<Proposal>): Promise<Proposal | null> {
   const { data: result, error } = await sb.from('proposals').insert(data).select();
   if (error) { handleServiceError('createProposal', error); return null; }
-  return result?.[0] || null;
+  return (result as Proposal[] | null)?.[0] ?? null;
 }
 
-export async function updateProposal(id, data) {
+export async function updateProposal(id: number, data: Partial<Proposal>): Promise<boolean> {
   const { error } = await sb.from('proposals').update(data).eq('id', id);
   if (error) { handleServiceError('updateProposal', error); return false; }
   return true;
 }
 
-export async function deleteProposal(id) {
+export async function deleteProposal(id: number): Promise<boolean> {
   const { error } = await sb.from('proposals').delete().eq('id', id);
   if (error) { handleServiceError('deleteProposal', error); return false; }
   return true;
 }
 
-export function calcWinRate(proposals) {
+export function calcWinRate(proposals: Proposal[]): ProposalStats {
   const closed = proposals.filter(p => p.status === 'Won' || p.status === 'Lost');
   const won = proposals.filter(p => p.status === 'Won');
   const wonValue = won.reduce((s, p) => s + (p.value || 0), 0);
@@ -40,4 +41,3 @@ export function calcWinRate(proposals) {
     pipelineValue,
   };
 }
-

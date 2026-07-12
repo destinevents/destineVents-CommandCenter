@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { createPager, attachFilterToolbar, escapeHtml, badge, avatarEl, skillPillGreen } from '../../shared/utils/helpers.ts';
 import { renderStatCards } from '../../shared/components/statCard.ts';
 import { renderFilterTabs } from '../../shared/components/filterTabs.ts';
@@ -7,11 +8,11 @@ import { formatDateShort } from '../../shared/utils/dateUtils.ts';
 import { validateDailyHours } from '../../shared/utils/validators.ts';
 import { createTimesheet, updateTimesheet, deleteTimesheet } from '../../shared/services/timesheetService.ts';
 import { logAudit } from '../../shared/services/auditService.ts';
-import { currentUser, activePage, sheetFilter, setSheetFilterValue, liveTasks, liveUsers, liveTimesheets, myTasks, mySheets } from './state.js';
-import { toast, openModal, closeModal, updateBadges } from './ui.js';
-import { loadLiveTimesheets } from './data.js';
-import { renderDashboard } from './dashboard.js';
-import { renderPage } from './app.js';
+import { currentUser, activePage, sheetFilter, setSheetFilterValue, liveTasks, liveUsers, liveTimesheets, myTasks, mySheets } from './state.ts';
+import { toast, openModal, closeModal, updateBadges } from './ui.ts';
+import { loadLiveTimesheets } from './data.ts';
+import { renderDashboard } from './dashboard.ts';
+import { renderPage } from './app.ts';
 
 let pendingRejectId = null;
 

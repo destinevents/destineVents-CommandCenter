@@ -1,12 +1,13 @@
+// @ts-nocheck
 import { escapeHtml } from '../../shared/utils/helpers.ts';
 import { todayISO } from '../../shared/utils/dateUtils.ts';
-import { fetchClients } from '../../shared/services/clientService.js';
-import { fetchProjects } from '../../shared/services/projectService.js';
-import { fetchProposals } from '../../shared/services/proposalService.js';
-import { fetchInvoices } from '../../shared/services/financeService.js';
-import { uploadDocument, saveDocumentMeta, getDocumentPublicUrl } from '../../shared/services/documentService.js';
-import { _clients, _projects, _proposals, _invoices, setClients, setProjects, setProposals, setInvoices } from './state.js';
-import { toast } from './ui.js';
+import { fetchClients } from '../../shared/services/clientService.ts';
+import { fetchProjects } from '../../shared/services/projectService.ts';
+import { fetchProposals } from '../../shared/services/proposalService.ts';
+import { fetchInvoices } from '../../shared/services/financeService.ts';
+import { uploadDocument, saveDocumentMeta, getDocumentPublicUrl } from '../../shared/services/documentService.ts';
+import { _clients, _projects, _proposals, _invoices, setClients, setProjects, setProposals, setInvoices } from './state.ts';
+import { toast } from './ui.ts';
 
 export async function initAIAutocomplete() {
   const [clients, projects] = await Promise.all([
@@ -55,7 +56,7 @@ export async function saveAIOutput() {
     });
     toast('Saved to Documents', 'success');
   } catch (e) {
-    toast(`Save failed: ${e.message}`, 'error');
+    toast(`Save failed: ${(e as Error).message}`, 'error');
   }
 }
 

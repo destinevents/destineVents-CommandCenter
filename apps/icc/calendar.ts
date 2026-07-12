@@ -1,6 +1,7 @@
+// @ts-nocheck
 import { escapeHtml, badge } from '../../shared/utils/helpers.ts';
-import { liveTasks, liveTimesheets } from './state.js';
-import { openModal } from './ui.js';
+import { liveTasks, liveTimesheets } from './state.ts';
+import { openModal } from './ui.ts';
 
 // ─── CALENDAR STATE ──────────────────────────────────────────────────────────
 const _calNow = new Date();

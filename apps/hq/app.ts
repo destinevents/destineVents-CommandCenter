@@ -1,3 +1,4 @@
+// @ts-nocheck
 // ─── HQ APP SHELL: auth, routing, realtime, dashboard, window shims ──────────
 // Top of the module graph. index.html keeps its inline onclick handlers, so
 // every function they reference is re-attached to window at the bottom.
@@ -6,40 +7,40 @@ import { signIn, signOut, getSession } from '../../shared/services/authService.t
 import { formatCurrency } from '../../shared/utils/formatUtils.ts';
 import { formatDateShort, todayISO } from '../../shared/utils/dateUtils.ts';
 import { escapeHtml } from '../../shared/utils/helpers.ts';
-import { fetchClients } from '../../shared/services/clientService.js';
-import { fetchProposals } from '../../shared/services/proposalService.js';
-import { fetchPartners } from '../../shared/services/partnerService.js';
-import { fetchInvoices, fetchBills } from '../../shared/services/financeService.js';
-import { fetchProjects } from '../../shared/services/projectService.js';
+import { fetchClients } from '../../shared/services/clientService.ts';
+import { fetchProposals } from '../../shared/services/proposalService.ts';
+import { fetchPartners } from '../../shared/services/partnerService.ts';
+import { fetchInvoices, fetchBills } from '../../shared/services/financeService.ts';
+import { fetchProjects } from '../../shared/services/projectService.ts';
 import {
   _clients, _proposals, _partners, _invoices, _projects,
   setClients, setProposals, setPartners, setInvoices, setBills, setProjects,
-} from './state.js';
-import { toast, closeModal, saveModal, toggleHqNav } from './ui.js';
+} from './state.ts';
+import { toast, closeModal, saveModal, toggleHqNav } from './ui.ts';
 import {
   loadClients, openAddClient, openEditClient, handleDeleteClient, openClientDetail,
   loadProposals, openAddProposal, openEditProposal, handleDeleteProposal, openProposalInvoice,
-} from './crm.js';
+} from './crm.ts';
 import {
   loadPartners, filterPartners, openAddPartner, openEditPartner, handleDeletePartner,
   loadDocuments, handleFileSelect, openDocPreview, closeDocPreview, handleDeleteDocument,
   loadNDA, npGoStep2, npGoStep1, npFinish, downloadNDA,
   loadImpact, saveImpactEntry, openEditImpact, handleDeleteImpact,
-} from './operations.js';
+} from './operations.ts';
 import {
   loadFinance, showFinanceTab, openFileBir,
   openAddInvoice, openEditInvoice, handleDeleteInvoice,
   openAddBill, openEditBill, handleDeleteBill,
   openAddPayroll, openEditPayroll, handleDeletePayroll,
   estimateDeductions,
-} from './finance.js';
-import { loadProjects, openAddProject, openEditProject, handleDeleteProject, convertProposalToProject, openProjectDetail, openProjectInvoice } from './projects.js';
-import { selectTemplate, copyAIOutput, simulateAI, saveAIOutput, initAIAutocomplete } from './ai.js';
+} from './finance.ts';
+import { loadProjects, openAddProject, openEditProject, handleDeleteProject, convertProposalToProject, openProjectDetail, openProjectInvoice } from './projects.ts';
+import { selectTemplate, copyAIOutput, simulateAI, saveAIOutput, initAIAutocomplete } from './ai.ts';
 import {
   loadEvents, openAddEvent, openEditEvent, handleDeleteEvent,
   filterEvents, viewEventRegistrations, backToEvents, copyRegisterUrl,
   handleUpdateRegistrationStatus, openIssueEventInvoice,
-} from './events.js';
+} from './events.ts';
 
 async function init() {
   const session = await getSession();
@@ -328,6 +329,41 @@ function filterTable(input, tbodyId) {
 
 // index.html keeps its inline onclick/oninput handlers — every function they
 // (or HQ-generated template literals) reference must be a window global.
+declare global {
+  interface Window {
+    showPage: typeof showPage; handleSignIn: typeof handleSignIn; handleSignOut: typeof handleSignOut;
+    toggleHqNav: typeof toggleHqNav; filterTable: typeof filterTable;
+    closeModal: typeof closeModal; saveModal: typeof saveModal; toast: typeof toast;
+    openAddClient: typeof openAddClient; openEditClient: typeof openEditClient;
+    handleDeleteClient: typeof handleDeleteClient; openClientDetail: typeof openClientDetail;
+    openAddProposal: typeof openAddProposal; openEditProposal: typeof openEditProposal;
+    handleDeleteProposal: typeof handleDeleteProposal; openProposalInvoice: typeof openProposalInvoice;
+    openAddProject: typeof openAddProject; openEditProject: typeof openEditProject;
+    handleDeleteProject: typeof handleDeleteProject; convertProposalToProject: typeof convertProposalToProject;
+    openProjectDetail: typeof openProjectDetail; openProjectInvoice: typeof openProjectInvoice;
+    openAddInvoice: typeof openAddInvoice; openEditInvoice: typeof openEditInvoice;
+    handleDeleteInvoice: typeof handleDeleteInvoice; openAddBill: typeof openAddBill;
+    openEditBill: typeof openEditBill; handleDeleteBill: typeof handleDeleteBill;
+    openAddPayroll: typeof openAddPayroll; openEditPayroll: typeof openEditPayroll;
+    handleDeletePayroll: typeof handleDeletePayroll; openFileBir: typeof openFileBir;
+    showFinanceTab: typeof showFinanceTab; estimateDeductions: typeof estimateDeductions;
+    filterPartners: typeof filterPartners; handleFileSelect: typeof handleFileSelect;
+    npGoStep1: typeof npGoStep1; npGoStep2: typeof npGoStep2; npFinish: typeof npFinish;
+    downloadNDA: typeof downloadNDA; saveImpactEntry: typeof saveImpactEntry;
+    openEditImpact: typeof openEditImpact; handleDeleteImpact: typeof handleDeleteImpact;
+    openDocPreview: typeof openDocPreview; closeDocPreview: typeof closeDocPreview;
+    handleDeleteDocument: typeof handleDeleteDocument;
+    openAddEvent: typeof openAddEvent; openEditEvent: typeof openEditEvent;
+    handleDeleteEvent: typeof handleDeleteEvent; loadEvents: typeof loadEvents;
+    filterEvents: typeof filterEvents; viewEventRegistrations: typeof viewEventRegistrations;
+    backToEvents: typeof backToEvents; copyRegisterUrl: typeof copyRegisterUrl;
+    updateRegistrationStatus: typeof handleUpdateRegistrationStatus;
+    openIssueEventInvoice: typeof openIssueEventInvoice;
+    selectTemplate: typeof selectTemplate; copyAIOutput: typeof copyAIOutput;
+    simulateAI: typeof simulateAI; saveAIOutput: typeof saveAIOutput;
+  }
+}
+
 Object.assign(window, {
   showPage, handleSignIn, handleSignOut, toggleHqNav, filterTable,
   closeModal, saveModal, toast,

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { formatCurrency } from '../../shared/utils/formatUtils.ts';
 import { formatDateShort, todayISO } from '../../shared/utils/dateUtils.ts';
 import { escapeHtml, statusClass } from '../../shared/utils/helpers.ts';
@@ -5,14 +6,14 @@ import { validateRequired } from '../../shared/utils/validators.ts';
 import { APP_SETTINGS } from '../../config/settings.js';
 import {
   fetchClients, createClient, updateClient, deleteClient,
-} from '../../shared/services/clientService.js';
+} from '../../shared/services/clientService.ts';
 import {
   fetchProposals, createProposal, updateProposal, deleteProposal, calcWinRate,
-} from '../../shared/services/proposalService.js';
-import { fetchProjects } from '../../shared/services/projectService.js';
-import { fetchInvoices, createInvoice } from '../../shared/services/financeService.js';
-import { _clients, _proposals, setClients, setProposals } from './state.js';
-import { toast, openModal, closeModal } from './ui.js';
+} from '../../shared/services/proposalService.ts';
+import { fetchProjects } from '../../shared/services/projectService.ts';
+import { fetchInvoices, createInvoice } from '../../shared/services/financeService.ts';
+import { _clients, _proposals, setClients, setProposals } from './state.ts';
+import { toast, openModal, closeModal } from './ui.ts';
 
 // ── Clients ──────────────────────────────────────────────────────────────────
 

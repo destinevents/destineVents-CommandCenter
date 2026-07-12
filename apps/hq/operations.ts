@@ -1,21 +1,22 @@
+// @ts-nocheck
 import { formatBytes } from '../../shared/utils/formatUtils.ts';
 import { formatDateShort, todayISO } from '../../shared/utils/dateUtils.ts';
 import { escapeHtml, docTypeIcon, guessDocType } from '../../shared/utils/helpers.ts';
 import { validateRequired } from '../../shared/utils/validators.ts';
 import {
   fetchPartners, createPartner, updatePartner, deletePartner, filterPartnersByType,
-} from '../../shared/services/partnerService.js';
+} from '../../shared/services/partnerService.ts';
 import {
   fetchDocuments, uploadDocument, getDocumentPublicUrl, saveDocumentMeta,
   getDocumentSignedUrl, removeDocument,
-} from '../../shared/services/documentService.js';
-import { fetchClients, createClient, findClientByName } from '../../shared/services/clientService.js';
-import { fetchProjects, createProject } from '../../shared/services/projectService.js';
-import { fetchImpactEntries, createImpactEntry, updateImpactEntry, deleteImpactEntry } from '../../shared/services/impactService.js';
+} from '../../shared/services/documentService.ts';
+import { fetchClients, createClient, findClientByName } from '../../shared/services/clientService.ts';
+import { fetchProjects, createProject } from '../../shared/services/projectService.ts';
+import { fetchImpactEntries, createImpactEntry, updateImpactEntry, deleteImpactEntry } from '../../shared/services/impactService.ts';
 import { generateNDAContent, buildNDAWindowContent } from '../../shared/business/ndaGenerator.js';
-import { _clients, _projects, _partners, _documents, _impactEntries, setClients, setProjects, setPartners, setDocuments, setImpactEntries } from './state.js';
-import { toast, openModal, closeModal } from './ui.js';
-import { showPage } from './app.js';
+import { _clients, _projects, _partners, _documents, _impactEntries, setClients, setProjects, setPartners, setDocuments, setImpactEntries } from './state.ts';
+import { toast, openModal, closeModal } from './ui.ts';
+import { showPage } from './app.ts';
 
 // ── Partners ──────────────────────────────────────────────────────────────────
 
@@ -336,6 +337,7 @@ export async function downloadNDA() {
 
   const html = buildNDAWindowContent(client, address, contact, email, purpose, dateVal, brand);
   const w = window.open('', '_blank');
+  if (!w) return;
   w.document.write(html);
   w.document.close();
   setTimeout(() => { w.focus(); w.print(); }, 400);

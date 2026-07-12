@@ -1,3 +1,4 @@
+// @ts-nocheck
 // ─── ICC APP SHELL: routing, event delegation, realtime, init ────────────────
 // Top of the module graph — imports every page module. Page modules may import
 // { goPage, renderPage } back from here, but only call them inside handlers
@@ -8,32 +9,32 @@ import { sb } from '../../shared/services/supabase';
 import { getCurrentUser, signOut } from '../../shared/services/authService.ts';
 import {
   currentUser, setCurrentUser, activePage, setActivePage,
-} from './state.js';
+} from './state.ts';
 import {
   handleError, openModal, closeModal,
   applyRoleVisibility, toggleSidebar, toggleMobileNav, updateBadges,
-} from './ui.js';
-import { loadLiveUsers, loadLiveTasks, loadLiveTimesheets } from './data.js';
-import { renderDashboard } from './dashboard.js';
+} from './ui.ts';
+import { loadLiveUsers, loadLiveTasks, loadLiveTimesheets } from './data.ts';
+import { renderDashboard } from './dashboard.ts';
 import {
   renderTasks, setTaskFilter, openTaskDetail, handleDeleteTask, taskAction,
   openCreateTask, openEditTask, populateAddTaskModal, handleCreateTask, taskPager,
-} from './tasks.js';
+} from './tasks.ts';
 import {
   renderTimesheets, openLogHours, setSheetFilter, exportTimesheetCSV,
   approveSheet, rejectSheet, confirmReject, deleteSheet, logHours, sheetPager,
-} from './timesheets.js';
-import { renderOutputs, outputPager } from './outputs.js';
+} from './timesheets.ts';
+import { renderOutputs, outputPager } from './outputs.ts';
 import {
   renderApprovals, renderInterns, renderReports, renderAuditLog,
   exportExcel, exportPDF, completeIntern, reopenIntern, setInternTab,
-} from './admin.js';
-import { renderAccount } from './account.js';
-import { renderCalendar, calPrev, calNext } from './calendar.js';
+} from './admin.ts';
+import { renderAccount } from './account.ts';
+import { renderCalendar, calPrev, calNext } from './calendar.ts';
 import {
   loadNotifications, toggleNotifCenter, openNotification,
   markAllNotificationsRead, handleIncomingNotification,
-} from './notifications.js';
+} from './notifications.ts';
 
 // ─── PAGE ROUTING ────────────────────────────────────────────────────────────
 const PAGE_DATA = {
