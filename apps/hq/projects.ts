@@ -207,7 +207,7 @@ export function openProjectInvoice(id: number) {
       due:        gVal('priv-due') || null,
       project_id: p.id,
     });
-    if (!result) return;
+    if (!result) { toast('Could not create invoice. Please try again.', 'error'); return; }
     toast('Invoice created — check Finance › AR', 'success');
     closeModal();
   });

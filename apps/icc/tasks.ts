@@ -216,7 +216,7 @@ export async function taskAction(id, action) {
 
     if (outputLink) {
       const result = await updateTask(id, { output_link: outputLink });
-      if (!result) return;
+      if (!result) { toast('Could not save output link. Please try again.'); return; }
     }
   }
 
@@ -225,7 +225,7 @@ export async function taskAction(id, action) {
   if (!newStatus) return;
 
   const result = await updateTask(id, { status: newStatus, updated_at: new Date().toISOString() });
-  if (!result) return;
+  if (!result) { toast('Could not update task. Please try again.'); return; }
 
   // fire-and-forget: logAudit handles its own errors; don't stall the UI on it
   logAudit('task_status_changed', 'task', id, { new_status: newStatus, action }, currentUser.id);
@@ -324,7 +324,7 @@ export async function handleCreateTask() {
   const wasEditing = !!editingTaskId;
   if (wasEditing) {
     const result = await updateTask(editingTaskId, { ...fields, updated_at: new Date().toISOString() });
-    if (!result) return;
+    if (!result) { toast('Could not update task. Please try again.', 'error'); return; }
     logAudit('task_edited', 'task', editingTaskId, { title }, currentUser.id);
     editingTaskId = null;
   } else {
@@ -334,7 +334,7 @@ export async function handleCreateTask() {
       status:      'assigned',
       output_link: '',
     });
-    if (!result) return;
+    if (!result) { toast('Could not create task. Please try again.', 'error'); return; }
     logAudit('task_created', 'task', result.id, { title, assigned_to: user(assignee).name || assignee }, currentUser.id);
   }
 

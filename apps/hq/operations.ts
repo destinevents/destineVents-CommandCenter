@@ -97,7 +97,7 @@ export async function savePartner() {
     toast('Partner updated', 'success');
   } else {
     const result = await createPartner(payload);
-    if (!result) return;
+    if (!result) { toast('Could not add partner. Please try again.', 'error'); return; }
     toast('Partner added', 'success');
   }
   closeModal();
@@ -409,7 +409,7 @@ export async function saveImpactEntry() {
     lgus_engaged:     +gVal('imp-lgus')     || 0,
     project_id:       projVal ? +projVal : null,
   });
-  if (!result) return;
+  if (!result) { toast('Could not save impact entry. Please try again.', 'error'); return; }
   toast('Impact entry saved', 'success');
   ['imp-period', 'imp-program', 'imp-students', 'imp-teachers', 'imp-smes', 'imp-lgus'].forEach(id => {
     (document.getElementById(id) as HTMLInputElement).value = '';

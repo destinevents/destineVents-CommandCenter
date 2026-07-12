@@ -224,7 +224,7 @@ export async function saveInvoice() {
     toast('Invoice updated', 'success');
   } else {
     const result = await createInvoice(payload);
-    if (!result) return;
+    if (!result) { toast('Could not add invoice. Please try again.', 'error'); return; }
     toast('Invoice added', 'success');
   }
   closeModal();
@@ -321,7 +321,7 @@ export async function saveBill() {
     toast('Bill updated', 'success');
   } else {
     const result = await createBill(payload);
-    if (!result) return;
+    if (!result) { toast('Could not add bill. Please try again.', 'error'); return; }
     toast('Bill added', 'success');
   }
   closeModal();
@@ -413,7 +413,7 @@ export async function savePayroll() {
     toast('Payroll run updated', 'success');
   } else {
     const result = await createPayrollRun(payload);
-    if (!result) return;
+    if (!result) { toast('Could not save payroll run. Please try again.', 'error'); return; }
     toast('Payroll run saved', 'success');
   }
   closeModal();
@@ -552,7 +552,7 @@ export async function saveBirFiling() {
     notes:        gVal('bir-notes').trim(),
     filed_at:     gVal('bir-date') || todayISO(),
   });
-  if (!result) return;
+  if (!result) { toast('Could not record BIR filing. Please try again.', 'error'); return; }
   toast(`${form} filing recorded for ${period}`, 'success');
   closeModal();
   loadFinance();

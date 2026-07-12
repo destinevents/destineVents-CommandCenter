@@ -95,7 +95,7 @@ export async function saveClient() {
     toast('Client updated', 'success');
   } else {
     const result = await createClient({ ...payload, total_value: 0 });
-    if (!result) return;
+    if (!result) { toast('Could not add client. Please try again.', 'error'); return; }
     toast('Client added', 'success');
   }
   closeModal();
@@ -209,7 +209,7 @@ export async function saveProposal() {
     toast('Proposal updated', 'success');
   } else {
     const result = await createProposal(payload);
-    if (!result) return;
+    if (!result) { toast('Could not add proposal. Please try again.', 'error'); return; }
     toast('Proposal added', 'success');
   }
   closeModal();
@@ -250,7 +250,7 @@ export function openProposalInvoice(proposalId: number) {
       date:   gVal('piv-date') || null,
       due:    gVal('piv-due') || null,
     });
-    if (!result) return;
+    if (!result) { toast('Could not create invoice. Please try again.', 'error'); return; }
     toast('Invoice created — check Finance › AR', 'success');
     closeModal();
   });

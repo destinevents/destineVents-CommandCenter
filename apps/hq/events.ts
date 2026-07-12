@@ -236,7 +236,7 @@ async function saveEvent() {
     toast('Event updated', 'success');
   } else {
     const result = await createEvent({ ...payload, status: payload.status || 'Upcoming' });
-    if (!result) return;
+    if (!result) { toast('Could not create event. Please try again.', 'error'); return; }
     toast('Event created', 'success');
   }
   closeModal();
@@ -292,7 +292,7 @@ async function saveIssueEventInvoice() {
     due:      gVal('eiv-due') || null,
     event_id: _invoiceEventId || null,
   });
-  if (!result) return;
+  if (!result) { toast('Could not create invoice. Please try again.', 'error'); return; }
   toast('Invoice created — check Finance › AR', 'success');
   closeModal();
   _invoiceEventId = null;
