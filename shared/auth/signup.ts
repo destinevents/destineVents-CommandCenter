@@ -101,3 +101,6 @@ async function handleSignUp() {
 }
 
 Object.assign(window, { handleSignUp, handleRoleChange });
+
+// Set initial state in case browser restores a previous selection
+handleRoleChange();
