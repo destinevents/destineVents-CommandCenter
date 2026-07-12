@@ -370,7 +370,8 @@ async function init() {
       window.location.href = 'login.html';
       return;
     }
-    if (isHQRole(user.role)) {
+    // Admin can enter both portals; other HQ-only roles cannot access ICC
+    if (user.role !== 'admin' && isHQRole(user.role)) {
       window.location.href = 'index.html';
       return;
     }

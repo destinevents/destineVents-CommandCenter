@@ -89,6 +89,9 @@ function applyHQRoleAccess(role: UserRole) {
   document.querySelectorAll<HTMLElement>('.tab[data-page]').forEach(el => {
     el.style.display = allowed.includes(el.dataset['page'] ?? '') ? '' : 'none';
   });
+  // Only admin can switch to the Intern portal
+  const switchBtn = document.getElementById('nav-switch-intern');
+  if (switchBtn) switchBtn.style.display = 'none';
   if (role === 'external_accountant') {
     document.body.classList.add('hq-readonly');
   }
