@@ -398,7 +398,8 @@ export async function savePayroll() {
   const period = gVal('pp-period').trim();
   const err = validateRequired(period, 'Period');
   if (err) { toast(err, 'error'); return; }
-  const gross = +gVal('pp-gross') || 0;
+  const gross = +gVal('pp-gross');
+  if (!gross || gross <= 0) { toast('Gross amount must be greater than ₱0', 'error'); return; }
   const ded   = +gVal('pp-ded')   || 0;
   const payload = {
     period,

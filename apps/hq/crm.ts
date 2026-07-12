@@ -262,9 +262,15 @@ export async function openClientDetail(id: number) {
   const c = _clients.find(x => x.id === id);
   if (!c) return;
   openModal(c.name, '<div style="padding:16px;text-align:center;color:var(--ink-3);font-size:12px">Loading…</div>', closeModal, 'Close');
-  const [proposals, projects, invoices] = await Promise.all([
-    fetchProposals(), fetchProjects(), fetchInvoices(),
-  ]);
+  let proposals, projects, invoices;
+  try {
+    [proposals, projects, invoices] = await Promise.all([
+      fetchProposals(), fetchProjects(), fetchInvoices(),
+    ]);
+  } catch {
+    gEl('modal-body').innerHTML = '<div style="padding:16px;color:var(--red);font-size:12px">Failed to load client data. Please try again.</div>';
+    return;
+  }
   const match     = (n: string | null | undefined) => n?.toLowerCase() === c.name.toLowerCase();
   const cProps    = proposals.filter(p => match(p.client));
   const cProjs    = projects.filter(p => match(p.client));

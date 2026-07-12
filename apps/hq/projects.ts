@@ -132,7 +132,13 @@ export async function openProjectDetail(id: number) {
   const p = _projects.find(x => x.id === id);
   if (!p) return;
   openModal(p.name, '<div style="padding:16px;text-align:center;color:var(--ink-3);font-size:12px">Loading…</div>', closeModal, 'Close');
-  const [proposals, invoices] = await Promise.all([fetchProposals(), fetchInvoices()]);
+  let proposals, invoices;
+  try {
+    [proposals, invoices] = await Promise.all([fetchProposals(), fetchInvoices()]);
+  } catch {
+    gEl('modal-body').innerHTML = '<div style="padding:16px;color:var(--red);font-size:12px">Failed to load project data. Please try again.</div>';
+    return;
+  }
   const match   = (n: string | null | undefined) => n?.toLowerCase() === (p.client || '').toLowerCase();
   const pProps  = proposals.filter((x: Proposal) => match(x.client));
   const pInvs   = invoices.filter(i => match(i.client));
