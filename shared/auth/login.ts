@@ -1,29 +1,48 @@
-// Login page entry module (Vite). The HTML keeps its inline onclick handlers,
-// so every handler referenced there is re-attached to window at the bottom —
-// module scope does not leak globals the way classic scripts did.
 import './authPage.ts';
 import { sb } from '../services/supabase';
 import { signIn, signOut, getSession } from '../services/authService.ts';
 import { validateEmail } from '../utils/validators.ts';
+import { HQ_ROLES, ICC_ROLES } from '../../config/roles.ts';
+import type { UserRole } from '../types';
+
+const HQ_ROLE_SET  = new Set<string>(HQ_ROLES);
+const ICC_ROLE_SET = new Set<string>(ICC_ROLES);
 
 function setLoading(loading: boolean) {
   const btn = document.getElementById('login-btn') as HTMLButtonElement;
-  if (loading) {
-    btn.classList.add('btn-loading');
-    btn.disabled = true;
-  } else {
-    btn.classList.remove('btn-loading');
-    btn.disabled = false;
-  }
+  btn.classList.toggle('btn-loading', loading);
+  btn.disabled = loading;
 }
 
-function routeByRole(role: string) {
-  if (role === 'admin') {
-    document.getElementById('login-form')!.style.display = 'none';
-    document.getElementById('role-picker')!.style.display = 'block';
-  } else {
-    window.location.href = 'intern.html';
+function hideAllPanels() {
+  ['login-form', 'forgot-form', 'role-picker', 'pending-screen'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+}
+
+function routeByRole(role: UserRole | string) {
+  if (role === 'pending') {
+    hideAllPanels();
+    document.getElementById('pending-screen')!.style.display = 'block';
+    return;
   }
+  if (role === 'admin') {
+    hideAllPanels();
+    document.getElementById('role-picker')!.style.display = 'block';
+    return;
+  }
+  if (HQ_ROLE_SET.has(role)) {
+    window.location.href = 'index.html';
+    return;
+  }
+  if (ICC_ROLE_SET.has(role)) {
+    window.location.href = 'intern.html';
+    return;
+  }
+  // Unknown role — fall back to pending screen rather than a blank state
+  hideAllPanels();
+  document.getElementById('pending-screen')!.style.display = 'block';
 }
 
 function goHQ() {
@@ -136,8 +155,8 @@ async function handleForgot() {
 
 async function handleSignOut() {
   await signOut();
+  hideAllPanels();
   document.getElementById('login-form')!.style.display = 'block';
-  document.getElementById('role-picker')!.style.display = 'none';
   document.getElementById('login-error')!.textContent = '';
 }
 

@@ -35,6 +35,7 @@ import {
   loadNotifications, toggleNotifCenter, openNotification,
   markAllNotificationsRead, handleIncomingNotification,
 } from './notifications.ts';
+import { isHQRole, isPending } from '../../config/roles.ts';
 
 // ─── PAGE ROUTING ────────────────────────────────────────────────────────────
 const PAGE_DATA = {
@@ -362,6 +363,15 @@ async function init() {
     const user = await getCurrentUser();
     if (!user) {
       window.location.href = 'login.html';
+      return;
+    }
+
+    if (isPending(user.role)) {
+      window.location.href = 'login.html';
+      return;
+    }
+    if (isHQRole(user.role)) {
+      window.location.href = 'index.html';
       return;
     }
 

@@ -21,7 +21,8 @@ interface AuthResult {
 
 export async function signUp(email: string, password: string, meta: AuthMeta = {}) {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    // Strip `role` to prevent privilege escalation, but allow `requested_role`
+    // so the DB trigger can store the user's intended role for Jenn to review.
     const { role: _role, ...safeMeta } = meta as AuthMeta & { role?: unknown };
     const { data, error } = await sb.auth.signUp({ email, password, options: { data: safeMeta } });
     if (error) return { data: null, error };
@@ -76,7 +77,7 @@ export async function getCurrentUser(): Promise<InternUser | null> {
     ...(profile || {}),
     id: session.user.id,
     name: profile?.name || session.user.user_metadata?.name || null,
-    role: profile?.role || 'intern',
+    role: profile?.role || 'pending',
   } as InternUser;
 }
 

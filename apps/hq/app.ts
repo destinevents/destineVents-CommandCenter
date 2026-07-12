@@ -40,6 +40,9 @@ import {
   filterEvents, viewEventRegistrations, backToEvents, copyRegisterUrl,
   handleUpdateRegistrationStatus, openIssueEventInvoice,
 } from './events.ts';
+import { HQ_ALLOWED_PAGES, isHQRole, isICCRole } from '../../config/roles.ts';
+import type { UserRole } from '../../shared/types';
+import { loadUsers, approveUser, changeUserRole } from './users.ts';
 
 const gEl = (id: string) => document.getElementById(id)!;
 
@@ -57,18 +60,41 @@ async function init() {
         'Could not verify your account. Please sign in again.';
       return;
     }
-    if (profile.role !== 'admin') {
+    const role = profile.role as UserRole;
+    if (role === 'pending') {
+      window.location.href = 'login.html';
+      return;
+    }
+    if (isICCRole(role)) {
       window.location.href = 'intern.html';
       return;
     }
+    if (!isHQRole(role)) {
+      window.location.href = 'login.html';
+      return;
+    }
     const name = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
-    enterApp(session.user.email, name);
+    enterApp(session.user.email, name, role);
   } else {
     (gEl('login-screen') as HTMLElement).style.display = 'flex';
   }
 }
 
-function enterApp(email: string | undefined, name: string) {
+function applyHQRoleAccess(role: UserRole) {
+  if (role === 'admin') return;
+  const allowed = HQ_ALLOWED_PAGES[role] ?? [];
+  document.querySelectorAll<HTMLElement>('.nav-item[data-page]').forEach(el => {
+    el.style.display = allowed.includes(el.dataset['page'] ?? '') ? '' : 'none';
+  });
+  document.querySelectorAll<HTMLElement>('.tab[data-page]').forEach(el => {
+    el.style.display = allowed.includes(el.dataset['page'] ?? '') ? '' : 'none';
+  });
+  if (role === 'external_accountant') {
+    document.body.classList.add('hq-readonly');
+  }
+}
+
+function enterApp(email: string | undefined, name: string, role: UserRole = 'admin') {
   (gEl('login-screen') as HTMLElement).style.display = 'none';
   const hour = new Date().getHours();
   const timeOfDay = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
@@ -94,6 +120,7 @@ function enterApp(email: string | undefined, name: string) {
     if (sem) sem.textContent = email;
   }
   setupRealtime();
+  applyHQRoleAccess(role);
   showPage('dashboard');
 }
 
@@ -154,13 +181,21 @@ async function handleSignIn() {
     .select('role')
     .eq('id', data.user.id)
     .single();
-  const role = profile?.role || 'intern';
-  if (role !== 'admin') {
+  const role = (profile?.role || 'pending') as UserRole;
+  if (role === 'pending') {
+    errEl.textContent = 'Your account is pending approval. Jenn will assign your access shortly.';
+    return;
+  }
+  if (isICCRole(role)) {
     window.location.href = 'intern.html';
     return;
   }
+  if (!isHQRole(role)) {
+    errEl.textContent = 'Your account does not have HQ access. Please use the correct portal.';
+    return;
+  }
   const name = data.user.user_metadata?.full_name || data.user.user_metadata?.name || '';
-  enterApp(data.user.email, name);
+  enterApp(data.user.email, name, role);
 }
 
 async function handleSignOut() {
@@ -218,6 +253,9 @@ function loadPage(name: string) {
       break;
     case 'ai':
       initAIAutocomplete();
+      break;
+    case 'users':
+      loadUsers();
       break;
   }
 }
@@ -362,6 +400,7 @@ declare global {
     openIssueEventInvoice: typeof openIssueEventInvoice;
     selectTemplate: typeof selectTemplate; copyAIOutput: typeof copyAIOutput;
     simulateAI: typeof simulateAI; saveAIOutput: typeof saveAIOutput;
+    approveUser: typeof approveUser; changeUserRole: typeof changeUserRole;
   }
 }
 
@@ -394,6 +433,8 @@ Object.assign(window, {
   openIssueEventInvoice,
   // AI
   selectTemplate, copyAIOutput, simulateAI, saveAIOutput,
+  // Users (admin)
+  approveUser, changeUserRole,
 });
 
 export { showPage };

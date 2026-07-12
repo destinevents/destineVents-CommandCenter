@@ -90,6 +90,19 @@
           </div>
         </div>
 
+        <!-- Pending Screen (shown when role = 'pending') -->
+        <div id="pending-screen" style="display:none">
+          <div class="auth-greeting">Access pending.</div>
+          <div class="auth-sub" style="margin-bottom:20px">Your account is under review by the admin.</div>
+          <p style="color:var(--muted,#64748b);font-size:0.85rem;line-height:1.6;margin-bottom:24px">
+            Jenn will assign your role shortly.<br/>
+            You'll have full access once approved.
+          </p>
+          <div class="role-signout" style="margin-top:0">
+            <a href="#" onclick="handleSignOut();return false">Sign out</a>
+          </div>
+        </div>
+
       </div>
     </div>
   </main>

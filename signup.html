@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Sign Up — Intern Command Center</title>
+<title>Sign Up — DestineVents</title>
 <link rel="icon" type="image/svg+xml" href="assets/icons/favicon-intern.svg" />
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
@@ -14,10 +14,10 @@
 <div class="auth-screen">
   <header class="auth-top">
     <div class="auth-logo">
-      <div class="auth-logo-icon">🎓</div>
+      <div class="auth-logo-icon" id="su-logo-icon">🎓</div>
       <div class="auth-logo-text">
-        <div class="t1">Intern CMD</div>
-        <div class="t2">Command Center</div>
+        <div class="t1" id="su-logo-t1">DestineVents</div>
+        <div class="t2" id="su-logo-t2">New Account</div>
       </div>
     </div>
     <div class="auth-clock">
@@ -29,13 +29,29 @@
   <main class="auth-main">
     <div class="auth-card auth-card--wide">
       <div class="auth-card-meta">
-        <span>Intern Ops · New Account</span>
+        <span>Account Registration</span>
         <span>Disenyo Digitals</span>
       </div>
       <div class="auth-card-body">
-        <div class="auth-greeting">Join the roster.</div>
-        <div class="auth-sub">Create your intern account to start logging hours</div>
+        <div class="auth-greeting">Join DestineVents.</div>
+        <div class="auth-sub" id="su-subtitle">Select your role to get started</div>
         <div class="login-error" id="signup-error"></div>
+
+        <div class="form-group">
+          <label class="form-label" for="su-role">Signing up as <span class="req">*</span></label>
+          <select class="form-input" id="su-role" onchange="handleRoleChange()">
+            <option value="">— select your role —</option>
+            <optgroup label="Intern Portal">
+              <option value="intern">Intern</option>
+              <option value="supervisor">Supervisor</option>
+            </optgroup>
+            <optgroup label="HQ Portal">
+              <option value="finance_officer">Finance Officer / Bookkeeper</option>
+              <option value="external_accountant">External Accountant</option>
+              <option value="team_staff">Team / Staff</option>
+            </optgroup>
+          </select>
+        </div>
 
         <div class="form-group">
           <label class="form-label" for="su-name">Full Name <span class="req">*</span></label>
@@ -45,7 +61,8 @@
           <label class="form-label" for="su-email">Email <span class="req">*</span></label>
           <input class="form-input" id="su-email" type="email" placeholder="you@destinevents.biz" autocomplete="email"/>
         </div>
-        <div class="form-row2">
+
+        <div class="form-row2" id="su-icc-fields">
           <div class="form-group">
             <label class="form-label" for="su-school">School <span class="req">*</span></label>
             <input class="form-input" id="su-school" type="text" placeholder="e.g. BSU, UC, SLU" autocomplete="organization"/>
@@ -55,6 +72,7 @@
             <input class="form-input" id="su-program" type="text" placeholder="e.g. IT, CS, HM" autocomplete="off"/>
           </div>
         </div>
+
         <div class="form-group" style="margin-bottom:24px">
           <label class="form-label" for="su-pass">Password <span class="req">*</span></label>
           <input class="form-input" id="su-pass" type="password" placeholder="••••••••" autocomplete="new-password" onkeydown="if(event.key==='Enter')handleSignUp()"/>

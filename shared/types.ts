@@ -1,4 +1,11 @@
-export type UserRole = 'admin' | 'supervisor' | 'intern';
+export type UserRole =
+  | 'admin'
+  | 'supervisor'
+  | 'intern'
+  | 'pending'
+  | 'finance_officer'
+  | 'external_accountant'
+  | 'team_staff';
 
 export type TaskStatus =
   | 'assigned'
@@ -18,6 +25,7 @@ export interface InternUser {
   school: string | null;
   program: string | null;
   required_hours: number | null;
+  requested_role?: UserRole | null;
   created_at: string;
 }
 

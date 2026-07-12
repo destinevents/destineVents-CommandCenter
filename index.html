@@ -138,6 +138,10 @@
       <svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/><line x1="9" y1="21" x2="15" y2="21"/><line x1="9" y1="18" x2="15" y2="18"/></svg>
       AI Assistant
     </div>
+    <div class="nav-item" data-page="users" onclick="showPage('users')">
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Users
+    </div>
     <div class="nav-divider"></div>
     <div class="nav-item" onclick="window.location.href='intern.html'" style="cursor:pointer">
       <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -561,6 +565,27 @@
     <div class="ai-output">
       <div class="ai-output-label">Output</div>
       <div id="ai-result"><div class="ai-generating"><div class="dot-pulse"><span></span><span></span><span></span></div>&nbsp; Waiting for input…</div></div>
+    </div>
+  </div>
+
+  <div class="page" id="page-users">
+    <div class="page-eyebrow">admin</div>
+    <div class="page-title">Users</div>
+    <div id="users-pending-section">
+      <h3 style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);margin-bottom:12px">Pending Approval</h3>
+      <div class="card" style="margin-bottom:24px">
+        <table class="data-table" id="users-pending-table">
+          <thead><tr><th>Name</th><th>Email</th><th>Requested Role</th><th>Signed Up</th><th>Action</th></tr></thead>
+          <tbody id="users-pending-body"><tr><td colspan="5" style="color:var(--ink-3)">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <h3 style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);margin-bottom:12px">All Users</h3>
+    <div class="card">
+      <table class="data-table" id="users-all-table">
+        <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Portal</th><th>Change Role</th></tr></thead>
+        <tbody id="users-all-body"><tr><td colspan="5" style="color:var(--ink-3)">Loading…</td></tr></tbody>
+      </table>
     </div>
   </div>
 
