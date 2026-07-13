@@ -459,7 +459,10 @@ export function openBpiQr(id: number, amount: number, client: string) {
       <div><span style="color:var(--ink-3)">Client:</span> <strong>${escapeHtml(client)}</strong></div>
     </div>
     <textarea class="form-input" id="bpi-copy-text" rows="5" readonly style="font-size:11px;font-family:monospace">${escapeHtml(copyText)}</textarea>
-    <button class="btn btn-primary" style="margin-top:10px;width:100%" onclick="copyBpiText()">Copy Bank Details</button>`, () => closeModal());
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn btn-primary" style="flex:1" onclick="copyBpiText()">Copy Bank Details</button>
+      <button class="btn btn-ghost" style="flex:1;border:1px solid var(--border)" onclick="downloadBpiQr()">Download QR</button>
+    </div>`, () => closeModal());
   void id;
 }
 
@@ -469,6 +472,14 @@ export function copyBpiText() {
   navigator.clipboard.writeText(el.value)
     .then(() => toast('Bank details copied', 'success'))
     .catch(() => toast('Could not copy — please copy manually', 'error'));
+}
+
+export function downloadBpiQr() {
+  const { banking } = APP_SETTINGS;
+  const a = document.createElement('a');
+  a.href = banking.bpiQrImageUrl;
+  a.download = 'DestineVents-BPI-QR.png';
+  a.click();
 }
 
 export async function openPaymentLink(id: number, amount: number, client: string, orNum: string) {

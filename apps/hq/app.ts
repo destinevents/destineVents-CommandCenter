@@ -30,7 +30,7 @@ import {
   loadFinance, showFinanceTab, openFileBir,
   openAddInvoice, openEditInvoice, saveInvoice, handleDeleteInvoice,
   openPaymentLink, copyPaymentLink,
-  openBpiQr, copyBpiText,
+  openBpiQr, copyBpiText, downloadBpiQr,
   openRecordPayment, saveRecordPayment,
   addInvoiceRow, recalcInvoice, togglePaymentFields,
   openAddBill, openEditBill, handleDeleteBill,
@@ -394,7 +394,7 @@ declare global {
     openAddInvoice: typeof openAddInvoice; openEditInvoice: typeof openEditInvoice;
     saveInvoice: typeof saveInvoice; handleDeleteInvoice: typeof handleDeleteInvoice;
     openPaymentLink: typeof openPaymentLink; copyPaymentLink: typeof copyPaymentLink;
-    openBpiQr: typeof openBpiQr; copyBpiText: typeof copyBpiText;
+    openBpiQr: typeof openBpiQr; copyBpiText: typeof copyBpiText; downloadBpiQr: typeof downloadBpiQr;
     openRecordPayment: typeof openRecordPayment; saveRecordPayment: typeof saveRecordPayment;
     addInvoiceRow: typeof addInvoiceRow; recalcInvoice: typeof recalcInvoice;
     togglePaymentFields: typeof togglePaymentFields;
@@ -437,7 +437,7 @@ Object.assign(window, {
   // Finance
   openAddInvoice, openEditInvoice, saveInvoice, handleDeleteInvoice,
   openPaymentLink, copyPaymentLink,
-  openBpiQr, copyBpiText,
+  openBpiQr, copyBpiText, downloadBpiQr,
   openRecordPayment, saveRecordPayment,
   addInvoiceRow, recalcInvoice, togglePaymentFields,
   openAddBill, openEditBill, handleDeleteBill,
