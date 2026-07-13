@@ -55,4 +55,17 @@ export const APP_SETTINGS = {
   app: {
     url: 'https://destine-vents-command-center.vercel.app',
   },
+  payments: {
+    currency: 'PHP',
+    successPath: '/payment-success.html',
+    cancelPath: '/register.html',
+    methods: ['gcash', 'card', 'paymaya', 'grab_pay'],
+  },
+  banking: {
+    tin: '',
+    bpiAccountName: 'Destine Vents Events Management Services',
+    bpiBranch: 'BPI Baguio Legarda',
+    bpiAccountNumber: '8129-1500-42',
+    bpiQrImageUrl: '/assets/images/bpi-qr.png',
+  },
 };

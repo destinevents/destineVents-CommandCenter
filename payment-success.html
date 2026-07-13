@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Payment Confirmed — DestineVents</title>
+<link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --linen: #faf7f2;
+    --parchment: #f5efe4;
+    --gold: #b5870b;
+    --gold-light: #e8c97a;
+    --ink-1: #1a1710;
+    --ink-2: #3d3a31;
+    --ink-3: #7a7567;
+    --ink-4: #e2ddd5;
+    --white: #ffffff;
+    --green: #2d7a4f;
+  }
+  body { background: var(--linen); font-family: 'DM Sans', sans-serif; color: var(--ink-1); min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+  .page-wrap { max-width: 480px; width: 100%; padding: 40px 24px 64px; text-align: center; }
+  .brand-bar { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 40px; }
+  .brand-mark { width: 32px; height: 32px; background: var(--ink-1); border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+  .brand-mark span { color: var(--gold-light); font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 700; line-height: 1; }
+  .brand-name { font-size: 13px; font-weight: 600; letter-spacing: 0.05em; color: var(--ink-2); text-align: left; }
+  .brand-sub { font-size: 10px; color: var(--ink-3); letter-spacing: 0.08em; text-transform: uppercase; }
+  .success-icon { width: 72px; height: 72px; background: var(--green); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; }
+  .success-icon svg { stroke: #fff; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; width: 36px; height: 36px; }
+  .success-title { font-family: 'Cormorant Garamond', serif; font-size: 32px; font-weight: 700; line-height: 1.2; margin-bottom: 12px; }
+  .success-sub { font-size: 14px; color: var(--ink-3); line-height: 1.75; margin-bottom: 32px; }
+  .info-card { background: var(--parchment); border: 1px solid var(--ink-4); border-radius: 10px; padding: 20px 24px; text-align: left; margin-bottom: 28px; }
+  .info-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--ink-2); padding: 6px 0; }
+  .info-row:not(:last-child) { border-bottom: 1px solid var(--ink-4); }
+  .info-label { color: var(--ink-3); font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+  .info-value { font-weight: 500; }
+  .btn-home { display: inline-block; background: var(--ink-1); color: var(--gold-light); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; padding: 12px 28px; border-radius: 6px; text-decoration: none; transition: opacity .15s; }
+  .btn-home:hover { opacity: .88; }
+  footer { margin-top: 40px; font-size: 11px; color: var(--ink-3); letter-spacing: 0.06em; }
+</style>
+</head>
+<body>
+<div class="page-wrap">
+  <div class="brand-bar">
+    <div class="brand-mark"><span>D</span></div>
+    <div>
+      <div class="brand-name">DestineVents</div>
+      <div class="brand-sub">Payment Confirmed</div>
+    </div>
+  </div>
+
+  <div class="success-icon">
+    <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+  </div>
+
+  <div class="success-title">Payment Received!</div>
+  <div class="success-sub">
+    Your registration is confirmed and your payment has been processed successfully.
+    A confirmation will be sent to your email shortly.
+  </div>
+
+  <div class="info-card" id="info-card" style="display:none">
+    <div class="info-row">
+      <span class="info-label">Registration ID</span>
+      <span class="info-value" id="info-ref">—</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Status</span>
+      <span class="info-value" style="color:var(--green);font-weight:600">Payment Confirmed</span>
+    </div>
+  </div>
+
+  <a href="/" class="btn-home">Back to Home</a>
+
+  <footer>DestineVents Collective OPC · Baguio City, Philippines</footer>
+</div>
+
+<script type="module">
+  const p = new URLSearchParams(window.location.search);
+  const ref = p.get('ref');
+  if (ref) {
+    document.getElementById('info-ref').textContent = `REG-${ref}`;
+    document.getElementById('info-card').style.display = '';
+  }
+</script>
+</body>
+</html>

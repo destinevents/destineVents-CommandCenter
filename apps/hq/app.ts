@@ -28,7 +28,11 @@ import {
 } from './operations.ts';
 import {
   loadFinance, showFinanceTab, openFileBir,
-  openAddInvoice, openEditInvoice, handleDeleteInvoice,
+  openAddInvoice, openEditInvoice, saveInvoice, handleDeleteInvoice,
+  openPaymentLink, copyPaymentLink,
+  openBpiQr, copyBpiText,
+  openRecordPayment, saveRecordPayment,
+  addInvoiceRow, recalcInvoice, togglePaymentFields,
   openAddBill, openEditBill, handleDeleteBill,
   openAddPayroll, openEditPayroll, handleDeletePayroll,
   estimateDeductions,
@@ -388,7 +392,13 @@ declare global {
     handleDeleteProject: typeof handleDeleteProject; convertProposalToProject: typeof convertProposalToProject;
     openProjectDetail: typeof openProjectDetail; openProjectInvoice: typeof openProjectInvoice;
     openAddInvoice: typeof openAddInvoice; openEditInvoice: typeof openEditInvoice;
-    handleDeleteInvoice: typeof handleDeleteInvoice; openAddBill: typeof openAddBill;
+    saveInvoice: typeof saveInvoice; handleDeleteInvoice: typeof handleDeleteInvoice;
+    openPaymentLink: typeof openPaymentLink; copyPaymentLink: typeof copyPaymentLink;
+    openBpiQr: typeof openBpiQr; copyBpiText: typeof copyBpiText;
+    openRecordPayment: typeof openRecordPayment; saveRecordPayment: typeof saveRecordPayment;
+    addInvoiceRow: typeof addInvoiceRow; recalcInvoice: typeof recalcInvoice;
+    togglePaymentFields: typeof togglePaymentFields;
+    openAddBill: typeof openAddBill;
     openEditBill: typeof openEditBill; handleDeleteBill: typeof handleDeleteBill;
     openAddPayroll: typeof openAddPayroll; openEditPayroll: typeof openEditPayroll;
     handleDeletePayroll: typeof handleDeletePayroll; openFileBir: typeof openFileBir;
@@ -425,7 +435,11 @@ Object.assign(window, {
   // Projects
   openAddProject, openEditProject, handleDeleteProject, convertProposalToProject, openProjectDetail, openProjectInvoice,
   // Finance
-  openAddInvoice, openEditInvoice, handleDeleteInvoice,
+  openAddInvoice, openEditInvoice, saveInvoice, handleDeleteInvoice,
+  openPaymentLink, copyPaymentLink,
+  openBpiQr, copyBpiText,
+  openRecordPayment, saveRecordPayment,
+  addInvoiceRow, recalcInvoice, togglePaymentFields,
   openAddBill, openEditBill, handleDeleteBill,
   openAddPayroll, openEditPayroll, handleDeletePayroll,
   openFileBir, showFinanceTab, estimateDeductions,

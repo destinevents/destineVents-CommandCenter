@@ -1,12 +1,19 @@
 import { sb } from '../../shared/services/supabase';
+import { createEventCheckout } from '../../shared/services/paymentService';
 
 const params = new URLSearchParams(window.location.search);
 const eventId = params.get('event');
+
+let _eventPrice = 0;
 
 async function init() {
   if (!eventId) {
     showError('No event specified.');
     return;
+  }
+
+  if (params.get('cancelled') === '1') {
+    showCancelled();
   }
 
   const { data: event, error } = await sb.from('events').select('*').eq('id', eventId).single();
@@ -24,6 +31,8 @@ async function init() {
     return;
   }
 
+  _eventPrice = parseFloat(event.price) || 0;
+
   document.getElementById('event-name')!.textContent   = event.name;
   document.getElementById('event-brand')!.textContent  = event.brand;
   document.getElementById('event-type')!.textContent   = event.event_type || '';
@@ -31,9 +40,12 @@ async function init() {
     ? new Date(event.date).toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
     : 'Date TBA';
   document.getElementById('event-venue')!.textContent  = event.venue || 'Venue TBA';
-  document.getElementById('event-price')!.textContent  = event.price
-    ? `₱${parseFloat(event.price).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`
+  document.getElementById('event-price')!.textContent  = _eventPrice > 0
+    ? `₱${_eventPrice.toLocaleString('en-PH', { minimumFractionDigits: 2 })}`
     : 'Free';
+
+  const submitBtn = document.getElementById('reg-submit-btn') as HTMLButtonElement;
+  submitBtn.textContent = _eventPrice > 0 ? 'Register & Pay' : 'Register Now';
 
   document.getElementById('reg-form-wrap')!.style.display = '';
   document.getElementById('event-loading')!.style.display = 'none';
@@ -55,23 +67,52 @@ async function handleSubmit(e: SubmitEvent) {
   if (!name || !email) {
     errEl.textContent = 'Name and email are required.';
     btn.disabled = false;
-    btn.textContent = 'Register';
+    btn.textContent = _eventPrice > 0 ? 'Register & Pay' : 'Register Now';
     return;
   }
 
-  const { error } = await sb.from('event_registrations').insert({
-    event_id:     eventId,
-    name,
-    email,
-    phone:        phone || null,
-    organization: org   || null,
-    status:       'Registered',
-  });
+  const { data: inserted, error } = await sb
+    .from('event_registrations')
+    .insert({
+      event_id:      eventId,
+      name,
+      email,
+      phone:         phone || null,
+      organization:  org   || null,
+      status:        'Registered',
+      payment_status: _eventPrice > 0 ? 'pending' : null,
+    })
+    .select()
+    .single();
 
-  if (error) {
+  if (error || !inserted) {
     errEl.textContent = 'Registration failed. Please try again.';
     btn.disabled = false;
-    btn.textContent = 'Register';
+    btn.textContent = _eventPrice > 0 ? 'Register & Pay' : 'Register Now';
+    return;
+  }
+
+  if (_eventPrice > 0) {
+    btn.textContent = 'Redirecting to payment…';
+
+    const eventNameEl = document.getElementById('event-name');
+    const desc = `Event ticket — ${eventNameEl?.textContent ?? 'DestineVents Event'}`;
+
+    const result = await createEventCheckout({
+      eventId:        parseInt(eventId!, 10),
+      registrationId: inserted.id,
+      amount:         _eventPrice,
+      description:    desc,
+    });
+
+    if (!result) {
+      errEl.textContent = 'Could not start payment. Please try again or contact support.';
+      btn.disabled = false;
+      btn.textContent = 'Register & Pay';
+      return;
+    }
+
+    window.location.href = result.checkoutUrl;
     return;
   }
 
@@ -85,6 +126,15 @@ function showError(msg: string) {
   const errEl = document.getElementById('page-error')!;
   errEl.textContent = msg;
   errEl.style.display = '';
+}
+
+function showCancelled() {
+  const errEl = document.getElementById('page-error')!;
+  errEl.textContent = 'Payment was cancelled. You can try again below.';
+  errEl.style.display = '';
+  errEl.style.background = '#fff8e6';
+  errEl.style.borderColor = '#f5d87e';
+  errEl.style.color = '#7a5c00';
 }
 
 document.getElementById('reg-form')!.addEventListener('submit', handleSubmit);

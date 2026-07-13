@@ -118,16 +118,37 @@ export interface Partner {
   created_at: string;
 }
 
+export interface InvoiceLineItem {
+  id?: number;
+  invoice_id?: number;
+  description: string;
+  quantity: number;
+  unit_price: number;
+  vat_rate: number;
+  created_at?: string;
+}
+
 export interface Invoice {
   id: number;
   or_num: string;
   client: string | null;
   amount: number;
+  subtotal: number | null;
+  vat_amount: number | null;
+  discount: number | null;
+  notes: string | null;
   date: string | null;
   due: string | null;
   status: string;
+  payment_method: string | null;
+  payment_reference: string | null;
+  payment_date: string | null;
+  received_by: string | null;
   project_id: number | null;
   event_id: number | null;
+  payment_id: string | null;
+  payment_url: string | null;
+  paymongo_link_id: string | null;
   created_at: string;
 }
 
@@ -191,6 +212,25 @@ export interface EventRegistration {
   organization: string | null;
   status: string;
   registered_at: string;
+  payment_id: string | null;
+  payment_status: string | null;
+}
+
+export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'cancelled';
+export type PaymentType = 'event_ticket' | 'invoice';
+
+export interface Payment {
+  id: string;
+  external_id: string | null;
+  checkout_url: string | null;
+  amount: number;
+  currency: string;
+  status: PaymentStatus;
+  type: PaymentType;
+  reference_id: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface BirFiling {
@@ -245,6 +285,9 @@ export interface FinanceSummary {
   apOutstanding: number;
   netPosition: number;
   revenueCollected: number;
+  collectedThisMonth: number;
+  expensesPaid: number;
+  netProfit: number;
   overdueCount: number;
   overdueTotal: number;
   pendingBillsCount: number;

@@ -7,8 +7,9 @@ import {
   fetchInvoices, createInvoice, updateInvoice, deleteInvoice,
   fetchBills, createBill, updateBill, deleteBill,
   fetchPayrollRuns, createPayrollRun, updatePayrollRun, deletePayrollRun,
-  calcFinanceSummary,
+  calcFinanceSummary, fetchLineItems, upsertLineItems,
 } from '../../shared/services/financeService.ts';
+import { createInvoicePaymentLink } from '../../shared/services/paymentService.ts';
 import { fetchClients } from '../../shared/services/clientService.ts';
 import { fetchProjects } from '../../shared/services/projectService.ts';
 import { fetchPartners } from '../../shared/services/partnerService.ts';
@@ -21,7 +22,7 @@ import {
 } from '../../shared/business/birCalc.js';
 import { _clients, _projects, _partners, _invoices, _bills, _payroll, _birFilings, setClients, setProjects, setPartners, setInvoices, setBills, setPayroll, setBirFilings } from './state.ts';
 import { toast, openModal, closeModal } from './ui.ts';
-import type { Invoice, Bill, PayrollRun, BirFiling } from '../../shared/types.ts';
+import type { Invoice, Bill, PayrollRun, BirFiling, InvoiceLineItem } from '../../shared/types.ts';
 
 const gEl = (id: string) => document.getElementById(id)!;
 const gVal = (id: string) => (document.getElementById(id) as HTMLInputElement).value;
@@ -29,6 +30,19 @@ const gVal = (id: string) => (document.getElementById(id) as HTMLInputElement).v
 let _editingInvoiceId: number | null = null;
 let _editingBillId: number | null    = null;
 let _editingPayrollId: number | null = null;
+
+function lineItemRowHTML(item: Partial<InvoiceLineItem> = {}) {
+  const lineTotal = (item.quantity ?? 1) * (item.unit_price ?? 0) * (1 + (item.vat_rate ?? 0) / 100);
+  return `
+    <tr class="li-row">
+      <td style="padding:3px 4px"><input class="form-input li-desc" style="font-size:12px;padding:4px 6px" value="${escapeHtml(item.description || '')}" placeholder="Service / item" oninput="recalcInvoice()"/></td>
+      <td style="padding:3px 4px"><input class="form-input li-qty" style="font-size:12px;padding:4px 6px;text-align:right" type="number" value="${item.quantity ?? 1}" min="0" step="any" oninput="recalcInvoice()"/></td>
+      <td style="padding:3px 4px"><input class="form-input li-price" style="font-size:12px;padding:4px 6px;text-align:right" type="number" value="${item.unit_price ?? 0}" min="0" step="any" oninput="recalcInvoice()"/></td>
+      <td style="padding:3px 4px"><input class="form-input li-vat" style="font-size:12px;padding:4px 6px;text-align:right" type="number" value="${item.vat_rate ?? 0}" min="0" max="100" step="any" oninput="recalcInvoice()"/></td>
+      <td class="li-amt" style="padding:3px 4px;text-align:right;font-size:12px">${formatCurrency(lineTotal)}</td>
+      <td style="padding:3px 4px"><button type="button" class="btn btn-ghost" style="padding:2px 6px;font-size:11px;color:var(--red)" onclick="this.closest('tr').remove();recalcInvoice()">×</button></td>
+    </tr>`;
+}
 
 export async function loadFinance() {
   const [inv, bil, pay, bir, clients, projs, parts] = await Promise.all([
@@ -104,8 +118,10 @@ export function renderFinanceOverview(invoices: Invoice[], bills: Bill[]) {
   gEl('finance-stats').innerHTML = `
     <div class="stat-card"><div class="stat-label">AR Outstanding</div><div class="stat-value" style="font-size:22px">${formatCurrency(summary.arOutstanding)}</div><div class="stat-change">${summary.overdueCount} overdue invoice${summary.overdueCount !== 1 ? 's' : ''}</div></div>
     <div class="stat-card"><div class="stat-label">AP Outstanding</div><div class="stat-value" style="font-size:22px">${formatCurrency(summary.apOutstanding)}</div><div class="stat-change">${summary.pendingBillsCount} pending bills</div></div>
-    <div class="stat-card"><div class="stat-label">Revenue Collected</div><div class="stat-value" style="font-size:22px">${formatCurrency(summary.revenueCollected)}</div><div class="stat-change up">This quarter</div></div>
-    <div class="stat-card"><div class="stat-label">Net Position</div><div class="stat-value" style="font-size:22px${net < 0 ? ';color:var(--red)' : ''}">${formatCurrency(Math.abs(net))}</div><div class="stat-change ${net >= 0 ? 'up' : ''}">${net >= 0 ? 'Receivable surplus' : 'Payable deficit'}</div></div>`;
+    <div class="stat-card"><div class="stat-label">Revenue Collected</div><div class="stat-value" style="font-size:22px">${formatCurrency(summary.revenueCollected)}</div><div class="stat-change up">All time</div></div>
+    <div class="stat-card"><div class="stat-label">Net Position</div><div class="stat-value" style="font-size:22px${net < 0 ? ';color:var(--red)' : ''}">${formatCurrency(Math.abs(net))}</div><div class="stat-change ${net >= 0 ? 'up' : ''}">${net >= 0 ? 'Receivable surplus' : 'Payable deficit'}</div></div>
+    <div class="stat-card"><div class="stat-label">Collected This Month</div><div class="stat-value" style="font-size:22px;color:var(--green)">${formatCurrency(summary.collectedThisMonth)}</div><div class="stat-change up">Paid invoices this month</div></div>
+    <div class="stat-card"><div class="stat-label">Net Profit</div><div class="stat-value" style="font-size:22px${summary.netProfit < 0 ? ';color:var(--red)' : ';color:var(--green)'}">${formatCurrency(Math.abs(summary.netProfit))}</div><div class="stat-change ${summary.netProfit >= 0 ? 'up' : ''}">${summary.netProfit >= 0 ? 'Revenue − expenses' : 'Operating at a loss'}</div></div>`;
 
   renderRevenueByProject(invoices, _projects);
 
@@ -138,21 +154,41 @@ export function renderAR(invoices: Invoice[]) {
   gEl('ar-summary').textContent =
     `${invoices.length} invoices · ${formatCurrency(total)} total · ${formatCurrency(out)} outstanding`;
   gEl('ar-tbody').innerHTML = invoices.length
-    ? invoices.map(i => `
+    ? invoices.map(i => {
+        const isUnpaidOrOverdue = i.status !== 'Paid';
+        const payLinkBtn = isUnpaidOrOverdue
+          ? i.payment_url
+            ? `<a href="${escapeHtml(i.payment_url)}" target="_blank" rel="noopener" class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--gold)">Copy Link</a>`
+            : `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--gold)" onclick="openPaymentLink(${i.id},${i.amount},'${escapeHtml(i.client ?? '')}','${escapeHtml(i.or_num)}')">Pay Link</button>`
+          : '';
+        const bpiBtn = isUnpaidOrOverdue && APP_SETTINGS.banking.bpiQrImageUrl
+          ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--ink-2)" onclick="openBpiQr(${i.id},${i.amount},'${escapeHtml(i.client ?? '')}')">BPI QR</button>`
+          : '';
+        const recordBtn = isUnpaidOrOverdue
+          ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--green)" onclick="openRecordPayment(${i.id})">Record Payment</button>`
+          : '';
+        const payMethodBadge = i.status === 'Paid' && i.payment_method
+          ? `<span style="font-size:10px;color:var(--ink-3);margin-left:4px">${escapeHtml(i.payment_method)}</span>`
+          : '';
+        return `
         <tr>
           <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(i.or_num)}</td>
           <td style="font-weight:500;color:var(--ink)">${escapeHtml(i.client)}</td>
           <td class="amount-cell">${formatCurrency(i.amount)}</td>
           <td style="font-size:11px;color:var(--ink-3)">${displayDate(i.date)}</td>
           <td style="font-size:11px;color:var(--ink-3)">${displayDate(i.due)}</td>
-          <td><span class="badge badge-${statusClass(i.status)}">${escapeHtml(i.status)}</span></td>
+          <td><span class="badge badge-${statusClass(i.status)}">${escapeHtml(i.status)}</span>${payMethodBadge}</td>
           <td>
             <div class="flex-gap" style="gap:4px">
+              ${recordBtn}
+              ${payLinkBtn}
+              ${bpiBtn}
               <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="openEditInvoice(${i.id})">Edit</button>
               <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--red)" onclick="handleDeleteInvoice(${i.id})">Delete</button>
             </div>
           </td>
-        </tr>`).join('')
+        </tr>`;
+      }).join('')
     : `<tr><td colspan="7"><div class="empty-state">No invoices yet</div></td></tr>`;
 }
 
@@ -169,17 +205,23 @@ function displayDate(val: string | null | undefined) {
   return escapeHtml(String(val));
 }
 
-function invoiceFormHTML(i: Partial<Invoice> = {}) {
+function invoiceFormHTML(i: Partial<Invoice> = {}, items: InvoiceLineItem[] = []) {
   const clientOpts  = _clients.map(c => `<option value="${escapeHtml(c.name)}"/>`).join('');
   const projectOpts = `<option value="">— no project —</option>` + _projects.map(p => `<option value="${p.id}"${i.project_id === p.id ? ' selected' : ''}>${escapeHtml(p.name)}</option>`).join('');
+  const hasItems    = items.length > 0;
+  const subtotal    = items.reduce((s, li) => s + li.quantity * li.unit_price, 0);
+  const vatAmt      = items.reduce((s, li) => s + li.quantity * li.unit_price * li.vat_rate / 100, 0);
+  const total       = subtotal + vatAmt;
+  const payMethodOpts = ['GCash', 'BPI', 'PayMongo', 'Cash', 'Check', 'Bank Transfer', 'Other']
+    .map(m => `<option value="${m}"${i.payment_method === m ? ' selected' : ''}>${m}</option>`).join('');
   return `<datalist id="hq-client-list">${clientOpts}</datalist>
   <div class="form-grid">
     <div class="form-group"><div class="form-label">OR Number</div><input class="form-input" id="fi-or" value="${escapeHtml(i.or_num || '')}" placeholder="OR-2026-005"/></div>
     <div class="form-group"><div class="form-label">Client</div><input class="form-input" id="fi-client" value="${escapeHtml(i.client || '')}" list="hq-client-list" placeholder="Client name" autocomplete="off"/></div>
-    <div class="form-group"><div class="form-label">Amount (₱)</div><input class="form-input" id="fi-amount" type="number" value="${i.amount || 0}"/></div>
+    <div class="form-group"><div class="form-label">Amount (₱)</div><input class="form-input" id="fi-amount" type="number" value="${hasItems ? total : (i.amount || 0)}" ${hasItems ? 'readonly' : ''} placeholder="Auto-calculated from line items"/></div>
     <div class="form-group"><div class="form-label">Status</div>
-      <select class="form-input" id="fi-status">
-        <option${i.status === 'Unpaid' ? ' selected' : ''}>Unpaid</option>
+      <select class="form-input" id="fi-status" onchange="togglePaymentFields(this.value)">
+        <option${i.status === 'Unpaid' || !i.status ? ' selected' : ''}>Unpaid</option>
         <option${i.status === 'Paid' ? ' selected' : ''}>Paid</option>
         <option${i.status === 'Overdue' ? ' selected' : ''}>Overdue</option>
       </select>
@@ -187,6 +229,47 @@ function invoiceFormHTML(i: Partial<Invoice> = {}) {
     <div class="form-group"><div class="form-label">Date Issued</div><input class="form-input" id="fi-date" type="date" value="${toISODate(i.date)}"/></div>
     <div class="form-group"><div class="form-label">Due Date</div><input class="form-input" id="fi-due" type="date" value="${toISODate(i.due)}"/></div>
     <div class="form-group full"><div class="form-label">Project (optional)</div><select class="form-input" id="fi-project">${projectOpts}</select></div>
+    <div class="form-group full"><div class="form-label">Notes (optional)</div><textarea class="form-input" id="fi-notes" rows="2" placeholder="Notes to client, payment terms, etc.">${escapeHtml(i.notes || '')}</textarea></div>
+  </div>
+
+  <div style="margin-top:18px">
+    <div style="font-size:12px;font-weight:600;color:var(--ink);margin-bottom:8px">Line Items (optional)</div>
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead>
+        <tr style="border-bottom:1px solid var(--border)">
+          <th style="text-align:left;padding:4px 6px;font-weight:600;color:var(--ink-3)">Description</th>
+          <th style="text-align:right;padding:4px 6px;font-weight:600;color:var(--ink-3);width:56px">Qty</th>
+          <th style="text-align:right;padding:4px 6px;font-weight:600;color:var(--ink-3);width:100px">Unit Price</th>
+          <th style="text-align:right;padding:4px 6px;font-weight:600;color:var(--ink-3);width:50px">VAT%</th>
+          <th style="text-align:right;padding:4px 6px;font-weight:600;color:var(--ink-3);width:100px">Amount</th>
+          <th style="width:24px"></th>
+        </tr>
+      </thead>
+      <tbody id="fi-line-rows">
+        ${items.map(item => lineItemRowHTML(item)).join('')}
+      </tbody>
+    </table>
+    <button type="button" class="btn btn-ghost" style="margin-top:8px;font-size:11px;padding:4px 10px" onclick="addInvoiceRow()">+ Add Row</button>
+    <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px">
+      <div style="display:flex;justify-content:flex-end;gap:16px;font-size:12px"><span style="color:var(--ink-3)">Subtotal</span><span id="fi-subtotal" style="font-weight:600;min-width:100px;text-align:right">${hasItems ? formatCurrency(subtotal) : '—'}</span></div>
+      <div style="display:flex;justify-content:flex-end;gap:16px;font-size:12px;margin-top:4px"><span style="color:var(--ink-3)">VAT</span><span id="fi-vat-display" style="min-width:100px;text-align:right">${hasItems ? formatCurrency(vatAmt) : '—'}</span></div>
+      <div style="display:flex;justify-content:flex-end;gap:16px;font-size:13px;margin-top:6px;font-weight:700"><span>Total</span><span id="fi-total-display" style="min-width:100px;text-align:right">${hasItems ? formatCurrency(total) : '—'}</span></div>
+    </div>
+  </div>
+
+  <div id="fi-payment-section" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px;display:${i.status === 'Paid' ? 'block' : 'none'}">
+    <div style="font-size:12px;font-weight:600;color:var(--ink);margin-bottom:8px">Official Receipt / Payment Details</div>
+    <div class="form-grid">
+      <div class="form-group"><div class="form-label">Payment Method</div>
+        <select class="form-input" id="fi-pay-method">
+          <option value="">— select —</option>
+          ${payMethodOpts}
+        </select>
+      </div>
+      <div class="form-group"><div class="form-label">Reference / Check #</div><input class="form-input" id="fi-pay-ref" value="${escapeHtml(i.payment_reference || '')}" placeholder="GCash ref, BPI confirmation, etc."/></div>
+      <div class="form-group"><div class="form-label">Payment Date</div><input class="form-input" id="fi-pay-date" type="date" value="${toISODate(i.payment_date)}"/></div>
+      <div class="form-group"><div class="form-label">Received By</div><input class="form-input" id="fi-received-by" value="${escapeHtml(i.received_by || '')}" placeholder="Name of person who received payment"/></div>
+    </div>
   </div>`;
 }
 
@@ -195,11 +278,12 @@ export function openAddInvoice() {
   openModal('New Invoice (AR)', invoiceFormHTML(), saveInvoice);
 }
 
-export function openEditInvoice(id: number) {
+export async function openEditInvoice(id: number) {
   const i = _invoices.find(x => x.id === id);
   if (!i) return;
   _editingInvoiceId = id;
-  openModal('Edit Invoice', invoiceFormHTML(i), saveInvoice);
+  const items = await fetchLineItems(id);
+  openModal('Edit Invoice', invoiceFormHTML(i, items), saveInvoice);
 }
 
 export async function saveInvoice() {
@@ -207,26 +291,56 @@ export async function saveInvoice() {
   const err = validateRequired(or_num, 'OR number');
   if (err) { toast(err, 'error'); return; }
   const amount = +gVal('fi-amount');
-  if (!amount || amount <= 0) { toast('Amount must be greater than ₱0', 'error'); return; }
+  if (!amount || amount <= 0) { toast('Amount must be greater than ₱0 (add line items or enter amount directly)', 'error'); return; }
   const projVal = (document.getElementById('fi-project') as HTMLInputElement | null)?.value;
-  const payload = {
+  const status  = gVal('fi-status');
+
+  const rows = document.querySelectorAll<HTMLTableRowElement>('#fi-line-rows .li-row');
+  const lineItems: InvoiceLineItem[] = [];
+  rows.forEach(row => {
+    const description = (row.querySelector('.li-desc') as HTMLInputElement).value.trim();
+    const quantity    = +(row.querySelector('.li-qty') as HTMLInputElement).value  || 1;
+    const unit_price  = +(row.querySelector('.li-price') as HTMLInputElement).value || 0;
+    const vat_rate    = +(row.querySelector('.li-vat') as HTMLInputElement).value  || 0;
+    if (description) lineItems.push({ description, quantity, unit_price, vat_rate });
+  });
+
+  const subtotal  = lineItems.reduce((s, li) => s + li.quantity * li.unit_price, 0);
+  const vatAmount = lineItems.reduce((s, li) => s + li.quantity * li.unit_price * li.vat_rate / 100, 0);
+
+  const payload: Partial<Invoice> = {
     or_num,
-    client:     gVal('fi-client'),
+    client:             gVal('fi-client'),
     amount,
-    status:     gVal('fi-status'),
-    date:       gVal('fi-date') || null,
-    due:        gVal('fi-due') || null,
-    project_id: projVal ? +projVal : null,
+    subtotal:           lineItems.length ? subtotal : null,
+    vat_amount:         lineItems.length ? vatAmount : null,
+    notes:              (document.getElementById('fi-notes') as HTMLTextAreaElement | null)?.value.trim() || null,
+    status,
+    date:               gVal('fi-date') || null,
+    due:                gVal('fi-due')  || null,
+    project_id:         projVal ? +projVal : null,
+    payment_method:     (document.getElementById('fi-pay-method') as HTMLSelectElement | null)?.value || null,
+    payment_reference:  (document.getElementById('fi-pay-ref') as HTMLInputElement | null)?.value.trim() || null,
+    payment_date:       (document.getElementById('fi-pay-date') as HTMLInputElement | null)?.value || null,
+    received_by:        (document.getElementById('fi-received-by') as HTMLInputElement | null)?.value.trim() || null,
   };
-  if (_editingInvoiceId) {
-    const ok = await updateInvoice(_editingInvoiceId, payload);
+
+  let invoiceId = _editingInvoiceId;
+  if (invoiceId) {
+    const ok = await updateInvoice(invoiceId, payload);
     if (!ok) { toast('Could not update invoice', 'error'); return; }
     toast('Invoice updated', 'success');
   } else {
     const result = await createInvoice(payload);
     if (!result) { toast('Could not add invoice. Please try again.', 'error'); return; }
+    invoiceId = result.id;
     toast('Invoice added', 'success');
   }
+
+  if (invoiceId && lineItems.length) {
+    await upsertLineItems(invoiceId, lineItems);
+  }
+
   closeModal();
   loadFinance();
 }
@@ -237,6 +351,158 @@ export async function handleDeleteInvoice(id: number) {
   if (!ok) { toast('Could not delete invoice', 'error'); return; }
   toast('Invoice deleted', '');
   loadFinance();
+}
+
+export function addInvoiceRow() {
+  const tbody = document.getElementById('fi-line-rows');
+  if (!tbody) return;
+  tbody.insertAdjacentHTML('beforeend', lineItemRowHTML());
+  recalcInvoice();
+}
+
+export function recalcInvoice() {
+  const rows = document.querySelectorAll<HTMLTableRowElement>('#fi-line-rows .li-row');
+  let subtotal = 0;
+  let vatTotal = 0;
+  rows.forEach(row => {
+    const qty   = +(row.querySelector('.li-qty')   as HTMLInputElement).value || 0;
+    const price = +(row.querySelector('.li-price') as HTMLInputElement).value || 0;
+    const vat   = +(row.querySelector('.li-vat')   as HTMLInputElement).value || 0;
+    const lineSub = qty * price;
+    const lineVat = lineSub * vat / 100;
+    subtotal += lineSub;
+    vatTotal += lineVat;
+    const amtCell = row.querySelector('.li-amt');
+    if (amtCell) amtCell.textContent = formatCurrency(lineSub + lineVat);
+  });
+  const total = subtotal + vatTotal;
+  const stEl  = document.getElementById('fi-subtotal');
+  const vatEl = document.getElementById('fi-vat-display');
+  const totEl = document.getElementById('fi-total-display');
+  const amtEl = document.getElementById('fi-amount') as HTMLInputElement | null;
+  if (stEl)  stEl.textContent  = formatCurrency(subtotal);
+  if (vatEl) vatEl.textContent = formatCurrency(vatTotal);
+  if (totEl) totEl.textContent = formatCurrency(total);
+  if (amtEl) {
+    amtEl.value    = String(total);
+    amtEl.readOnly = rows.length > 0;
+  }
+}
+
+export function togglePaymentFields(status: string) {
+  const section = document.getElementById('fi-payment-section');
+  if (section) section.style.display = status === 'Paid' ? 'block' : 'none';
+}
+
+export function openRecordPayment(id: number) {
+  const inv = _invoices.find(x => x.id === id);
+  if (!inv) return;
+  _editingInvoiceId = id;
+  const payMethodOpts = ['GCash', 'BPI', 'PayMongo', 'Cash', 'Check', 'Bank Transfer', 'Other']
+    .map(m => `<option value="${m}">${m}</option>`).join('');
+  openModal(`Record Payment — ${escapeHtml(inv.or_num)}`, `
+    <div style="margin-bottom:14px;font-size:13px;color:var(--ink-2)">
+      Recording payment from <strong>${escapeHtml(inv.client ?? '')}</strong><br>
+      <span style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--ink)">${formatCurrency(inv.amount)}</span>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><div class="form-label">Payment Method</div>
+        <select class="form-input" id="rp-method">
+          <option value="">— select —</option>
+          ${payMethodOpts}
+        </select>
+      </div>
+      <div class="form-group"><div class="form-label">Reference / Check #</div><input class="form-input" id="rp-ref" placeholder="GCash ref, BPI confirmation, etc."/></div>
+      <div class="form-group"><div class="form-label">Payment Date</div><input class="form-input" id="rp-date" type="date" value="${todayISO()}"/></div>
+      <div class="form-group"><div class="form-label">Received By</div><input class="form-input" id="rp-received" placeholder="Your name or team member"/></div>
+    </div>`, saveRecordPayment);
+}
+
+export async function saveRecordPayment() {
+  if (!_editingInvoiceId) return;
+  const method = (document.getElementById('rp-method') as HTMLSelectElement).value;
+  if (!method) { toast('Please select a payment method', 'error'); return; }
+  const payload: Partial<Invoice> = {
+    status:            'Paid',
+    payment_method:    method,
+    payment_reference: (document.getElementById('rp-ref') as HTMLInputElement).value.trim() || null,
+    payment_date:      (document.getElementById('rp-date') as HTMLInputElement).value || null,
+    received_by:       (document.getElementById('rp-received') as HTMLInputElement).value.trim() || null,
+  };
+  const ok = await updateInvoice(_editingInvoiceId, payload);
+  if (!ok) { toast('Could not record payment', 'error'); return; }
+  toast('Payment recorded — invoice marked as Paid', 'success');
+  closeModal();
+  loadFinance();
+}
+
+export function openBpiQr(id: number, amount: number, client: string) {
+  const { banking } = APP_SETTINGS;
+  const bpiBranch = (banking as typeof banking & { bpiBranch?: string }).bpiBranch ?? '';
+  const copyText = `BPI Transfer Details:\nAccount Name: ${banking.bpiAccountName}\nBranch: ${bpiBranch}\nAccount Number: ${banking.bpiAccountNumber}\nAmount: ₱${amount.toLocaleString('en-PH', { minimumFractionDigits: 2 })}\nReference: Invoice payment — ${client}`;
+  openModal('BPI Business QR — Pay via Bank Transfer', `
+    <div style="text-align:center;margin-bottom:16px">
+      <img src="${escapeHtml(banking.bpiQrImageUrl)}" alt="BPI QR Code" style="max-width:220px;border-radius:8px;border:1px solid var(--border)"/>
+    </div>
+    <div style="font-size:13px;line-height:2.2;border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:14px">
+      <div><span style="color:var(--ink-3)">Account Name:</span> <strong>${escapeHtml(banking.bpiAccountName)}</strong></div>
+      <div><span style="color:var(--ink-3)">Branch:</span> <strong>${escapeHtml(bpiBranch)}</strong></div>
+      <div><span style="color:var(--ink-3)">Account Number:</span> <strong>${escapeHtml(banking.bpiAccountNumber)}</strong></div>
+      <div><span style="color:var(--ink-3)">Amount:</span> <strong style="font-family:'Cormorant Garamond',serif;font-size:20px">${formatCurrency(amount)}</strong></div>
+      <div><span style="color:var(--ink-3)">Client:</span> <strong>${escapeHtml(client)}</strong></div>
+    </div>
+    <textarea class="form-input" id="bpi-copy-text" rows="5" readonly style="font-size:11px;font-family:monospace">${escapeHtml(copyText)}</textarea>
+    <button class="btn btn-primary" style="margin-top:10px;width:100%" onclick="copyBpiText()">Copy Bank Details</button>`, () => closeModal());
+  void id;
+}
+
+export function copyBpiText() {
+  const el = document.getElementById('bpi-copy-text') as HTMLTextAreaElement | null;
+  if (!el) return;
+  navigator.clipboard.writeText(el.value)
+    .then(() => toast('Bank details copied', 'success'))
+    .catch(() => toast('Could not copy — please copy manually', 'error'));
+}
+
+export async function openPaymentLink(id: number, amount: number, client: string, orNum: string) {
+  const btn = document.querySelector(`[onclick*="openPaymentLink(${id},"]`) as HTMLButtonElement | null;
+  if (btn) { btn.disabled = true; btn.textContent = 'Generating…'; }
+
+  const result = await createInvoicePaymentLink({
+    invoiceId:   id,
+    amount,
+    description: `Invoice ${orNum} — ${client || 'DestineVents client'}`,
+  });
+
+  if (btn) { btn.disabled = false; btn.textContent = 'Pay Link'; }
+
+  if (!result) {
+    toast('Could not generate payment link. Check PayMongo config.', 'error');
+    return;
+  }
+
+  openModal('Payment Link Generated', `
+    <div style="margin-bottom:12px;font-size:13px;color:var(--ink-2)">
+      Share this link with <strong>${escapeHtml(client)}</strong> to collect payment for <strong>${escapeHtml(orNum)}</strong>.
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <input class="form-input" id="pm-link-url" value="${escapeHtml(result.paymentUrl)}" readonly style="flex:1;font-size:12px"/>
+      <button class="btn btn-primary" style="white-space:nowrap" onclick="copyPaymentLink()">Copy</button>
+    </div>
+    <div style="margin-top:10px;font-size:11px;color:var(--ink-3)">
+      The invoice will automatically update to <strong>Paid</strong> once the client completes payment.
+    </div>`, () => closeModal());
+
+  toast('Payment link generated', 'success');
+  loadFinance();
+}
+
+export function copyPaymentLink() {
+  const input = document.getElementById('pm-link-url') as HTMLInputElement | null;
+  if (!input) return;
+  navigator.clipboard.writeText(input.value)
+    .then(() => toast('Link copied to clipboard', 'success'))
+    .catch(() => toast('Could not copy — please copy manually', 'error'));
 }
 
 // ── AP (Bills) ────────────────────────────────────────────────────────────────

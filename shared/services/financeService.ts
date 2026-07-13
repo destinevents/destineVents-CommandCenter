@@ -1,6 +1,28 @@
 import { sb } from './supabase';
 import { handleServiceError } from './serviceError.ts';
-import type { Invoice, Bill, PayrollRun, FinanceSummary } from '../types';
+import type { Invoice, InvoiceLineItem, Bill, PayrollRun, FinanceSummary } from '../types';
+
+export async function fetchLineItems(invoiceId: number): Promise<InvoiceLineItem[]> {
+  const { data, error } = await sb
+    .from('invoice_line_items')
+    .select('*')
+    .eq('invoice_id', invoiceId)
+    .order('id');
+  if (error) { handleServiceError('fetchLineItems', error); return []; }
+  return (data ?? []) as InvoiceLineItem[];
+}
+
+export async function upsertLineItems(invoiceId: number, items: InvoiceLineItem[]): Promise<boolean> {
+  const { error: delError } = await sb.from('invoice_line_items').delete().eq('invoice_id', invoiceId);
+  if (delError) { handleServiceError('upsertLineItems:delete', delError); return false; }
+  if (!items.length) return true;
+  const rows = items.map(({ description, quantity, unit_price, vat_rate }) => ({
+    invoice_id: invoiceId, description, quantity, unit_price, vat_rate,
+  }));
+  const { error: insError } = await sb.from('invoice_line_items').insert(rows);
+  if (insError) { handleServiceError('upsertLineItems:insert', insError); return false; }
+  return true;
+}
 
 export async function fetchInvoices(): Promise<Invoice[]> {
   const { data, error } = await sb.from('invoices').select('*').order('date', { ascending: false });
@@ -75,16 +97,29 @@ export async function deletePayrollRun(id: number): Promise<boolean> {
 }
 
 export function calcFinanceSummary(invoices: Invoice[], bills: Bill[]): FinanceSummary {
-  const arOutstanding = invoices.filter(i => i.status !== 'Paid').reduce((s, i) => s + (i.amount || 0), 0);
-  const apOutstanding = bills.filter(b => b.status !== 'Paid').reduce((s, b) => s + (b.amount || 0), 0);
+  const now = new Date();
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+  const arOutstanding    = invoices.filter(i => i.status !== 'Paid').reduce((s, i) => s + (i.amount || 0), 0);
+  const apOutstanding    = bills.filter(b => b.status !== 'Paid').reduce((s, b) => s + (b.amount || 0), 0);
   const revenueCollected = invoices.filter(i => i.status === 'Paid').reduce((s, i) => s + (i.amount || 0), 0);
+  const expensesPaid     = bills.filter(b => b.status === 'Paid').reduce((s, b) => s + (b.amount || 0), 0);
+
+  const collectedThisMonth = invoices
+    .filter(i => i.status === 'Paid' && ((i.payment_date ?? i.date ?? '').startsWith(thisMonth)))
+    .reduce((s, i) => s + (i.amount || 0), 0);
+
   const overdueInvoices = invoices.filter(i => i.status === 'Overdue');
-  const pendingBills = bills.filter(b => b.status !== 'Paid');
+  const pendingBills    = bills.filter(b => b.status !== 'Paid');
+
   return {
     arOutstanding,
     apOutstanding,
     netPosition: revenueCollected - apOutstanding,
     revenueCollected,
+    collectedThisMonth,
+    expensesPaid,
+    netProfit: revenueCollected - expensesPaid,
     overdueCount: overdueInvoices.length,
     overdueTotal: overdueInvoices.reduce((s, i) => s + (i.amount || 0), 0),
     pendingBillsCount: pendingBills.length,
