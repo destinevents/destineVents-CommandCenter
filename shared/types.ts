@@ -146,6 +146,7 @@ export interface Invoice {
   received_by: string | null;
   project_id: number | null;
   event_id: number | null;
+  archived_at: string | null;
   payment_id: string | null;
   payment_url: string | null;
   paymongo_link_id: string | null;

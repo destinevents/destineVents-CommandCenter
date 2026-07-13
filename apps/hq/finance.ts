@@ -27,9 +27,10 @@ import type { Invoice, Bill, PayrollRun, BirFiling, InvoiceLineItem } from '../.
 const gEl = (id: string) => document.getElementById(id)!;
 const gVal = (id: string) => (document.getElementById(id) as HTMLInputElement).value;
 
-let _editingInvoiceId: number | null = null;
-let _editingBillId: number | null    = null;
-let _editingPayrollId: number | null = null;
+let _editingInvoiceId: number | null  = null;
+let _editingBillId: number | null     = null;
+let _editingPayrollId: number | null  = null;
+let _showArchivedInvoices             = false;
 
 function lineItemRowHTML(item: Partial<InvoiceLineItem> = {}) {
   const lineTotal = (item.quantity ?? 1) * (item.unit_price ?? 0) * (1 + (item.vat_rate ?? 0) / 100);
@@ -280,29 +281,45 @@ export function renderFinanceOverview(invoices: Invoice[], bills: Bill[]) {
 // ── AR (Invoices) ─────────────────────────────────────────────────────────────
 
 export function renderAR(invoices: Invoice[]) {
-  const total = invoices.reduce((s, i) => s + i.amount, 0);
-  const out   = invoices.filter(i => i.status !== 'Paid').reduce((s, i) => s + i.amount, 0);
+  const visible = _showArchivedInvoices
+    ? invoices.filter(i => i.archived_at)
+    : invoices.filter(i => !i.archived_at);
+  const total   = visible.reduce((s, i) => s + i.amount, 0);
+  const out     = visible.filter(i => i.status !== 'Paid').reduce((s, i) => s + i.amount, 0);
+  const archivedCount = invoices.filter(i => i.archived_at).length;
   gEl('ar-summary').textContent =
-    `${invoices.length} invoices · ${formatCurrency(total)} total · ${formatCurrency(out)} outstanding`;
-  gEl('ar-tbody').innerHTML = invoices.length
-    ? invoices.map(i => {
+    `${visible.length} invoice${visible.length !== 1 ? 's' : ''} · ${formatCurrency(total)} total · ${formatCurrency(out)} outstanding`;
+
+  const toggleBtn = document.getElementById('ar-archive-toggle');
+  if (toggleBtn) {
+    toggleBtn.textContent = _showArchivedInvoices
+      ? 'Hide Archived'
+      : `Archived (${archivedCount})`;
+  }
+
+  gEl('ar-tbody').innerHTML = visible.length
+    ? visible.map(i => {
         const isUnpaidOrOverdue = i.status !== 'Paid';
-        const payLinkBtn = isUnpaidOrOverdue
+        const isArchived        = !!i.archived_at;
+        const payLinkBtn = isUnpaidOrOverdue && !isArchived
           ? i.payment_url
             ? `<a href="${escapeHtml(i.payment_url)}" target="_blank" rel="noopener" class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--gold)">Copy Link</a>`
             : `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--gold)" onclick="openPaymentLink(${i.id},${i.amount},'${escapeHtml(i.client ?? '')}','${escapeHtml(i.or_num)}')">Pay Link</button>`
           : '';
-        const bpiBtn = isUnpaidOrOverdue && APP_SETTINGS.banking.bpiQrImageUrl
+        const bpiBtn = isUnpaidOrOverdue && !isArchived && APP_SETTINGS.banking.bpiQrImageUrl
           ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--ink-2)" onclick="openBpiQr(${i.id},${i.amount},'${escapeHtml(i.client ?? '')}')">BPI QR</button>`
           : '';
-        const recordBtn = isUnpaidOrOverdue
-          ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--green)" onclick="openRecordPayment(${i.id})">Record Payment</button>`
+        const recordBtn = isUnpaidOrOverdue && !isArchived
+          ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--green)" onclick="openRecordPayment(${i.id})">Record</button>`
           : '';
         const payMethodBadge = i.status === 'Paid' && i.payment_method
           ? `<span style="font-size:10px;color:var(--ink-3);margin-left:4px">${escapeHtml(i.payment_method)}</span>`
           : '';
+        const archiveBtn = isArchived
+          ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--ink-3)" onclick="restoreInvoice(${i.id})">Restore</button>`
+          : `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--ink-3)" onclick="archiveInvoice(${i.id})">Archive</button>`;
         return `
-        <tr>
+        <tr${isArchived ? ' style="opacity:0.6"' : ''}>
           <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(i.or_num)}</td>
           <td style="font-weight:500;color:var(--ink)">${escapeHtml(i.client)}</td>
           <td class="amount-cell">${formatCurrency(i.amount)}</td>
@@ -310,17 +327,25 @@ export function renderAR(invoices: Invoice[]) {
           <td style="font-size:11px;color:var(--ink-3)">${displayDate(i.due)}</td>
           <td><span class="badge badge-${statusClass(i.status)}">${escapeHtml(i.status)}</span>${payMethodBadge}</td>
           <td>
-            <div class="flex-gap" style="gap:4px">
+            <div class="flex-gap" style="gap:4px;flex-wrap:wrap">
               ${recordBtn}
               ${payLinkBtn}
               ${bpiBtn}
+              <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="printInvoice(${i.id})">Print</button>
+              <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="openDuplicateInvoice(${i.id})">Duplicate</button>
               <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="openEditInvoice(${i.id})">Edit</button>
+              ${archiveBtn}
               <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--red)" onclick="handleDeleteInvoice(${i.id})">Delete</button>
             </div>
           </td>
         </tr>`;
       }).join('')
-    : `<tr><td colspan="7"><div class="empty-state">No invoices yet</div></td></tr>`;
+    : `<tr><td colspan="7"><div class="empty-state">${_showArchivedInvoices ? 'No archived invoices' : 'No invoices yet'}</div></td></tr>`;
+}
+
+export function toggleArchivedInvoices() {
+  _showArchivedInvoices = !_showArchivedInvoices;
+  renderAR(_invoices);
 }
 
 function toISODate(val: string | null | undefined) {
@@ -488,6 +513,174 @@ export async function handleDeleteInvoice(id: number) {
   const ok = await deleteInvoice(id);
   if (!ok) { toast('Could not delete invoice', 'error'); return; }
   toast('Invoice deleted', '');
+  loadFinance();
+}
+
+export async function openDuplicateInvoice(id: number) {
+  const original = _invoices.find(x => x.id === id);
+  if (!original) return;
+  const items = await fetchLineItems(id);
+  _editingInvoiceId = null;
+  const draft: Partial<Invoice> = {
+    client:     original.client,
+    amount:     original.amount,
+    status:     'Unpaid',
+    date:       null,
+    due:        null,
+    project_id: original.project_id,
+    notes:      original.notes,
+    subtotal:   original.subtotal,
+    vat_amount: original.vat_amount,
+    discount:   original.discount,
+  };
+  openModal('Duplicate Invoice', invoiceFormHTML(draft, items), saveInvoice);
+  toast('Duplicated — enter a new OR number and save', '');
+}
+
+export async function printInvoice(id: number) {
+  const inv = _invoices.find(x => x.id === id);
+  if (!inv) return;
+  const items  = await fetchLineItems(id);
+  const subtotal  = inv.subtotal ?? items.reduce((s, li) => s + li.quantity * li.unit_price, 0);
+  const vatAmount = inv.vat_amount ?? items.reduce((s, li) => s + li.quantity * li.unit_price * li.vat_rate / 100, 0);
+  const { banking } = APP_SETTINGS;
+  const proj = _projects.find(p => p.id === inv.project_id);
+  const lineRowsHTML = items.length
+    ? items.map(li => {
+        const lineAmt = li.quantity * li.unit_price * (1 + li.vat_rate / 100);
+        return `<tr>
+          <td style="padding:8px 10px;border-bottom:1px solid #e8e3da">${escapeHtml(li.description)}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid #e8e3da;text-align:right">${li.quantity}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid #e8e3da;text-align:right">${formatCurrency(li.unit_price)}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid #e8e3da;text-align:right">${li.vat_rate}%</td>
+          <td style="padding:8px 10px;border-bottom:1px solid #e8e3da;text-align:right;font-weight:600">${formatCurrency(lineAmt)}</td>
+        </tr>`;
+      }).join('')
+    : `<tr><td colspan="5" style="padding:8px 10px;color:#888">—</td></tr>`;
+  const w = window.open('', '_blank', 'width=860,height=700');
+  if (!w) { toast('Pop-up blocked — please allow pop-ups and try again', 'error'); return; }
+  w.document.write(`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Invoice ${escapeHtml(inv.or_num)}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Helvetica Neue',Arial,sans-serif;color:#1a1a1a;background:#fff;padding:48px}
+  .brand{font-size:28px;font-weight:700;letter-spacing:-0.5px}
+  .brand span{font-weight:300;color:#666}
+  .tagline{font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#888;margin-top:3px}
+  .inv-title{font-size:22px;font-weight:600;color:#999;text-align:right}
+  .inv-or{font-size:30px;font-weight:700;text-align:right;letter-spacing:-0.5px}
+  table.items{width:100%;border-collapse:collapse;margin:20px 0}
+  table.items thead th{background:#f5f0e8;padding:8px 10px;text-align:left;font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#666}
+  table.items thead th:not(:first-child){text-align:right}
+  .label{font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:#888;margin-bottom:3px}
+  .value{font-size:13px;color:#1a1a1a}
+  .total-row{display:flex;justify-content:space-between;font-size:13px;padding:4px 0}
+  .total-final{font-size:20px;font-weight:700;border-top:2px solid #1a1a1a;padding-top:10px;margin-top:8px;display:flex;justify-content:space-between}
+  .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase}
+  .badge-paid{background:#d4f5e2;color:#1a7a45}
+  .badge-unpaid{background:#fef3c7;color:#92400e}
+  .badge-overdue{background:#fee2e2;color:#991b1b}
+  .footer{margin-top:48px;padding-top:18px;border-top:1px solid #e8e3da;font-size:10px;color:#aaa;text-align:center;line-height:1.8}
+  @media print{body{padding:24px}.no-print{display:none}}
+</style>
+</head>
+<body>
+<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:40px">
+  <div>
+    <div class="brand">destine<span>vents</span></div>
+    <div class="tagline">DestineVents Collective OPC</div>
+    <div style="font-size:11px;color:#888;margin-top:8px;line-height:1.7">
+      Baguio City, Philippines<br>
+      ${escapeHtml(banking.bpiAccountName)}<br>
+      BPI Account: ${escapeHtml(banking.bpiAccountNumber)}
+    </div>
+  </div>
+  <div style="text-align:right">
+    <div class="inv-title">OFFICIAL RECEIPT</div>
+    <div class="inv-or">${escapeHtml(inv.or_num)}</div>
+    <div style="margin-top:8px">
+      <span class="badge badge-${inv.status === 'Paid' ? 'paid' : inv.status === 'Overdue' ? 'overdue' : 'unpaid'}">${escapeHtml(inv.status)}</span>
+    </div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;margin-bottom:32px;padding-bottom:24px;border-bottom:1px solid #e8e3da">
+  <div>
+    <div class="label">Billed To</div>
+    <div class="value" style="font-weight:600;font-size:15px">${escapeHtml(inv.client ?? '—')}</div>
+    ${proj ? `<div style="font-size:11px;color:#888;margin-top:3px">Project: ${escapeHtml(proj.name)}</div>` : ''}
+  </div>
+  <div>
+    <div class="label">Date Issued</div>
+    <div class="value">${inv.date ? formatDateShort(inv.date) : '—'}</div>
+    <div class="label" style="margin-top:10px">Due Date</div>
+    <div class="value">${inv.due ? formatDateShort(inv.due) : '—'}</div>
+  </div>
+  <div>
+    ${inv.status === 'Paid' ? `
+    <div class="label">Payment Date</div>
+    <div class="value">${inv.payment_date ? formatDateShort(inv.payment_date) : '—'}</div>
+    <div class="label" style="margin-top:10px">Payment Method</div>
+    <div class="value">${escapeHtml(inv.payment_method ?? '—')}</div>
+    ${inv.payment_reference ? `<div style="font-size:11px;color:#888;margin-top:2px">Ref: ${escapeHtml(inv.payment_reference)}</div>` : ''}
+    ` : ''}
+  </div>
+</div>
+
+${items.length > 0 ? `
+<table class="items">
+  <thead><tr>
+    <th style="width:45%">Description</th>
+    <th style="width:10%">Qty</th>
+    <th style="width:15%">Unit Price</th>
+    <th style="width:10%">VAT</th>
+    <th style="width:20%">Amount</th>
+  </tr></thead>
+  <tbody>${lineRowsHTML}</tbody>
+</table>
+<div style="display:flex;justify-content:flex-end">
+  <div style="width:280px">
+    <div class="total-row"><span style="color:#888">Subtotal</span><span>${formatCurrency(subtotal)}</span></div>
+    ${vatAmount > 0 ? `<div class="total-row"><span style="color:#888">VAT</span><span>${formatCurrency(vatAmount)}</span></div>` : ''}
+    <div class="total-final"><span>Total Due</span><span>${formatCurrency(inv.amount)}</span></div>
+  </div>
+</div>` : `
+<div style="display:flex;justify-content:flex-end;margin:32px 0">
+  <div style="width:280px">
+    <div class="total-final"><span>Total Due</span><span>${formatCurrency(inv.amount)}</span></div>
+  </div>
+</div>`}
+
+${inv.notes ? `<div style="margin-top:24px;padding:14px;background:#f9f6f0;border-radius:6px;font-size:12px;color:#555;line-height:1.7"><strong>Notes:</strong> ${escapeHtml(inv.notes)}</div>` : ''}
+
+<div style="margin-top:20px;no-print" class="no-print">
+  <button onclick="window.print()" style="padding:8px 20px;background:#1a1a1a;color:#fff;border:none;border-radius:4px;font-size:13px;cursor:pointer">Print / Save as PDF</button>
+</div>
+
+<div class="footer">
+  DestineVents Collective OPC · Baguio City, Philippines · destinevents.biz@gmail.com<br>
+  Thank you for your trust and partnership.
+</div>
+</body>
+</html>`);
+  w.document.close();
+  w.focus();
+}
+
+export async function archiveInvoice(id: number) {
+  const ok = await updateInvoice(id, { archived_at: new Date().toISOString() } as Partial<Invoice>);
+  if (!ok) { toast('Could not archive invoice', 'error'); return; }
+  toast('Invoice archived', '');
+  loadFinance();
+}
+
+export async function restoreInvoice(id: number) {
+  const ok = await updateInvoice(id, { archived_at: null } as Partial<Invoice>);
+  if (!ok) { toast('Could not restore invoice', 'error'); return; }
+  toast('Invoice restored', '');
   loadFinance();
 }
 

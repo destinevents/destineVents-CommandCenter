@@ -29,6 +29,8 @@ import {
 import {
   loadFinance, showFinanceTab, openFileBir,
   openAddInvoice, openEditInvoice, saveInvoice, handleDeleteInvoice,
+  openDuplicateInvoice, printInvoice, archiveInvoice, restoreInvoice,
+  toggleArchivedInvoices,
   openPaymentLink, copyPaymentLink,
   openBpiQr, copyBpiText, downloadBpiQr,
   openRecordPayment, saveRecordPayment,
@@ -393,6 +395,9 @@ declare global {
     openProjectDetail: typeof openProjectDetail; openProjectInvoice: typeof openProjectInvoice;
     openAddInvoice: typeof openAddInvoice; openEditInvoice: typeof openEditInvoice;
     saveInvoice: typeof saveInvoice; handleDeleteInvoice: typeof handleDeleteInvoice;
+    openDuplicateInvoice: typeof openDuplicateInvoice; printInvoice: typeof printInvoice;
+    archiveInvoice: typeof archiveInvoice; restoreInvoice: typeof restoreInvoice;
+    toggleArchivedInvoices: typeof toggleArchivedInvoices;
     openPaymentLink: typeof openPaymentLink; copyPaymentLink: typeof copyPaymentLink;
     openBpiQr: typeof openBpiQr; copyBpiText: typeof copyBpiText; downloadBpiQr: typeof downloadBpiQr;
     openRecordPayment: typeof openRecordPayment; saveRecordPayment: typeof saveRecordPayment;
@@ -436,6 +441,8 @@ Object.assign(window, {
   openAddProject, openEditProject, handleDeleteProject, convertProposalToProject, openProjectDetail, openProjectInvoice,
   // Finance
   openAddInvoice, openEditInvoice, saveInvoice, handleDeleteInvoice,
+  openDuplicateInvoice, printInvoice, archiveInvoice, restoreInvoice,
+  toggleArchivedInvoices,
   openPaymentLink, copyPaymentLink,
   openBpiQr, copyBpiText, downloadBpiQr,
   openRecordPayment, saveRecordPayment,
