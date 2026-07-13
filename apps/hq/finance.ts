@@ -315,8 +315,8 @@ export async function saveInvoice() {
     status,
     date:       gVal('fi-date') || null,
     due:        gVal('fi-due')  || null,
-    project_id: projVal ? +projVal : null,
   };
+  if (projVal) payload.project_id = +projVal;
 
   // Only include new columns when they have values — avoids PGRST204 if
   // the schema cache hasn't refreshed after the migration yet.
