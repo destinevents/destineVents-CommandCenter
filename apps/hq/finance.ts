@@ -310,20 +310,27 @@ export async function saveInvoice() {
 
   const payload: Partial<Invoice> = {
     or_num,
-    client:             gVal('fi-client'),
+    client:     gVal('fi-client'),
     amount,
-    subtotal:           lineItems.length ? subtotal : null,
-    vat_amount:         lineItems.length ? vatAmount : null,
-    notes:              (document.getElementById('fi-notes') as HTMLTextAreaElement | null)?.value.trim() || null,
     status,
-    date:               gVal('fi-date') || null,
-    due:                gVal('fi-due')  || null,
-    project_id:         projVal ? +projVal : null,
-    payment_method:     (document.getElementById('fi-pay-method') as HTMLSelectElement | null)?.value || null,
-    payment_reference:  (document.getElementById('fi-pay-ref') as HTMLInputElement | null)?.value.trim() || null,
-    payment_date:       (document.getElementById('fi-pay-date') as HTMLInputElement | null)?.value || null,
-    received_by:        (document.getElementById('fi-received-by') as HTMLInputElement | null)?.value.trim() || null,
+    date:       gVal('fi-date') || null,
+    due:        gVal('fi-due')  || null,
+    project_id: projVal ? +projVal : null,
   };
+
+  // Only include new columns when they have values — avoids PGRST204 if
+  // the schema cache hasn't refreshed after the migration yet.
+  const notes      = (document.getElementById('fi-notes') as HTMLTextAreaElement | null)?.value.trim() || '';
+  const payMethod  = (document.getElementById('fi-pay-method') as HTMLSelectElement | null)?.value || '';
+  const payRef     = (document.getElementById('fi-pay-ref') as HTMLInputElement | null)?.value.trim() || '';
+  const payDate    = (document.getElementById('fi-pay-date') as HTMLInputElement | null)?.value || '';
+  const receivedBy = (document.getElementById('fi-received-by') as HTMLInputElement | null)?.value.trim() || '';
+  if (lineItems.length)  { payload.subtotal = subtotal; payload.vat_amount = vatAmount; }
+  if (notes)             payload.notes             = notes;
+  if (payMethod)         payload.payment_method    = payMethod;
+  if (payRef)            payload.payment_reference = payRef;
+  if (payDate)           payload.payment_date      = payDate;
+  if (receivedBy)        payload.received_by       = receivedBy;
 
   let invoiceId = _editingInvoiceId;
   if (invoiceId) {
