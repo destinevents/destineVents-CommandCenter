@@ -236,6 +236,39 @@ export interface Payment {
   updated_at: string;
 }
 
+export interface SOBLineItem {
+  id?: number;
+  sob_id?: number;
+  description: string;
+  quantity: number;
+  unit_price: number;
+  vat_rate: number;
+  created_at?: string;
+}
+
+export interface SOB {
+  id: number;
+  sob_num: string;
+  client: string | null;
+  project_id: number | null;
+  issue_date: string | null;
+  due_date: string | null;
+  currency: string;
+  description: string | null;
+  subtotal: number;
+  discount: number;
+  vat_amount: number;
+  total_amount: number;
+  payment_instructions: string | null;
+  notes: string | null;
+  prepared_by: string | null;
+  approved_by: string | null;
+  status: string;
+  linked_invoice_id: number | null;
+  archived_at: string | null;
+  created_at: string;
+}
+
 export interface BirFiling {
   id: number;
   form: string;

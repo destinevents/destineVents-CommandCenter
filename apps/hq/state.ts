@@ -3,7 +3,7 @@
 // read-only views in the importer).
 import type {
   Client, Proposal, Partner, Document, Invoice, Bill,
-  PayrollRun, Project, ImpactEntry, BirFiling, Event, EventRegistration,
+  PayrollRun, Project, ImpactEntry, BirFiling, Event, EventRegistration, SOB,
 } from '../../shared/types.ts';
 
 export let _clients: Client[] = [];
@@ -44,3 +44,6 @@ export function setEventRegs(v: EventRegistration[]): void { _eventRegs = v; }
 
 export let _currentEvent: Event | null = null;
 export function setCurrentEvent(v: Event | null): void { _currentEvent = v; }
+
+export let _sobs: SOB[] = [];
+export function setSOBs(v: SOB[]): void { _sobs = v; }

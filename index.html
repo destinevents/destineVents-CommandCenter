@@ -398,6 +398,7 @@
     <div class="page-title">Finance</div>
     <div class="sub-tabs" id="finance-subtabs">
       <div class="sub-tab active" onclick="showFinanceTab('overview',this)">Overview</div>
+      <div class="sub-tab" onclick="showFinanceTab('billings',this)">Billings</div>
       <div class="sub-tab" onclick="showFinanceTab('receivables',this)">Receivables</div>
       <div class="sub-tab" onclick="showFinanceTab('payables',this)">Payables</div>
       <div class="sub-tab" onclick="showFinanceTab('payroll',this)">Payroll</div>
@@ -420,6 +421,21 @@
       </div>
       <div id="finance-recent-ar" style="display:none"></div>
       <div id="finance-recent-ap" style="display:none"></div>
+    </div>
+
+    <!-- Billings (SOB) -->
+    <div class="ftab" id="ftab-billings">
+      <div class="page-actions">
+        <div id="sob-summary" style="font-size:11px;color:var(--ink-3)"></div>
+        <button class="btn btn-ghost" id="sob-archive-toggle" onclick="toggleArchivedSOBs()" style="font-size:12px">Archived (0)</button>
+        <button class="btn btn-primary" onclick="openAddSOB()">New Billing (SOB)</button>
+      </div>
+      <div style="border:1px solid var(--ink-4);overflow:hidden">
+        <table class="ledger-table">
+          <thead><tr><th>SOB #</th><th>Client</th><th>Project</th><th>Total</th><th>Issue Date</th><th>Due Date</th><th>Status</th><th></th></tr></thead>
+          <tbody id="sob-tbody"></tbody>
+        </table>
+      </div>
     </div>
 
     <!-- Receivables (AR) -->

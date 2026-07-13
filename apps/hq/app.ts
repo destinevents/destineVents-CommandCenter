@@ -30,7 +30,7 @@ import {
   loadFinance, showFinanceTab, openFileBir,
   openAddInvoice, openEditInvoice, saveInvoice, handleDeleteInvoice,
   openDuplicateInvoice, printInvoice, archiveInvoice, restoreInvoice,
-  toggleArchivedInvoices,
+  toggleArchivedInvoices, openInvoiceFromSOB,
   openPaymentLink, copyPaymentLink,
   openBpiQr, copyBpiText, downloadBpiQr,
   openRecordPayment, saveRecordPayment,
@@ -49,6 +49,11 @@ import {
 import { HQ_ALLOWED_PAGES, isHQRole, isICCRole } from '../../config/roles.ts';
 import type { UserRole } from '../../shared/types';
 import { loadUsers, approveUser, changeUserRole } from './users.ts';
+import {
+  openAddSOB, openEditSOB, saveSOB, handleDeleteSOB,
+  openDuplicateSOB, archiveSOB, restoreSOB, convertSOBToInvoice,
+  toggleArchivedSOBs, addSOBRow, recalcSOB,
+} from './sob.ts';
 
 const gEl = (id: string) => document.getElementById(id)!;
 
@@ -397,7 +402,12 @@ declare global {
     saveInvoice: typeof saveInvoice; handleDeleteInvoice: typeof handleDeleteInvoice;
     openDuplicateInvoice: typeof openDuplicateInvoice; printInvoice: typeof printInvoice;
     archiveInvoice: typeof archiveInvoice; restoreInvoice: typeof restoreInvoice;
-    toggleArchivedInvoices: typeof toggleArchivedInvoices;
+    toggleArchivedInvoices: typeof toggleArchivedInvoices; openInvoiceFromSOB: typeof openInvoiceFromSOB;
+    openAddSOB: typeof openAddSOB; openEditSOB: typeof openEditSOB; saveSOB: typeof saveSOB;
+    handleDeleteSOB: typeof handleDeleteSOB; openDuplicateSOB: typeof openDuplicateSOB;
+    archiveSOB: typeof archiveSOB; restoreSOB: typeof restoreSOB;
+    convertSOBToInvoice: typeof convertSOBToInvoice; toggleArchivedSOBs: typeof toggleArchivedSOBs;
+    addSOBRow: typeof addSOBRow; recalcSOB: typeof recalcSOB;
     openPaymentLink: typeof openPaymentLink; copyPaymentLink: typeof copyPaymentLink;
     openBpiQr: typeof openBpiQr; copyBpiText: typeof copyBpiText; downloadBpiQr: typeof downloadBpiQr;
     openRecordPayment: typeof openRecordPayment; saveRecordPayment: typeof saveRecordPayment;
@@ -442,7 +452,7 @@ Object.assign(window, {
   // Finance
   openAddInvoice, openEditInvoice, saveInvoice, handleDeleteInvoice,
   openDuplicateInvoice, printInvoice, archiveInvoice, restoreInvoice,
-  toggleArchivedInvoices,
+  toggleArchivedInvoices, openInvoiceFromSOB,
   openPaymentLink, copyPaymentLink,
   openBpiQr, copyBpiText, downloadBpiQr,
   openRecordPayment, saveRecordPayment,
@@ -461,6 +471,10 @@ Object.assign(window, {
   openIssueEventInvoice,
   // AI
   selectTemplate, copyAIOutput, simulateAI, saveAIOutput,
+  // SOB (Statement of Billing)
+  openAddSOB, openEditSOB, saveSOB, handleDeleteSOB,
+  openDuplicateSOB, archiveSOB, restoreSOB, convertSOBToInvoice,
+  toggleArchivedSOBs, addSOBRow, recalcSOB,
   // Users (admin)
   approveUser, changeUserRole,
 });

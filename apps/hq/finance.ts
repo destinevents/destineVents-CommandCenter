@@ -9,20 +9,22 @@ import {
   fetchPayrollRuns, createPayrollRun, updatePayrollRun, deletePayrollRun,
   calcFinanceSummary, fetchLineItems, upsertLineItems,
 } from '../../shared/services/financeService.ts';
+import { fetchSOBs, updateSOB } from '../../shared/services/sobService.ts';
 import { createInvoicePaymentLink } from '../../shared/services/paymentService.ts';
 import { fetchClients } from '../../shared/services/clientService.ts';
 import { fetchProjects } from '../../shared/services/projectService.ts';
 import { fetchPartners } from '../../shared/services/partnerService.ts';
 import { fetchBirFilings, createBirFiling } from '../../shared/services/birService.ts';
+import { renderSOB } from './sob.ts';
 import {
   BIR_PERCENTAGE_TAX_RATE, BIR_8PCT_OPTION_RATE, birMostRecentCompletedQuarter,
   birQuarterLabel, bir2551qDeadline, bir1701qDeadline, bir1604cDeadline,
   birFilingStatus, birGrossReceipts, birExpenses, birCompWithholding,
   bir2307Bills, birIsFiled, birFilingsFor,
 } from '../../shared/business/birCalc.js';
-import { _clients, _projects, _partners, _invoices, _bills, _payroll, _birFilings, setClients, setProjects, setPartners, setInvoices, setBills, setPayroll, setBirFilings } from './state.ts';
+import { _clients, _projects, _partners, _invoices, _bills, _payroll, _birFilings, _sobs, setClients, setProjects, setPartners, setInvoices, setBills, setPayroll, setBirFilings, setSOBs } from './state.ts';
 import { toast, openModal, closeModal } from './ui.ts';
-import type { Invoice, Bill, PayrollRun, BirFiling, InvoiceLineItem } from '../../shared/types.ts';
+import type { Invoice, Bill, PayrollRun, BirFiling, InvoiceLineItem, SOB } from '../../shared/types.ts';
 
 const gEl = (id: string) => document.getElementById(id)!;
 const gVal = (id: string) => (document.getElementById(id) as HTMLInputElement).value;
@@ -31,6 +33,7 @@ let _editingInvoiceId: number | null  = null;
 let _editingBillId: number | null     = null;
 let _editingPayrollId: number | null  = null;
 let _showArchivedInvoices             = false;
+let _pendingSOBConvertId: number | null = null;
 
 function lineItemRowHTML(item: Partial<InvoiceLineItem> = {}) {
   const lineTotal = (item.quantity ?? 1) * (item.unit_price ?? 0) * (1 + (item.vat_rate ?? 0) / 100);
@@ -46,7 +49,7 @@ function lineItemRowHTML(item: Partial<InvoiceLineItem> = {}) {
 }
 
 export async function loadFinance() {
-  const [inv, bil, pay, bir, clients, projs, parts] = await Promise.all([
+  const [inv, bil, pay, bir, clients, projs, parts, sobs] = await Promise.all([
     fetchInvoices(),
     fetchBills(),
     fetchPayrollRuns(),
@@ -54,6 +57,7 @@ export async function loadFinance() {
     fetchClients(),
     fetchProjects(),
     fetchPartners(),
+    fetchSOBs(),
   ]);
   setClients(clients || []);
   setProjects(projs || []);
@@ -62,11 +66,13 @@ export async function loadFinance() {
   setBills(bil || []);
   setPayroll(pay || []);
   setBirFilings(bir || []);
+  setSOBs(sobs || []);
   renderFinanceOverview(_invoices, _bills);
   renderAR(_invoices);
   renderAP(_bills);
   renderPayroll(_payroll);
   renderBIR();
+  renderSOB(_sobs);
 }
 
 export function showFinanceTab(name: string, el: HTMLElement) {
@@ -437,7 +443,14 @@ function invoiceFormHTML(i: Partial<Invoice> = {}, items: InvoiceLineItem[] = []
 
 export function openAddInvoice() {
   _editingInvoiceId = null;
+  _pendingSOBConvertId = null;
   openModal('New Invoice (AR)', invoiceFormHTML(), saveInvoice);
+}
+
+export function openInvoiceFromSOB(draft: Partial<Invoice>, items: InvoiceLineItem[], sobId: number) {
+  _editingInvoiceId   = null;
+  _pendingSOBConvertId = sobId;
+  openModal('New Invoice from SOB', invoiceFormHTML(draft, items), saveInvoice);
 }
 
 export async function openEditInvoice(id: number) {
@@ -512,6 +525,11 @@ export async function saveInvoice() {
 
   if (invoiceId && lineItems.length) {
     await upsertLineItems(invoiceId, lineItems);
+  }
+
+  if (_pendingSOBConvertId && invoiceId) {
+    await updateSOB(_pendingSOBConvertId, { linked_invoice_id: invoiceId, status: 'Sent' } as Partial<SOB>);
+    _pendingSOBConvertId = null;
   }
 
   closeModal();
