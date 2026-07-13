@@ -24,6 +24,8 @@
 .badge-released  { color:var(--green); }
 .badge-pending   { color:var(--amber); }
 .badge-draft     { color:var(--ink-3); }
+.badge-issued    { color:var(--blue); }
+.badge-cancelled { color:var(--ink-3); opacity:0.6; }
 
 /* Intern status badges */
 .badge-assigned    { color:#6366f1; background:#eef2ff; }

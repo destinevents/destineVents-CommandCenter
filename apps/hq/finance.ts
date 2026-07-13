@@ -125,7 +125,9 @@ export function renderFinanceOverview(invoices: Invoice[], bills: Bill[]) {
     <div class="stat-card"><div class="stat-label">Collected This Month</div><div class="stat-value" style="font-size:22px;color:var(--green)">${formatCurrency(summary.collectedThisMonth)}</div><div class="stat-change up">Paid invoices this month</div></div>
     <div class="stat-card"><div class="stat-label">Net Profit</div><div class="stat-value" style="font-size:22px${summary.netProfit < 0 ? ';color:var(--red)' : ';color:var(--green)'}">${formatCurrency(Math.abs(summary.netProfit))}</div><div class="stat-change ${summary.netProfit >= 0 ? 'up' : ''}">${summary.netProfit >= 0 ? 'Revenue − expenses' : 'Operating at a loss'}</div></div>
     <div class="stat-card"><div class="stat-label">Payroll Due</div><div class="stat-value" style="font-size:22px;color:var(--gold)">${formatCurrency(summary.payrollDue)}</div><div class="stat-change">Pending payroll runs</div></div>
-    <div class="stat-card"><div class="stat-label">Cash Flow This Month</div><div class="stat-value" style="font-size:22px${summary.cashFlowThisMonth < 0 ? ';color:var(--red)' : ';color:var(--green)'}">${formatCurrency(Math.abs(summary.cashFlowThisMonth))}</div><div class="stat-change ${summary.cashFlowThisMonth >= 0 ? 'up' : ''}">${summary.cashFlowThisMonth >= 0 ? 'Positive cash flow' : 'Negative cash flow'}</div></div>`;
+    <div class="stat-card"><div class="stat-label">Cash Flow This Month</div><div class="stat-value" style="font-size:22px${summary.cashFlowThisMonth < 0 ? ';color:var(--red)' : ';color:var(--green)'}">${formatCurrency(Math.abs(summary.cashFlowThisMonth))}</div><div class="stat-change ${summary.cashFlowThisMonth >= 0 ? 'up' : ''}">${summary.cashFlowThisMonth >= 0 ? 'Positive cash flow' : 'Negative cash flow'}</div></div>
+    <div class="stat-card"><div class="stat-label">Collected Today</div><div class="stat-value" style="font-size:22px;color:var(--green)">${formatCurrency(summary.collectedToday)}</div><div class="stat-change up">Payments received today</div></div>
+    <div class="stat-card"><div class="stat-label">Avg Collection Time</div><div class="stat-value" style="font-size:22px">${summary.avgCollectionDays}<span style="font-size:14px;font-weight:400;color:var(--ink-3)"> days</span></div><div class="stat-change">Issue date → payment date</div></div>`;
 
   // ── Charts ────────────────────────────────────────────────────────────────
   const now = new Date();
@@ -299,17 +301,17 @@ export function renderAR(invoices: Invoice[]) {
 
   gEl('ar-tbody').innerHTML = visible.length
     ? visible.map(i => {
-        const isUnpaidOrOverdue = i.status !== 'Paid';
-        const isArchived        = !!i.archived_at;
-        const payLinkBtn = isUnpaidOrOverdue && !isArchived
+        const isActive  = !['Paid', 'Cancelled'].includes(i.status);
+        const isArchived = !!i.archived_at;
+        const payLinkBtn = isActive && !isArchived
           ? i.payment_url
             ? `<a href="${escapeHtml(i.payment_url)}" target="_blank" rel="noopener" class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--gold)">Copy Link</a>`
             : `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--gold)" onclick="openPaymentLink(${i.id},${i.amount},'${escapeHtml(i.client ?? '')}','${escapeHtml(i.or_num)}')">Pay Link</button>`
           : '';
-        const bpiBtn = isUnpaidOrOverdue && !isArchived && APP_SETTINGS.banking.bpiQrImageUrl
+        const bpiBtn = isActive && !isArchived && APP_SETTINGS.banking.bpiQrImageUrl
           ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--ink-2)" onclick="openBpiQr(${i.id},${i.amount},'${escapeHtml(i.client ?? '')}')">BPI QR</button>`
           : '';
-        const recordBtn = isUnpaidOrOverdue && !isArchived
+        const recordBtn = isActive && !isArchived
           ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--green)" onclick="openRecordPayment(${i.id})">Record</button>`
           : '';
         const payMethodBadge = i.status === 'Paid' && i.payment_method
@@ -372,18 +374,22 @@ function invoiceFormHTML(i: Partial<Invoice> = {}, items: InvoiceLineItem[] = []
     .map(m => `<option value="${m}"${i.payment_method === m ? ' selected' : ''}>${m}</option>`).join('');
   return `<datalist id="hq-client-list">${clientOpts}</datalist>
   <div class="form-grid">
-    <div class="form-group"><div class="form-label">OR Number</div><input class="form-input" id="fi-or" value="${escapeHtml(i.or_num || '')}" placeholder="OR-2026-005"/></div>
+    <div class="form-group"><div class="form-label">OR / Invoice Number</div><input class="form-input" id="fi-or" value="${escapeHtml(i.or_num || '')}" placeholder="OR-2026-005"/></div>
     <div class="form-group"><div class="form-label">Client</div><input class="form-input" id="fi-client" value="${escapeHtml(i.client || '')}" list="hq-client-list" placeholder="Client name" autocomplete="off"/></div>
     <div class="form-group"><div class="form-label">Amount (₱)</div><input class="form-input" id="fi-amount" type="number" value="${hasItems ? total : (i.amount || 0)}" ${hasItems ? 'readonly' : ''} placeholder="Auto-calculated from line items"/></div>
     <div class="form-group"><div class="form-label">Status</div>
       <select class="form-input" id="fi-status" onchange="togglePaymentFields(this.value)">
-        <option${i.status === 'Unpaid' || !i.status ? ' selected' : ''}>Unpaid</option>
+        <option${i.status === 'Draft' || !i.status ? ' selected' : ''}>Draft</option>
+        <option${i.status === 'Issued' || i.status === 'Unpaid' ? ' selected' : ''}>Issued</option>
         <option${i.status === 'Paid' ? ' selected' : ''}>Paid</option>
         <option${i.status === 'Overdue' ? ' selected' : ''}>Overdue</option>
+        <option${i.status === 'Cancelled' ? ' selected' : ''}>Cancelled</option>
       </select>
     </div>
     <div class="form-group"><div class="form-label">Date Issued</div><input class="form-input" id="fi-date" type="date" value="${toISODate(i.date)}"/></div>
     <div class="form-group"><div class="form-label">Due Date</div><input class="form-input" id="fi-due" type="date" value="${toISODate(i.due)}"/></div>
+    <div class="form-group"><div class="form-label">Client TIN (optional)</div><input class="form-input" id="fi-tin" value="${escapeHtml(i.tin || '')}" placeholder="000-000-000-000"/></div>
+    <div class="form-group"><div class="form-label">Business Address (optional)</div><input class="form-input" id="fi-address" value="${escapeHtml(i.business_address || '')}" placeholder="Client's business address"/></div>
     <div class="form-group full"><div class="form-label">Project (optional)</div><select class="form-input" id="fi-project">${projectOpts}</select></div>
     <div class="form-group full"><div class="form-label">Notes (optional)</div><textarea class="form-input" id="fi-notes" rows="2" placeholder="Notes to client, payment terms, etc.">${escapeHtml(i.notes || '')}</textarea></div>
   </div>
@@ -476,13 +482,17 @@ export async function saveInvoice() {
 
   // Only include new columns when they have values — avoids PGRST204 if
   // the schema cache hasn't refreshed after the migration yet.
-  const notes      = (document.getElementById('fi-notes') as HTMLTextAreaElement | null)?.value.trim() || '';
-  const payMethod  = (document.getElementById('fi-pay-method') as HTMLSelectElement | null)?.value || '';
-  const payRef     = (document.getElementById('fi-pay-ref') as HTMLInputElement | null)?.value.trim() || '';
-  const payDate    = (document.getElementById('fi-pay-date') as HTMLInputElement | null)?.value || '';
-  const receivedBy = (document.getElementById('fi-received-by') as HTMLInputElement | null)?.value.trim() || '';
+  const notes           = (document.getElementById('fi-notes') as HTMLTextAreaElement | null)?.value.trim() || '';
+  const tin             = (document.getElementById('fi-tin') as HTMLInputElement | null)?.value.trim() || '';
+  const businessAddress = (document.getElementById('fi-address') as HTMLInputElement | null)?.value.trim() || '';
+  const payMethod       = (document.getElementById('fi-pay-method') as HTMLSelectElement | null)?.value || '';
+  const payRef          = (document.getElementById('fi-pay-ref') as HTMLInputElement | null)?.value.trim() || '';
+  const payDate         = (document.getElementById('fi-pay-date') as HTMLInputElement | null)?.value || '';
+  const receivedBy      = (document.getElementById('fi-received-by') as HTMLInputElement | null)?.value.trim() || '';
   if (lineItems.length)  { payload.subtotal = subtotal; payload.vat_amount = vatAmount; }
   if (notes)             payload.notes             = notes;
+  if (tin)               payload.tin               = tin;
+  if (businessAddress)   payload.business_address  = businessAddress;
   if (payMethod)         payload.payment_method    = payMethod;
   if (payRef)            payload.payment_reference = payRef;
   if (payDate)           payload.payment_date      = payDate;
@@ -611,6 +621,8 @@ export async function printInvoice(id: number) {
   <div>
     <div class="label">Billed To</div>
     <div class="value" style="font-weight:600;font-size:15px">${escapeHtml(inv.client ?? '—')}</div>
+    ${inv.tin ? `<div style="font-size:11px;color:#888;margin-top:2px">TIN: ${escapeHtml(inv.tin)}</div>` : ''}
+    ${inv.business_address ? `<div style="font-size:11px;color:#888;margin-top:2px">${escapeHtml(inv.business_address)}</div>` : ''}
     ${proj ? `<div style="font-size:11px;color:#888;margin-top:3px">Project: ${escapeHtml(proj.name)}</div>` : ''}
   </div>
   <div>
@@ -723,6 +735,11 @@ export function recalcInvoice() {
 export function togglePaymentFields(status: string) {
   const section = document.getElementById('fi-payment-section');
   if (section) section.style.display = status === 'Paid' ? 'block' : 'none';
+  const cancelEl = document.getElementById('fi-status') as HTMLSelectElement | null;
+  if (cancelEl) {
+    const row = cancelEl.closest('.form-group');
+    if (row) (row as HTMLElement).style.opacity = status === 'Cancelled' ? '0.6' : '1';
+  }
 }
 
 export function openRecordPayment(id: number) {

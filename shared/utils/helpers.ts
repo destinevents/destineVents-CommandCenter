@@ -83,8 +83,9 @@ export function statusClass(s = ''): string {
   return ({
     'Active':'active','Completed':'completed','NDA Signed':'nda','Lead':'lead','Proposal':'proposal',
     'Paid':'paid','Unpaid':'unpaid','Overdue':'overdue',
+    'Draft':'draft','Issued':'issued','Cancelled':'cancelled',
     'Won':'won','Lost':'lost','Sent':'sent','Expired':'expired',
-    'Released':'released','Pending':'pending','Draft':'draft',
+    'Released':'released','Pending':'pending',
   } as Record<string, string>)[s] || 'lead';
 }
 

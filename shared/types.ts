@@ -144,6 +144,8 @@ export interface Invoice {
   payment_reference: string | null;
   payment_date: string | null;
   received_by: string | null;
+  tin: string | null;
+  business_address: string | null;
   project_id: number | null;
   event_id: number | null;
   archived_at: string | null;
@@ -294,6 +296,8 @@ export interface FinanceSummary {
   pendingBillsCount: number;
   payrollDue: number;
   cashFlowThisMonth: number;
+  collectedToday: number;
+  avgCollectionDays: number;
 }
 
 export type ProjectCreateResult =

@@ -117,6 +117,19 @@ export function calcFinanceSummary(invoices: Invoice[], bills: Bill[], payrollRu
   const pendingBills    = bills.filter(b => b.status !== 'Paid');
   const payrollDue      = payrollRuns.filter(p => p.status === 'Pending').reduce((s, p) => s + (p.net || 0), 0);
 
+  const today = now.toISOString().slice(0, 10);
+  const collectedToday = invoices
+    .filter(i => i.status === 'Paid' && (i.payment_date ?? i.date ?? '') === today)
+    .reduce((s, i) => s + (i.amount || 0), 0);
+
+  const paidWithDates = invoices.filter(i => i.status === 'Paid' && i.date && i.payment_date);
+  const avgCollectionDays = paidWithDates.length === 0 ? 0 : Math.round(
+    paidWithDates.reduce((s, i) => {
+      const diff = new Date(i.payment_date!).getTime() - new Date(i.date!).getTime();
+      return s + diff / (1000 * 60 * 60 * 24);
+    }, 0) / paidWithDates.length
+  );
+
   return {
     arOutstanding,
     apOutstanding,
@@ -130,5 +143,7 @@ export function calcFinanceSummary(invoices: Invoice[], bills: Bill[], payrollRu
     pendingBillsCount: pendingBills.length,
     payrollDue,
     cashFlowThisMonth: collectedThisMonth - expensesPaidThisMonth,
+    collectedToday,
+    avgCollectionDays,
   };
 }
