@@ -407,20 +407,19 @@
     <!-- Overview -->
     <div class="ftab active" id="ftab-overview">
       <div class="finance-stat-grid" id="finance-stats"></div>
-      <div class="two-col">
+      <div id="finance-charts" style="margin-top:16px"></div>
+      <div class="two-col" style="margin-top:16px">
         <div class="card">
-          <div class="card-title">Recent Receivables</div>
-          <div id="finance-recent-ar"></div>
+          <div class="card-title">Recent Activity</div>
+          <div id="finance-recent-activity"></div>
         </div>
         <div class="card">
-          <div class="card-title">Recent Payables</div>
-          <div id="finance-recent-ap"></div>
+          <div class="card-title">Revenue by Project</div>
+          <div id="finance-revenue-by-project"></div>
         </div>
       </div>
-      <div class="card" style="margin-top:16px">
-        <div class="card-title">Revenue by Project</div>
-        <div id="finance-revenue-by-project"></div>
-      </div>
+      <div id="finance-recent-ar" style="display:none"></div>
+      <div id="finance-recent-ap" style="display:none"></div>
     </div>
 
     <!-- Receivables (AR) -->

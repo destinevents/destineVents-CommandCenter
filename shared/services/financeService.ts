@@ -96,7 +96,7 @@ export async function deletePayrollRun(id: number): Promise<boolean> {
   return true;
 }
 
-export function calcFinanceSummary(invoices: Invoice[], bills: Bill[]): FinanceSummary {
+export function calcFinanceSummary(invoices: Invoice[], bills: Bill[], payrollRuns: PayrollRun[] = []): FinanceSummary {
   const now = new Date();
   const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
@@ -109,8 +109,13 @@ export function calcFinanceSummary(invoices: Invoice[], bills: Bill[]): FinanceS
     .filter(i => i.status === 'Paid' && ((i.payment_date ?? i.date ?? '').startsWith(thisMonth)))
     .reduce((s, i) => s + (i.amount || 0), 0);
 
+  const expensesPaidThisMonth = bills
+    .filter(b => b.status === 'Paid' && (b.date ?? '').startsWith(thisMonth))
+    .reduce((s, b) => s + (b.amount || 0), 0);
+
   const overdueInvoices = invoices.filter(i => i.status === 'Overdue');
   const pendingBills    = bills.filter(b => b.status !== 'Paid');
+  const payrollDue      = payrollRuns.filter(p => p.status === 'Pending').reduce((s, p) => s + (p.net || 0), 0);
 
   return {
     arOutstanding,
@@ -123,5 +128,7 @@ export function calcFinanceSummary(invoices: Invoice[], bills: Bill[]): FinanceS
     overdueCount: overdueInvoices.length,
     overdueTotal: overdueInvoices.reduce((s, i) => s + (i.amount || 0), 0),
     pendingBillsCount: pendingBills.length,
+    payrollDue,
+    cashFlowThisMonth: collectedThisMonth - expensesPaidThisMonth,
   };
 }

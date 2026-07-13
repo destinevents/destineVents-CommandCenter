@@ -291,6 +291,8 @@ export interface FinanceSummary {
   overdueCount: number;
   overdueTotal: number;
   pendingBillsCount: number;
+  payrollDue: number;
+  cashFlowThisMonth: number;
 }
 
 export type ProjectCreateResult =
