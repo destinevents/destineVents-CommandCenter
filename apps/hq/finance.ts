@@ -454,6 +454,9 @@ export function renderAR(invoices: Invoice[]) {
         const printORBtn = i.status === 'Paid' && !isArchived
           ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--green)" onclick="printOfficialReceipt(${i.id})">Print OR</button>`
           : '';
+        const payHistBtn = i.status === 'Paid' && !isArchived
+          ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--ink-2)" onclick="openPaymentHistory(${i.id})">History</button>`
+          : '';
         const emailBtn = !isArchived
           ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--blue)" onclick="sendInvoiceEmail(${i.id})">Email</button>`
           : '';
@@ -479,6 +482,7 @@ export function renderAR(invoices: Invoice[]) {
             <div class="flex-gap" style="gap:4px;flex-wrap:wrap">
               ${recordBtn}
               ${printORBtn}
+              ${payHistBtn}
               ${emailBtn}
               ${payLinkBtn}
               ${bpiBtn}
@@ -1053,6 +1057,48 @@ export function copyPaymentLink() {
     .catch(() => toast('Could not copy — please copy manually', 'error'));
 }
 
+export function openPaymentHistory(id: number) {
+  const inv = _invoices.find(x => x.id === id);
+  if (!inv || inv.status !== 'Paid') return;
+  const linkedSOB = _sobs.find(s => s.linked_invoice_id === id);
+  const proj      = _projects.find(p => p.id === inv.project_id);
+  openModal(`Payment History — ${escapeHtml(inv.or_num)}`, `
+    <div style="font-size:11px;color:var(--ink-3);margin-bottom:14px">
+      ${escapeHtml(inv.client ?? '—')}${proj ? ` · ${escapeHtml(proj.name)}` : ''}
+    </div>
+    <div style="border:1px solid var(--border);border-radius:6px;overflow:hidden">
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <tbody>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:8px 12px;color:var(--ink-3);width:40%">Payment Date</td>
+            <td style="padding:8px 12px;font-weight:500">${inv.payment_date ? displayDate(inv.payment_date) : '—'}</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:8px 12px;color:var(--ink-3)">Amount Paid</td>
+            <td style="padding:8px 12px;font-weight:600;font-family:'Cormorant Garamond',serif;font-size:16px;color:var(--green)">${formatCurrency(inv.amount)}</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:8px 12px;color:var(--ink-3)">Payment Method</td>
+            <td style="padding:8px 12px;font-weight:500">${escapeHtml(inv.payment_method ?? '—')}</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:8px 12px;color:var(--ink-3)">Reference Number</td>
+            <td style="padding:8px 12px;font-weight:500">${escapeHtml(inv.payment_reference ?? '—')}</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:8px 12px;color:var(--ink-3)">Received By</td>
+            <td style="padding:8px 12px;font-weight:500">${escapeHtml(inv.received_by ?? '—')}</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:8px 12px;color:var(--ink-3)">Linked SOB</td>
+            <td style="padding:8px 12px;font-weight:500">${linkedSOB ? escapeHtml(linkedSOB.sob_num) : '—'}</td>
+          </tr>
+          ${inv.notes ? `<tr><td style="padding:8px 12px;color:var(--ink-3)">Notes</td><td style="padding:8px 12px">${escapeHtml(inv.notes)}</td></tr>` : ''}
+        </tbody>
+      </table>
+    </div>`, closeModal, 'Close');
+}
+
 // ── Official Receipts ─────────────────────────────────────────────────────────
 
 export function renderOfficialReceipts() {
@@ -1085,6 +1131,8 @@ export function renderOfficialReceipts() {
             <td>
               <div class="flex-gap" style="gap:4px;flex-wrap:wrap">
                 <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="printOfficialReceipt(${i.id})">Print OR</button>
+                <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="printInvoice(${i.id})">View Invoice</button>
+                ${i.project_id ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="openProjectDetail(${i.project_id})">View Project</button>` : ''}
                 <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--blue)" onclick="sendInvoiceEmail(${i.id})">Email</button>
               </div>
             </td>
