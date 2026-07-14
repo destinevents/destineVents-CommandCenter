@@ -63,6 +63,12 @@ function sobFormHTML(s: Partial<SOB> = {}, items: SOBLineItem[] = []) {
         <option${s.status === 'Cancelled' ? ' selected' : ''}>Cancelled</option>
       </select>
     </div>
+    <div class="form-group"><div class="form-label">Currency</div>
+      <select class="form-input" id="sob-currency">
+        <option value="PHP"${(s.currency ?? 'PHP') === 'PHP' ? ' selected' : ''}>PHP — Philippine Peso</option>
+        <option value="USD"${s.currency === 'USD' ? ' selected' : ''}>USD — US Dollar</option>
+      </select>
+    </div>
     <div class="form-group"><div class="form-label">Issue Date</div><input class="form-input" id="sob-issue" type="date" value="${toISODate(s.issue_date)}"/></div>
     <div class="form-group"><div class="form-label">Due Date</div><input class="form-input" id="sob-due" type="date" value="${toISODate(s.due_date)}"/></div>
     <div class="form-group full"><div class="form-label">Project (optional)</div><select class="form-input" id="sob-project">${projectOpts}</select></div>
@@ -153,7 +159,8 @@ export function renderSOB(sobs: SOB[]) {
           <td>
             <div class="flex-gap" style="gap:4px;flex-wrap:wrap">
               ${convertBtn}
-              <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="printSOB(${s.id})">Print</button>
+              ${!['Paid','Cancelled'].includes(s.status) && !isArchived ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--green)" onclick="openSOBRecordPayment(${s.id})">Record Payment</button>` : ''}
+              <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="printSOB(${s.id})">Download PDF</button>
               <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="openEditSOB(${s.id})">Edit</button>
               <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="openDuplicateSOB(${s.id})">Duplicate</button>
               ${archiveBtn}
@@ -231,6 +238,7 @@ export async function saveSOB() {
     sob_num,
     client:    (document.getElementById('sob-client') as HTMLInputElement).value.trim() || null,
     status:    (document.getElementById('sob-status') as HTMLSelectElement).value,
+    currency:  (document.getElementById('sob-currency') as HTMLSelectElement).value || 'PHP',
     issue_date: (document.getElementById('sob-issue') as HTMLInputElement).value || null,
     due_date:   (document.getElementById('sob-due')   as HTMLInputElement).value || null,
     subtotal,
@@ -484,6 +492,45 @@ ${sob.notes ? `<div style="margin-top:12px;padding:14px;background:#f9f6f0;borde
 </html>`);
   w.document.close();
   w.focus();
+}
+
+export function openSOBRecordPayment(id: number) {
+  const s = _sobs.find(x => x.id === id);
+  if (!s) return;
+  const gv = (elId: string) => (document.getElementById(elId) as HTMLInputElement).value;
+  openModal('Record Payment', `
+    <div style="font-size:11px;color:var(--ink-3);margin-bottom:12px">
+      SOB <strong>${escapeHtml(s.sob_num)}</strong> · Total Due: <strong>${formatCurrency(s.total_amount)}</strong>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><div class="form-label">Amount Paid (₱)</div><input class="form-input" id="spr-amount" type="number" value="${s.total_amount || 0}" min="0" step="any"/></div>
+      <div class="form-group"><div class="form-label">Payment Date</div><input class="form-input" id="spr-date" type="date" value="${todayISO()}"/></div>
+      <div class="form-group"><div class="form-label">Payment Method</div>
+        <select class="form-input" id="spr-method">
+          <option>Cash</option><option>GCash</option><option>Bank Transfer</option><option>Cheque</option>
+        </select>
+      </div>
+      <div class="form-group"><div class="form-label">Reference Number</div><input class="form-input" id="spr-ref" placeholder="Transaction ID / cheque #"/></div>
+      <div class="form-group"><div class="form-label">Received By</div><input class="form-input" id="spr-received" placeholder="Staff name"/></div>
+      <div class="form-group full"><div class="form-label">Notes (optional)</div><input class="form-input" id="spr-notes" placeholder="Additional remarks"/></div>
+    </div>`, async () => {
+    const amountPaid = +gv('spr-amount') || 0;
+    const method     = gv('spr-method');
+    const ref        = gv('spr-ref').trim();
+    const received   = gv('spr-received').trim();
+    const date       = gv('spr-date') || todayISO();
+    const notes      = gv('spr-notes').trim();
+    const newStatus  = amountPaid >= (s.total_amount || 0) ? 'Paid' : 'Partially Paid';
+    const paymentLog = `[PAYMENT: ${formatCurrency(amountPaid)} via ${method}${ref ? ' · Ref: ' + ref : ''}${received ? ' · Received by: ' + received : ''} · ${date}${notes ? ' · ' + notes : ''}]`;
+    const updatedNotes = s.notes ? `${s.notes}\n${paymentLog}` : paymentLog;
+    const ok = await updateSOB(id, { status: newStatus, notes: updatedNotes } as Partial<SOB>);
+    if (!ok) { toast('Could not record payment', 'error'); return; }
+    toast(`Payment recorded — SOB marked as ${newStatus}`, 'success');
+    closeModal();
+    const fresh = await fetchSOBs();
+    setSOBs(fresh);
+    renderSOB(fresh);
+  });
 }
 
 // Extend Window to include the cross-module SOB→Invoice bridge
