@@ -35,6 +35,11 @@ let _editingPayrollId: number | null  = null;
 let _showArchivedInvoices             = false;
 let _pendingSOBConvertId: number | null = null;
 let _menuListenersSetup               = false;
+let _showPaidInvoices                 = false;
+let _paidInvoicePage                  = 1;
+let _orPage                           = 1;
+const INVOICE_PAGE_SIZE               = 10;
+const OR_PAGE_SIZE                    = 10;
 
 export function toggleActionMenu(btn: HTMLElement) {
   document.querySelectorAll('.action-menu-dropdown.open').forEach(el => el.classList.remove('open'));
@@ -44,6 +49,93 @@ export function toggleActionMenu(btn: HTMLElement) {
   menu.style.top   = `${rect.bottom + 4}px`;
   menu.style.right = `${window.innerWidth - rect.right}px`;
   menu.classList.add('open');
+}
+
+function paginationBar(page: number, total: number, size: number, fn: string): string {
+  if (total <= size) return '';
+  const pages = Math.ceil(total / size);
+  const from  = (page - 1) * size + 1;
+  const to    = Math.min(page * size, total);
+  return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-top:1px solid var(--ink-4);font-size:11px;color:var(--ink-3)"><span>${from}–${to} of ${total}</span><div style="display:flex;gap:6px;align-items:center"><button class="btn btn-ghost" style="padding:3px 10px;font-size:11px" ${page <= 1 ? 'disabled' : `onclick="${fn}(${page - 1})"`}>← Prev</button><span style="color:var(--ink-2);padding:0 2px">${page} / ${pages}</span><button class="btn btn-ghost" style="padding:3px 10px;font-size:11px" ${page >= pages ? 'disabled' : `onclick="${fn}(${page + 1})"`}>Next →</button></div></div>`;
+}
+
+export function togglePaidInvoices() {
+  _showPaidInvoices = !_showPaidInvoices;
+  _paidInvoicePage  = 1;
+  renderAR(_invoices);
+}
+
+export function setInvoicePage(page: number) {
+  _paidInvoicePage = page;
+  renderAR(_invoices);
+}
+
+export function setORPage(page: number) {
+  _orPage = page;
+  renderOfficialReceipts();
+}
+
+function invoiceRowHTML(i: Invoice): string {
+  const isActive   = !['Paid', 'Cancelled'].includes(i.status);
+  const isArchived = !!i.archived_at;
+  const payMethodBadge = i.status === 'Paid' && i.payment_method
+    ? `<span style="font-size:10px;color:var(--ink-3);margin-left:4px">${escapeHtml(i.payment_method)}</span>`
+    : '';
+  const linkedSOB = _sobs.find(s => s.linked_invoice_id === i.id);
+  const sobBadge = linkedSOB
+    ? `<div style="font-size:9px;color:var(--ink-3);margin-top:1px">from ${escapeHtml(linkedSOB.sob_num)}</div>`
+    : '';
+  const primaryBtns = isArchived ? '' :
+    isActive
+      ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--green)" onclick="openRecordPayment(${i.id})">Record</button>`
+      : i.status === 'Paid'
+        ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--green)" onclick="printOfficialReceipt(${i.id})">Print OR</button>
+           <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--ink-2)" onclick="openPaymentHistory(${i.id})">History</button>`
+        : '';
+  const emailBtnVis = !isArchived
+    ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--blue)" onclick="sendInvoiceEmail(${i.id})">Email</button>`
+    : '';
+  const payLinkItem = isActive
+    ? i.payment_url
+      ? `<a href="${escapeHtml(i.payment_url)}" target="_blank" rel="noopener">Copy Pay Link</a>`
+      : `<button onclick="openPaymentLink(${i.id},${i.amount},'${escapeHtml(i.client ?? '')}','${escapeHtml(i.or_num)}')">Pay Link</button>`
+    : '';
+  const bpiItem = isActive && APP_SETTINGS.banking.bpiQrImageUrl
+    ? `<button onclick="openBpiQr(${i.id},${i.amount},'${escapeHtml(i.client ?? '')}')">BPI QR</button>`
+    : '';
+  const moreItems = isArchived
+    ? `<button onclick="restoreInvoice(${i.id})">Restore</button>
+       <div class="action-menu-sep"></div>
+       <button class="menu-danger" onclick="handleDeleteInvoice(${i.id})">Delete</button>`
+    : [
+        payLinkItem,
+        bpiItem,
+        `<button onclick="printInvoice(${i.id})">Print Invoice</button>`,
+        `<button onclick="openDuplicateInvoice(${i.id})">Duplicate</button>`,
+        `<button onclick="openEditInvoice(${i.id})">Edit</button>`,
+        `<div class="action-menu-sep"></div>`,
+        `<button onclick="archiveInvoice(${i.id})">Archive</button>`,
+        `<button class="menu-danger" onclick="handleDeleteInvoice(${i.id})">Delete</button>`,
+      ].filter(Boolean).join('');
+  return `
+  <tr${isArchived ? ' style="opacity:0.6"' : ''}>
+    <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(i.or_num)}${sobBadge}</td>
+    <td style="font-weight:500;color:var(--ink)">${escapeHtml(i.client)}</td>
+    <td class="amount-cell">${formatCurrency(i.amount)}</td>
+    <td style="font-size:11px;color:var(--ink-3)">${displayDate(i.date)}</td>
+    <td style="font-size:11px;color:var(--ink-3)">${displayDate(i.due)}</td>
+    <td><span class="badge badge-${statusClass(i.status)}">${escapeHtml(i.status)}</span>${payMethodBadge}</td>
+    <td>
+      <div class="flex-gap" style="gap:4px">
+        ${primaryBtns}
+        ${emailBtnVis}
+        <div class="action-menu">
+          <button class="action-menu-trigger" onclick="toggleActionMenu(this)">···</button>
+          <div class="action-menu-dropdown">${moreItems}</div>
+        </div>
+      </div>
+    </td>
+  </tr>`;
 }
 
 function lineItemRowHTML(item: Partial<InvoiceLineItem> = {}) {
@@ -441,97 +533,83 @@ export function renderReceivablesDashboard() {
 // ── AR (Invoices) ─────────────────────────────────────────────────────────────
 
 export function renderAR(invoices: Invoice[]) {
-  const visible = _showArchivedInvoices
-    ? invoices.filter(i => i.archived_at)
-    : invoices.filter(i => !i.archived_at);
-  const total   = visible.reduce((s, i) => s + i.amount, 0);
-  const out     = visible.filter(i => i.status !== 'Paid').reduce((s, i) => s + i.amount, 0);
   const archivedCount = invoices.filter(i => i.archived_at).length;
-  gEl('ar-summary').textContent =
-    `${visible.length} invoice${visible.length !== 1 ? 's' : ''} · ${formatCurrency(total)} total · ${formatCurrency(out)} outstanding`;
-
   const toggleBtn = document.getElementById('ar-archive-toggle');
-  if (toggleBtn) {
-    toggleBtn.textContent = _showArchivedInvoices
-      ? 'Hide Archived'
-      : `Archived (${archivedCount})`;
+
+  // ── Archived mode: flat list ───────────────────────────────────────────────
+  if (_showArchivedInvoices) {
+    const archived = invoices.filter(i => i.archived_at);
+    const total    = archived.reduce((s, i) => s + i.amount, 0);
+    gEl('ar-summary').textContent = `${archived.length} archived invoice${archived.length !== 1 ? 's' : ''} · ${formatCurrency(total)} total`;
+    if (toggleBtn) toggleBtn.textContent = 'Hide Archived';
+    gEl('ar-tbody').innerHTML = archived.length
+      ? archived.map(i => invoiceRowHTML(i)).join('')
+      : `<tr><td colspan="7"><div class="empty-state">No archived invoices</div></td></tr>`;
+    const recentPayEl = document.getElementById('ar-recent-payments');
+    if (recentPayEl) recentPayEl.innerHTML = '';
+    return;
   }
 
-  gEl('ar-tbody').innerHTML = visible.length
-    ? visible.map(i => {
-        const isActive   = !['Paid', 'Cancelled'].includes(i.status);
-        const isArchived = !!i.archived_at;
-        const payMethodBadge = i.status === 'Paid' && i.payment_method
-          ? `<span style="font-size:10px;color:var(--ink-3);margin-left:4px">${escapeHtml(i.payment_method)}</span>`
-          : '';
-        const linkedSOB = _sobs.find(s => s.linked_invoice_id === i.id);
-        const sobBadge = linkedSOB
-          ? `<div style="font-size:9px;color:var(--ink-3);margin-top:1px">from ${escapeHtml(linkedSOB.sob_num)}</div>`
-          : '';
-        // Primary visible buttons (max 2, status-dependent)
-        const primaryBtns = isArchived ? '' :
-          isActive
-            ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--green)" onclick="openRecordPayment(${i.id})">Record</button>`
-            : i.status === 'Paid'
-              ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--green)" onclick="printOfficialReceipt(${i.id})">Print OR</button>
-                 <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--ink-2)" onclick="openPaymentHistory(${i.id})">History</button>`
-              : '';
-        // Email always visible (except archived)
-        const emailBtnVis = !isArchived
-          ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--blue)" onclick="sendInvoiceEmail(${i.id})">Email</button>`
-          : '';
-        // ⋯ More dropdown items
-        const payLinkItem = isActive
-          ? i.payment_url
-            ? `<a href="${escapeHtml(i.payment_url)}" target="_blank" rel="noopener">Copy Pay Link</a>`
-            : `<button onclick="openPaymentLink(${i.id},${i.amount},'${escapeHtml(i.client ?? '')}','${escapeHtml(i.or_num)}')">Pay Link</button>`
-          : '';
-        const bpiItem = isActive && APP_SETTINGS.banking.bpiQrImageUrl
-          ? `<button onclick="openBpiQr(${i.id},${i.amount},'${escapeHtml(i.client ?? '')}')">BPI QR</button>`
-          : '';
-        const moreItems = isArchived
-          ? `<button onclick="restoreInvoice(${i.id})">Restore</button>
-             <div class="action-menu-sep"></div>
-             <button class="menu-danger" onclick="handleDeleteInvoice(${i.id})">Delete</button>`
-          : [
-              payLinkItem,
-              bpiItem,
-              `<button onclick="printInvoice(${i.id})">Print Invoice</button>`,
-              `<button onclick="openDuplicateInvoice(${i.id})">Duplicate</button>`,
-              `<button onclick="openEditInvoice(${i.id})">Edit</button>`,
-              `<div class="action-menu-sep"></div>`,
-              `<button onclick="archiveInvoice(${i.id})">Archive</button>`,
-              `<button class="menu-danger" onclick="handleDeleteInvoice(${i.id})">Delete</button>`,
-            ].filter(Boolean).join('');
-        return `
-        <tr${isArchived ? ' style="opacity:0.6"' : ''}>
-          <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(i.or_num)}${sobBadge}</td>
-          <td style="font-weight:500;color:var(--ink)">${escapeHtml(i.client)}</td>
-          <td class="amount-cell">${formatCurrency(i.amount)}</td>
-          <td style="font-size:11px;color:var(--ink-3)">${displayDate(i.date)}</td>
-          <td style="font-size:11px;color:var(--ink-3)">${displayDate(i.due)}</td>
-          <td><span class="badge badge-${statusClass(i.status)}">${escapeHtml(i.status)}</span>${payMethodBadge}</td>
-          <td>
-            <div class="flex-gap" style="gap:4px">
-              ${primaryBtns}
-              ${emailBtnVis}
-              <div class="action-menu">
-                <button class="action-menu-trigger" onclick="toggleActionMenu(this)">···</button>
-                <div class="action-menu-dropdown">${moreItems}</div>
-              </div>
-            </div>
-          </td>
-        </tr>`;
-      }).join('')
-    : `<tr><td colspan="7"><div class="empty-state">${_showArchivedInvoices ? 'No archived invoices' : 'No invoices yet'}</div></td></tr>`;
+  // ── Normal mode: Active / Cancelled / Paid groups ─────────────────────────
+  const nonArchived = invoices.filter(i => !i.archived_at);
+  const active      = nonArchived.filter(i => !['Paid', 'Cancelled'].includes(i.status));
+  const paid        = nonArchived
+    .filter(i => i.status === 'Paid')
+    .sort((a, b) => (b.payment_date || b.date || '').localeCompare(a.payment_date || a.date || ''));
+  const cancelled   = nonArchived.filter(i => i.status === 'Cancelled');
+  const outstanding = active.reduce((s, i) => s + i.amount, 0);
+  const totalAll    = nonArchived.reduce((s, i) => s + i.amount, 0);
+
+  gEl('ar-summary').textContent =
+    `${nonArchived.length} invoice${nonArchived.length !== 1 ? 's' : ''} · ${formatCurrency(totalAll)} total · ${formatCurrency(outstanding)} outstanding`;
+  if (toggleBtn) toggleBtn.textContent = `Archived (${archivedCount})`;
+
+  // Active rows (always shown, no pagination)
+  const activeRows = active.length
+    ? active.map(i => invoiceRowHTML(i)).join('')
+    : `<tr><td colspan="7"><div class="empty-state" style="padding:10px 0">No active invoices — all clear!</div></td></tr>`;
+
+  // Cancelled rows (usually few, no pagination)
+  const cancelledRows = cancelled.length
+    ? `<tr style="background:var(--linen-2)">
+         <td colspan="7" style="padding:5px 14px;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)">
+           Cancelled (${cancelled.length})
+         </td>
+       </tr>
+       ${cancelled.map(i => invoiceRowHTML(i)).join('')}`
+    : '';
+
+  // Paid group: collapsible + paginated
+  const paidTotal  = paid.reduce((s, i) => s + i.amount, 0);
+  const pStart     = (_paidInvoicePage - 1) * INVOICE_PAGE_SIZE;
+  const paidPage   = paid.slice(pStart, pStart + INVOICE_PAGE_SIZE);
+  const pagBar     = paginationBar(_paidInvoicePage, paid.length, INVOICE_PAGE_SIZE, 'setInvoicePage');
+
+  const paidHeader = `
+    <tr style="background:var(--linen-2);cursor:pointer;user-select:none" onclick="togglePaidInvoices()">
+      <td colspan="7" style="padding:8px 14px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)">${_showPaidInvoices ? '▾' : '▸'} Paid (${paid.length})</span>
+          ${paid.length > 0 ? `<span style="font-size:12px;color:var(--green);font-family:'Cormorant Garamond',serif;font-weight:700">${formatCurrency(paidTotal)}</span>` : ''}
+          <span style="font-size:10px;color:var(--ink-3);margin-left:auto">${_showPaidInvoices ? 'click to collapse' : 'click to expand'}</span>
+        </div>
+      </td>
+    </tr>`;
+
+  const paidRows = _showPaidInvoices && paid.length > 0
+    ? paidPage.map(i => invoiceRowHTML(i)).join('')
+    : '';
+
+  const pagRow = _showPaidInvoices && pagBar
+    ? `<tr><td colspan="7" style="padding:0">${pagBar}</td></tr>`
+    : '';
+
+  gEl('ar-tbody').innerHTML = activeRows + cancelledRows + paidHeader + paidRows + pagRow;
 
   // ── Recent Payments ────────────────────────────────────────────────────────
   const recentPayEl = document.getElementById('ar-recent-payments');
-  if (recentPayEl && !_showArchivedInvoices) {
-    const recentPaid = invoices
-      .filter(i => i.status === 'Paid' && !i.archived_at)
-      .sort((a, b) => (b.payment_date || b.date || '').localeCompare(a.payment_date || a.date || ''))
-      .slice(0, 5);
+  if (recentPayEl) {
+    const recentPaid = paid.slice(0, 5);
     if (recentPaid.length) {
       recentPayEl.innerHTML = `
         <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:8px">Recent Payments</div>
@@ -547,8 +625,6 @@ export function renderAR(invoices: Invoice[]) {
     } else {
       recentPayEl.innerHTML = '';
     }
-  } else if (recentPayEl) {
-    recentPayEl.innerHTML = '';
   }
 }
 
@@ -1130,48 +1206,60 @@ export function openPaymentHistory(id: number) {
 // ── Official Receipts ─────────────────────────────────────────────────────────
 
 export function renderOfficialReceipts() {
-  const paidInvoices = _invoices.filter(i => i.status === 'Paid' && !i.archived_at);
-  const summaryEl    = document.getElementById('or-summary');
-  const tbodyEl      = document.getElementById('or-tbody');
+  const sorted = [..._invoices]
+    .filter(i => i.status === 'Paid' && !i.archived_at)
+    .sort((a, b) => (b.payment_date || b.date || '').localeCompare(a.payment_date || a.date || ''));
+  const summaryEl = document.getElementById('or-summary');
+  const tbodyEl   = document.getElementById('or-tbody');
+  const pagEl     = document.getElementById('or-pagination');
+
   if (summaryEl) {
-    const total = paidInvoices.reduce((s, i) => s + (i.amount || 0), 0);
-    summaryEl.textContent = `${paidInvoices.length} official receipt${paidInvoices.length !== 1 ? 's' : ''} · ${formatCurrency(total)} collected`;
+    const total = sorted.reduce((s, i) => s + (i.amount || 0), 0);
+    summaryEl.textContent = `${sorted.length} official receipt${sorted.length !== 1 ? 's' : ''} · ${formatCurrency(total)} collected`;
   }
   if (!tbodyEl) return;
-  tbodyEl.innerHTML = paidInvoices.length
-    ? [...paidInvoices]
-        .sort((a, b) => (b.payment_date || b.date || '').localeCompare(a.payment_date || a.date || ''))
-        .map(i => {
-          const proj       = i.project_id ? _projects.find(p => p.id === i.project_id) : null;
-          const linkedSOB  = _sobs.find(s => s.linked_invoice_id === i.id);
-          return `
-          <tr>
-            <td style="font-size:11px;color:var(--ink-3)">
-              ${escapeHtml(i.or_num)}
-              ${linkedSOB ? `<div style="font-size:9px;color:var(--ink-3);margin-top:1px">from ${escapeHtml(linkedSOB.sob_num)}</div>` : ''}
-            </td>
-            <td style="font-weight:500;color:var(--ink)">${escapeHtml(i.client ?? '—')}</td>
-            <td style="font-size:11px;color:var(--ink-3)">${proj ? escapeHtml(proj.name) : '—'}</td>
-            <td class="amount-cell">${formatCurrency(i.amount)}</td>
-            <td style="font-size:11px;color:var(--ink-3)">${i.payment_date ? displayDate(i.payment_date) : '—'}</td>
-            <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(i.payment_method ?? '—')}</td>
-            <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(i.payment_reference ?? '—')}</td>
-            <td>
-              <div class="flex-gap" style="gap:4px">
-                <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--green)" onclick="printOfficialReceipt(${i.id})">Print OR</button>
-                <div class="action-menu">
-                  <button class="action-menu-trigger" onclick="toggleActionMenu(this)">···</button>
-                  <div class="action-menu-dropdown">
-                    <button onclick="printInvoice(${i.id})">View Invoice</button>
-                    ${i.project_id ? `<button onclick="openProjectDetail(${i.project_id})">View Project</button>` : ''}
-                    <button style="color:var(--blue)" onclick="sendInvoiceEmail(${i.id})">Email</button>
-                  </div>
-                </div>
-              </div>
-            </td>
-          </tr>`;
-        }).join('')
-    : `<tr><td colspan="8"><div class="empty-state">No official receipts yet — paid invoices will appear here</div></td></tr>`;
+
+  if (!sorted.length) {
+    tbodyEl.innerHTML = `<tr><td colspan="8"><div class="empty-state">No official receipts yet — paid invoices will appear here</div></td></tr>`;
+    if (pagEl) pagEl.innerHTML = '';
+    return;
+  }
+
+  const pStart    = (_orPage - 1) * OR_PAGE_SIZE;
+  const pageRows  = sorted.slice(pStart, pStart + OR_PAGE_SIZE);
+
+  tbodyEl.innerHTML = pageRows.map(i => {
+    const proj      = i.project_id ? _projects.find(p => p.id === i.project_id) : null;
+    const linkedSOB = _sobs.find(s => s.linked_invoice_id === i.id);
+    return `
+    <tr>
+      <td style="font-size:11px;color:var(--ink-3)">
+        ${escapeHtml(i.or_num)}
+        ${linkedSOB ? `<div style="font-size:9px;color:var(--ink-3);margin-top:1px">from ${escapeHtml(linkedSOB.sob_num)}</div>` : ''}
+      </td>
+      <td style="font-weight:500;color:var(--ink)">${escapeHtml(i.client ?? '—')}</td>
+      <td style="font-size:11px;color:var(--ink-3)">${proj ? escapeHtml(proj.name) : '—'}</td>
+      <td class="amount-cell">${formatCurrency(i.amount)}</td>
+      <td style="font-size:11px;color:var(--ink-3)">${i.payment_date ? displayDate(i.payment_date) : '—'}</td>
+      <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(i.payment_method ?? '—')}</td>
+      <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(i.payment_reference ?? '—')}</td>
+      <td>
+        <div class="flex-gap" style="gap:4px">
+          <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--green)" onclick="printOfficialReceipt(${i.id})">Print OR</button>
+          <div class="action-menu">
+            <button class="action-menu-trigger" onclick="toggleActionMenu(this)">···</button>
+            <div class="action-menu-dropdown">
+              <button onclick="printInvoice(${i.id})">View Invoice</button>
+              ${i.project_id ? `<button onclick="openProjectDetail(${i.project_id})">View Project</button>` : ''}
+              <button style="color:var(--blue)" onclick="sendInvoiceEmail(${i.id})">Email</button>
+            </div>
+          </div>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  if (pagEl) pagEl.innerHTML = paginationBar(_orPage, sorted.length, OR_PAGE_SIZE, 'setORPage');
 }
 
 export async function printOfficialReceipt(id: number) {

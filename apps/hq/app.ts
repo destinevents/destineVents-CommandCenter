@@ -41,6 +41,7 @@ import {
   openARProjectSOB, advanceARProjectStage,
   sendInvoiceEmail, printOfficialReceipt, openPaymentHistory,
   toggleActionMenu,
+  togglePaidInvoices, setInvoicePage, setORPage,
 } from './finance.ts';
 import { loadProjects, openAddProject, openEditProject, handleDeleteProject, convertProposalToProject, openProjectDetail } from './projects.ts';
 import { selectTemplate, copyAIOutput, simulateAI, saveAIOutput, initAIAutocomplete } from './ai.ts';
@@ -56,6 +57,7 @@ import {
   openAddSOB, openEditSOB, saveSOB, handleDeleteSOB,
   openDuplicateSOB, archiveSOB, restoreSOB, convertSOBToInvoice,
   toggleArchivedSOBs, addSOBRow, recalcSOB, printSOB, openSOBRecordPayment, openSOBSendEmail,
+  setSOBPage,
 } from './sob.ts';
 
 const gEl = (id: string) => document.getElementById(id)!;
@@ -420,6 +422,8 @@ declare global {
     openARProjectSOB: typeof openARProjectSOB; advanceARProjectStage: typeof advanceARProjectStage;
     sendInvoiceEmail: typeof sendInvoiceEmail; printOfficialReceipt: typeof printOfficialReceipt;
     openPaymentHistory: typeof openPaymentHistory; toggleActionMenu: typeof toggleActionMenu;
+    togglePaidInvoices: typeof togglePaidInvoices; setInvoicePage: typeof setInvoicePage;
+    setORPage: typeof setORPage; setSOBPage: typeof setSOBPage;
     openAddBill: typeof openAddBill;
     openEditBill: typeof openEditBill; handleDeleteBill: typeof handleDeleteBill;
     openAddPayroll: typeof openAddPayroll; openEditPayroll: typeof openEditPayroll;
@@ -465,6 +469,7 @@ Object.assign(window, {
   openARProjectSOB, advanceARProjectStage,
   sendInvoiceEmail, printOfficialReceipt, openPaymentHistory,
   toggleActionMenu,
+  togglePaidInvoices, setInvoicePage, setORPage,
   openAddBill, openEditBill, handleDeleteBill,
   openAddPayroll, openEditPayroll, handleDeletePayroll,
   openFileBir, showFinanceTab, estimateDeductions,
@@ -483,6 +488,7 @@ Object.assign(window, {
   openAddSOB, openEditSOB, saveSOB, handleDeleteSOB,
   openDuplicateSOB, archiveSOB, restoreSOB, convertSOBToInvoice,
   toggleArchivedSOBs, addSOBRow, recalcSOB, printSOB, openSOBRecordPayment, openSOBSendEmail,
+  setSOBPage,
   // Users (admin)
   approveUser, changeUserRole,
 });

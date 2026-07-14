@@ -12,6 +12,16 @@ import type { SOB, SOBLineItem, InvoiceLineItem } from '../../shared/types.ts';
 
 let _editingSOBId: number | null  = null;
 let _showArchivedSOBs             = false;
+let _sobPage                      = 1;
+const SOB_PAGE_SIZE               = 10;
+
+function paginationBar(page: number, total: number, size: number, fn: string): string {
+  if (total <= size) return '';
+  const pages = Math.ceil(total / size);
+  const from  = (page - 1) * size + 1;
+  const to    = Math.min(page * size, total);
+  return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-top:1px solid var(--ink-4);font-size:11px;color:var(--ink-3)"><span>${from}–${to} of ${total}</span><div style="display:flex;gap:6px;align-items:center"><button class="btn btn-ghost" style="padding:3px 10px;font-size:11px" ${page <= 1 ? 'disabled' : `onclick="${fn}(${page - 1})"`}>← Prev</button><span style="color:var(--ink-2);padding:0 2px">${page} / ${pages}</span><button class="btn btn-ghost" style="padding:3px 10px;font-size:11px" ${page >= pages ? 'disabled' : `onclick="${fn}(${page + 1})"`}>Next →</button></div></div>`;
+}
 
 function toISODate(val: string | null | undefined) {
   if (!val || val === '—') return '';
@@ -130,69 +140,82 @@ export function renderSOB(sobs: SOB[]) {
   const toggleBtn = document.getElementById('sob-archive-toggle');
   if (toggleBtn) toggleBtn.textContent = _showArchivedSOBs ? 'Hide Archived' : `Archived (${archivedCount})`;
 
-  const tbody = document.getElementById('sob-tbody');
+  const tbody  = document.getElementById('sob-tbody');
+  const pagEl  = document.getElementById('sob-pagination');
   if (!tbody) return;
 
-  tbody.innerHTML = visible.length
-    ? visible.map(s => {
-        const isArchived  = !!s.archived_at;
-        const canConvert  = !s.linked_invoice_id && !['Paid', 'Cancelled'].includes(s.status) && !isArchived;
-        const linkedInv   = s.linked_invoice_id ? _invoices.find(i => i.id === s.linked_invoice_id) : null;
-        const proj        = s.project_id ? _projects.find(p => p.id === s.project_id) : null;
-        // Primary visible button
-        const primaryBtn = isArchived ? '' :
-          canConvert
-            ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--gold)" onclick="convertSOBToInvoice(${s.id})">→ Invoice</button>`
-            : linkedInv
-              ? `<span style="font-size:10px;color:var(--green);padding:0 2px">Invoice ${escapeHtml(linkedInv.or_num)}</span>`
-              : '';
-        // Email always visible (except archived)
-        const emailBtnVis = !isArchived
-          ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--blue)" onclick="openSOBSendEmail(${s.id})">Email</button>`
+  if (!visible.length) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state">${_showArchivedSOBs ? 'No archived billing statements' : 'No billing statements yet'}</div></td></tr>`;
+    if (pagEl) pagEl.innerHTML = '';
+    return;
+  }
+
+  const pStart   = (_sobPage - 1) * SOB_PAGE_SIZE;
+  const pageRows = visible.slice(pStart, pStart + SOB_PAGE_SIZE);
+
+  tbody.innerHTML = pageRows.map(s => {
+    const isArchived  = !!s.archived_at;
+    const canConvert  = !s.linked_invoice_id && !['Paid', 'Cancelled'].includes(s.status) && !isArchived;
+    const linkedInv   = s.linked_invoice_id ? _invoices.find(i => i.id === s.linked_invoice_id) : null;
+    const proj        = s.project_id ? _projects.find(p => p.id === s.project_id) : null;
+    const primaryBtn = isArchived ? '' :
+      canConvert
+        ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--gold)" onclick="convertSOBToInvoice(${s.id})">→ Invoice</button>`
+        : linkedInv
+          ? `<span style="font-size:10px;color:var(--green);padding:0 2px">Invoice ${escapeHtml(linkedInv.or_num)}</span>`
           : '';
-        // ⋯ More dropdown items
-        const recordItem = !['Paid','Cancelled'].includes(s.status) && !isArchived
-          ? `<button onclick="openSOBRecordPayment(${s.id})">Record Payment</button>` : '';
-        const moreItems = isArchived
-          ? `<button onclick="printSOB(${s.id})">Download PDF</button>
-             <div class="action-menu-sep"></div>
-             <button onclick="restoreSOB(${s.id})">Restore</button>
-             <button class="menu-danger" onclick="handleDeleteSOB(${s.id})">Delete</button>`
-          : [
-              recordItem,
-              `<button onclick="printSOB(${s.id})">Download PDF</button>`,
-              `<button onclick="openEditSOB(${s.id})">Edit</button>`,
-              `<button onclick="openDuplicateSOB(${s.id})">Duplicate</button>`,
-              `<div class="action-menu-sep"></div>`,
-              `<button onclick="archiveSOB(${s.id})">Archive</button>`,
-              `<button class="menu-danger" onclick="handleDeleteSOB(${s.id})">Delete</button>`,
-            ].filter(Boolean).join('');
-        return `
-        <tr${isArchived ? ' style="opacity:0.6"' : ''}>
-          <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(s.sob_num)}</td>
-          <td style="font-weight:500;color:var(--ink)">${escapeHtml(s.client ?? '—')}</td>
-          <td style="font-size:11px;color:var(--ink-3)">${proj ? escapeHtml(proj.name) : '—'}</td>
-          <td class="amount-cell">${formatCurrency(s.total_amount)}</td>
-          <td style="font-size:11px;color:var(--ink-3)">${displayDate(s.issue_date)}</td>
-          <td style="font-size:11px;color:var(--ink-3)">${displayDate(s.due_date)}</td>
-          <td><span class="badge badge-${statusClass(s.status)}">${escapeHtml(s.status)}</span></td>
-          <td>
-            <div class="flex-gap" style="gap:4px">
-              ${primaryBtn}
-              ${emailBtnVis}
-              <div class="action-menu">
-                <button class="action-menu-trigger" onclick="toggleActionMenu(this)">···</button>
-                <div class="action-menu-dropdown">${moreItems}</div>
-              </div>
-            </div>
-          </td>
-        </tr>`;
-      }).join('')
-    : `<tr><td colspan="8"><div class="empty-state">${_showArchivedSOBs ? 'No archived billing statements' : 'No billing statements yet'}</div></td></tr>`;
+    const emailBtnVis = !isArchived
+      ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--blue)" onclick="openSOBSendEmail(${s.id})">Email</button>`
+      : '';
+    const recordItem = !['Paid','Cancelled'].includes(s.status) && !isArchived
+      ? `<button onclick="openSOBRecordPayment(${s.id})">Record Payment</button>` : '';
+    const moreItems = isArchived
+      ? `<button onclick="printSOB(${s.id})">Download PDF</button>
+         <div class="action-menu-sep"></div>
+         <button onclick="restoreSOB(${s.id})">Restore</button>
+         <button class="menu-danger" onclick="handleDeleteSOB(${s.id})">Delete</button>`
+      : [
+          recordItem,
+          `<button onclick="printSOB(${s.id})">Download PDF</button>`,
+          `<button onclick="openEditSOB(${s.id})">Edit</button>`,
+          `<button onclick="openDuplicateSOB(${s.id})">Duplicate</button>`,
+          `<div class="action-menu-sep"></div>`,
+          `<button onclick="archiveSOB(${s.id})">Archive</button>`,
+          `<button class="menu-danger" onclick="handleDeleteSOB(${s.id})">Delete</button>`,
+        ].filter(Boolean).join('');
+    return `
+    <tr${isArchived ? ' style="opacity:0.6"' : ''}>
+      <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(s.sob_num)}</td>
+      <td style="font-weight:500;color:var(--ink)">${escapeHtml(s.client ?? '—')}</td>
+      <td style="font-size:11px;color:var(--ink-3)">${proj ? escapeHtml(proj.name) : '—'}</td>
+      <td class="amount-cell">${formatCurrency(s.total_amount)}</td>
+      <td style="font-size:11px;color:var(--ink-3)">${displayDate(s.issue_date)}</td>
+      <td style="font-size:11px;color:var(--ink-3)">${displayDate(s.due_date)}</td>
+      <td><span class="badge badge-${statusClass(s.status)}">${escapeHtml(s.status)}</span></td>
+      <td>
+        <div class="flex-gap" style="gap:4px">
+          ${primaryBtn}
+          ${emailBtnVis}
+          <div class="action-menu">
+            <button class="action-menu-trigger" onclick="toggleActionMenu(this)">···</button>
+            <div class="action-menu-dropdown">${moreItems}</div>
+          </div>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  if (pagEl) pagEl.innerHTML = paginationBar(_sobPage, visible.length, SOB_PAGE_SIZE, 'setSOBPage');
+}
+
+export function setSOBPage(page: number) {
+  _sobPage = page;
+  renderSOB(_sobs);
 }
 
 export function toggleArchivedSOBs() {
   _showArchivedSOBs = !_showArchivedSOBs;
+  _sobPage = 1;
   renderSOB(_sobs);
 }
 
