@@ -55,7 +55,7 @@ export function renderProjects(projects: Project[]) {
 
 function projectFormHTML(p: Partial<Project> = {}) {
   const brands      = (APP_SETTINGS.company.brands || ['DestineVents', 'DDC', 'AYA Baguio']).map((b: string) => `<option${b === p.brand ? ' selected' : ''}>${escapeHtml(b)}</option>`).join('');
-  const statuses    = ['Lead', 'Proposal Sent', 'NDA Signed', 'Active', 'Completed'].map(s => `<option${s === p.status ? ' selected' : ''}>${s}</option>`).join('');
+  const statuses    = ['Lead', 'Proposal Sent', 'NDA Signed', 'Proposal Approved', 'Active', 'Completed'].map(s => `<option${s === p.status ? ' selected' : ''}>${s}</option>`).join('');
   const cats        = ['Events', 'Training', 'Digital', 'CSR', 'Community'].map(c => `<option${c === p.category ? ' selected' : ''}>${c}</option>`).join('');
   const clientOpts  = _clients.map(c => `<option value="${escapeHtml(c.name)}"/>`).join('');
   return `
