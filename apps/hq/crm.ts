@@ -11,7 +11,7 @@ import {
 } from '../../shared/services/proposalService.ts';
 import { fetchProjects } from '../../shared/services/projectService.ts';
 import { fetchInvoices } from '../../shared/services/financeService.ts';
-import { _clients, _proposals, setClients, setProposals } from './state.ts';
+import { _clients, _proposals, _projects, _invoices, _sobs, setClients, setProposals } from './state.ts';
 import { toast, openModal, closeModal } from './ui.ts';
 import type { Client, Proposal } from '../../shared/types.ts';
 
@@ -103,7 +103,26 @@ export async function saveClient() {
 }
 
 export async function handleDeleteClient(id: number) {
-  if (!confirm('Delete this client? This cannot be undone.')) return;
+  const client = _clients.find(c => c.id === id);
+  if (!client) return;
+
+  const name = (client.name ?? '').toLowerCase();
+  const proposalCount = _proposals.filter(p => (p.client ?? '').toLowerCase() === name).length;
+  const projectCount  = _projects.filter(p  => (p.client ?? '').toLowerCase() === name).length;
+  const invoiceCount  = _invoices.filter(i  => (i.client ?? '').toLowerCase() === name).length;
+  const sobCount      = _sobs.filter(s      => (s.client ?? '').toLowerCase() === name).length;
+  const total = proposalCount + projectCount + invoiceCount + sobCount;
+
+  const linkedNote = total > 0
+    ? ` They have ${[
+        proposalCount > 0 && `${proposalCount} proposal${proposalCount !== 1 ? 's' : ''}`,
+        projectCount  > 0 && `${projectCount} project${projectCount !== 1 ? 's' : ''}`,
+        invoiceCount  > 0 && `${invoiceCount} invoice${invoiceCount !== 1 ? 's' : ''}`,
+        sobCount      > 0 && `${sobCount} SOB${sobCount !== 1 ? 's' : ''}`,
+      ].filter(Boolean).join(', ')} linked to their name — those records will not be deleted.`
+    : '';
+
+  if (!confirm(`Delete ${client.name}?${linkedNote} This cannot be undone.`)) return;
   const ok = await deleteClient(id);
   if (!ok) { toast('Could not delete client', 'error'); return; }
   toast('Client deleted', '');

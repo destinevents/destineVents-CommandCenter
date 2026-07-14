@@ -668,13 +668,14 @@ function invoiceFormHTML(i: Partial<Invoice> = {}, items: InvoiceLineItem[] = []
     <div class="form-group"><div class="form-label">Client</div><input class="form-input" id="fi-client" value="${escapeHtml(i.client || '')}" list="hq-client-list" placeholder="Client name" autocomplete="off"/></div>
     <div class="form-group"><div class="form-label">Amount (₱)</div><input class="form-input" id="fi-amount" type="number" value="${hasItems ? total : (i.amount || 0)}" ${hasItems ? 'readonly' : ''} placeholder="Auto-calculated from line items"/></div>
     <div class="form-group"><div class="form-label">Status</div>
-      <select class="form-input" id="fi-status" onchange="togglePaymentFields(this.value)">
+      ${i.status === 'Paid'
+        ? `<input class="form-input" id="fi-status" value="Paid" readonly style="color:var(--green);background:var(--linen-3);cursor:not-allowed" title="Use Record Payment to set an invoice as Paid"/>`
+        : `<select class="form-input" id="fi-status" onchange="togglePaymentFields(this.value)">
         <option${i.status === 'Draft' || !i.status ? ' selected' : ''}>Draft</option>
         <option${i.status === 'Issued' || i.status === 'Unpaid' ? ' selected' : ''}>Issued</option>
-        <option${i.status === 'Paid' ? ' selected' : ''}>Paid</option>
         <option${i.status === 'Overdue' ? ' selected' : ''}>Overdue</option>
         <option${i.status === 'Cancelled' ? ' selected' : ''}>Cancelled</option>
-      </select>
+      </select>`}
     </div>
     <div class="form-group"><div class="form-label">Date Issued</div><input class="form-input" id="fi-date" type="date" value="${toISODate(i.date)}"/></div>
     <div class="form-group"><div class="form-label">Due Date</div><input class="form-input" id="fi-due" type="date" value="${toISODate(i.due)}"/></div>
@@ -822,6 +823,11 @@ export async function saveInvoice() {
 
 export async function handleDeleteInvoice(id: number) {
   if (!confirm('Delete this invoice? This cannot be undone.')) return;
+  // Clear the SOB link so it doesn't point to a deleted invoice
+  const linkedSOB = _sobs.find(s => s.linked_invoice_id === id);
+  if (linkedSOB) {
+    await updateSOB(linkedSOB.id, { linked_invoice_id: null, status: 'Sent' } as Partial<SOB>);
+  }
   const ok = await deleteInvoice(id);
   if (!ok) { toast('Could not delete invoice', 'error'); return; }
   toast('Invoice deleted', '');
