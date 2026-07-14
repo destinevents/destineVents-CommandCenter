@@ -40,6 +40,7 @@ import {
   estimateDeductions,
   openARProjectSOB, advanceARProjectStage,
   sendInvoiceEmail, printOfficialReceipt, openPaymentHistory,
+  toggleActionMenu,
 } from './finance.ts';
 import { loadProjects, openAddProject, openEditProject, handleDeleteProject, convertProposalToProject, openProjectDetail } from './projects.ts';
 import { selectTemplate, copyAIOutput, simulateAI, saveAIOutput, initAIAutocomplete } from './ai.ts';
@@ -418,7 +419,7 @@ declare global {
     togglePaymentFields: typeof togglePaymentFields;
     openARProjectSOB: typeof openARProjectSOB; advanceARProjectStage: typeof advanceARProjectStage;
     sendInvoiceEmail: typeof sendInvoiceEmail; printOfficialReceipt: typeof printOfficialReceipt;
-    openPaymentHistory: typeof openPaymentHistory;
+    openPaymentHistory: typeof openPaymentHistory; toggleActionMenu: typeof toggleActionMenu;
     openAddBill: typeof openAddBill;
     openEditBill: typeof openEditBill; handleDeleteBill: typeof handleDeleteBill;
     openAddPayroll: typeof openAddPayroll; openEditPayroll: typeof openEditPayroll;
@@ -463,6 +464,7 @@ Object.assign(window, {
   addInvoiceRow, recalcInvoice, togglePaymentFields,
   openARProjectSOB, advanceARProjectStage,
   sendInvoiceEmail, printOfficialReceipt, openPaymentHistory,
+  toggleActionMenu,
   openAddBill, openEditBill, handleDeleteBill,
   openAddPayroll, openEditPayroll, handleDeletePayroll,
   openFileBir, showFinanceTab, estimateDeductions,

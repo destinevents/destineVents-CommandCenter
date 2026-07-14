@@ -34,6 +34,17 @@ let _editingBillId: number | null     = null;
 let _editingPayrollId: number | null  = null;
 let _showArchivedInvoices             = false;
 let _pendingSOBConvertId: number | null = null;
+let _menuListenersSetup               = false;
+
+export function toggleActionMenu(btn: HTMLElement) {
+  document.querySelectorAll('.action-menu-dropdown.open').forEach(el => el.classList.remove('open'));
+  const menu = btn.nextElementSibling as HTMLElement | null;
+  if (!menu) return;
+  const rect = btn.getBoundingClientRect();
+  menu.style.top   = `${rect.bottom + 4}px`;
+  menu.style.right = `${window.innerWidth - rect.right}px`;
+  menu.classList.add('open');
+}
 
 function lineItemRowHTML(item: Partial<InvoiceLineItem> = {}) {
   const lineTotal = (item.quantity ?? 1) * (item.unit_price ?? 0) * (1 + (item.vat_rate ?? 0) / 100);
@@ -67,6 +78,16 @@ export async function loadFinance() {
   setPayroll(pay || []);
   setBirFilings(bir || []);
   setSOBs(sobs || []);
+  if (!_menuListenersSetup) {
+    _menuListenersSetup = true;
+    document.addEventListener('click', e => {
+      if (!(e.target as HTMLElement).closest('.action-menu'))
+        document.querySelectorAll('.action-menu-dropdown.open').forEach(el => el.classList.remove('open'));
+    }, { capture: true });
+    document.addEventListener('scroll', () => {
+      document.querySelectorAll('.action-menu-dropdown.open').forEach(el => el.classList.remove('open'));
+    }, { capture: true, passive: true });
+  }
   renderFinanceOverview(_invoices, _bills);
   renderReceivablesDashboard();
   renderARPipeline();
@@ -438,38 +459,50 @@ export function renderAR(invoices: Invoice[]) {
 
   gEl('ar-tbody').innerHTML = visible.length
     ? visible.map(i => {
-        const isActive  = !['Paid', 'Cancelled'].includes(i.status);
+        const isActive   = !['Paid', 'Cancelled'].includes(i.status);
         const isArchived = !!i.archived_at;
-        const payLinkBtn = isActive && !isArchived
-          ? i.payment_url
-            ? `<a href="${escapeHtml(i.payment_url)}" target="_blank" rel="noopener" class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--gold)">Copy Link</a>`
-            : `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--gold)" onclick="openPaymentLink(${i.id},${i.amount},'${escapeHtml(i.client ?? '')}','${escapeHtml(i.or_num)}')">Pay Link</button>`
-          : '';
-        const bpiBtn = isActive && !isArchived && APP_SETTINGS.banking.bpiQrImageUrl
-          ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--ink-2)" onclick="openBpiQr(${i.id},${i.amount},'${escapeHtml(i.client ?? '')}')">BPI QR</button>`
-          : '';
-        const recordBtn = isActive && !isArchived
-          ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--green)" onclick="openRecordPayment(${i.id})">Record</button>`
-          : '';
-        const printORBtn = i.status === 'Paid' && !isArchived
-          ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--green)" onclick="printOfficialReceipt(${i.id})">Print OR</button>`
-          : '';
-        const payHistBtn = i.status === 'Paid' && !isArchived
-          ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--ink-2)" onclick="openPaymentHistory(${i.id})">History</button>`
-          : '';
-        const emailBtn = !isArchived
-          ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--blue)" onclick="sendInvoiceEmail(${i.id})">Email</button>`
-          : '';
         const payMethodBadge = i.status === 'Paid' && i.payment_method
           ? `<span style="font-size:10px;color:var(--ink-3);margin-left:4px">${escapeHtml(i.payment_method)}</span>`
           : '';
-        const archiveBtn = isArchived
-          ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--ink-3)" onclick="restoreInvoice(${i.id})">Restore</button>`
-          : `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--ink-3)" onclick="archiveInvoice(${i.id})">Archive</button>`;
         const linkedSOB = _sobs.find(s => s.linked_invoice_id === i.id);
         const sobBadge = linkedSOB
           ? `<div style="font-size:9px;color:var(--ink-3);margin-top:1px">from ${escapeHtml(linkedSOB.sob_num)}</div>`
           : '';
+        // Primary visible buttons (max 2, status-dependent)
+        const primaryBtns = isArchived ? '' :
+          isActive
+            ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--green)" onclick="openRecordPayment(${i.id})">Record</button>`
+            : i.status === 'Paid'
+              ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--green)" onclick="printOfficialReceipt(${i.id})">Print OR</button>
+                 <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--ink-2)" onclick="openPaymentHistory(${i.id})">History</button>`
+              : '';
+        // Email always visible (except archived)
+        const emailBtnVis = !isArchived
+          ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--blue)" onclick="sendInvoiceEmail(${i.id})">Email</button>`
+          : '';
+        // ⋯ More dropdown items
+        const payLinkItem = isActive
+          ? i.payment_url
+            ? `<a href="${escapeHtml(i.payment_url)}" target="_blank" rel="noopener">Copy Pay Link</a>`
+            : `<button onclick="openPaymentLink(${i.id},${i.amount},'${escapeHtml(i.client ?? '')}','${escapeHtml(i.or_num)}')">Pay Link</button>`
+          : '';
+        const bpiItem = isActive && APP_SETTINGS.banking.bpiQrImageUrl
+          ? `<button onclick="openBpiQr(${i.id},${i.amount},'${escapeHtml(i.client ?? '')}')">BPI QR</button>`
+          : '';
+        const moreItems = isArchived
+          ? `<button onclick="restoreInvoice(${i.id})">Restore</button>
+             <div class="action-menu-sep"></div>
+             <button class="menu-danger" onclick="handleDeleteInvoice(${i.id})">Delete</button>`
+          : [
+              payLinkItem,
+              bpiItem,
+              `<button onclick="printInvoice(${i.id})">Print Invoice</button>`,
+              `<button onclick="openDuplicateInvoice(${i.id})">Duplicate</button>`,
+              `<button onclick="openEditInvoice(${i.id})">Edit</button>`,
+              `<div class="action-menu-sep"></div>`,
+              `<button onclick="archiveInvoice(${i.id})">Archive</button>`,
+              `<button class="menu-danger" onclick="handleDeleteInvoice(${i.id})">Delete</button>`,
+            ].filter(Boolean).join('');
         return `
         <tr${isArchived ? ' style="opacity:0.6"' : ''}>
           <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(i.or_num)}${sobBadge}</td>
@@ -479,18 +512,13 @@ export function renderAR(invoices: Invoice[]) {
           <td style="font-size:11px;color:var(--ink-3)">${displayDate(i.due)}</td>
           <td><span class="badge badge-${statusClass(i.status)}">${escapeHtml(i.status)}</span>${payMethodBadge}</td>
           <td>
-            <div class="flex-gap" style="gap:4px;flex-wrap:wrap">
-              ${recordBtn}
-              ${printORBtn}
-              ${payHistBtn}
-              ${emailBtn}
-              ${payLinkBtn}
-              ${bpiBtn}
-              <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="printInvoice(${i.id})">Print</button>
-              <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="openDuplicateInvoice(${i.id})">Duplicate</button>
-              <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="openEditInvoice(${i.id})">Edit</button>
-              ${archiveBtn}
-              <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--red)" onclick="handleDeleteInvoice(${i.id})">Delete</button>
+            <div class="flex-gap" style="gap:4px">
+              ${primaryBtns}
+              ${emailBtnVis}
+              <div class="action-menu">
+                <button class="action-menu-trigger" onclick="toggleActionMenu(this)">···</button>
+                <div class="action-menu-dropdown">${moreItems}</div>
+              </div>
             </div>
           </td>
         </tr>`;
@@ -1129,11 +1157,16 @@ export function renderOfficialReceipts() {
             <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(i.payment_method ?? '—')}</td>
             <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(i.payment_reference ?? '—')}</td>
             <td>
-              <div class="flex-gap" style="gap:4px;flex-wrap:wrap">
-                <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="printOfficialReceipt(${i.id})">Print OR</button>
-                <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="printInvoice(${i.id})">View Invoice</button>
-                ${i.project_id ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="openProjectDetail(${i.project_id})">View Project</button>` : ''}
-                <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--blue)" onclick="sendInvoiceEmail(${i.id})">Email</button>
+              <div class="flex-gap" style="gap:4px">
+                <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--green)" onclick="printOfficialReceipt(${i.id})">Print OR</button>
+                <div class="action-menu">
+                  <button class="action-menu-trigger" onclick="toggleActionMenu(this)">···</button>
+                  <div class="action-menu-dropdown">
+                    <button onclick="printInvoice(${i.id})">View Invoice</button>
+                    ${i.project_id ? `<button onclick="openProjectDetail(${i.project_id})">View Project</button>` : ''}
+                    <button style="color:var(--blue)" onclick="sendInvoiceEmail(${i.id})">Email</button>
+                  </div>
+                </div>
               </div>
             </td>
           </tr>`;

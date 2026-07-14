@@ -139,14 +139,34 @@ export function renderSOB(sobs: SOB[]) {
         const canConvert  = !s.linked_invoice_id && !['Paid', 'Cancelled'].includes(s.status) && !isArchived;
         const linkedInv   = s.linked_invoice_id ? _invoices.find(i => i.id === s.linked_invoice_id) : null;
         const proj        = s.project_id ? _projects.find(p => p.id === s.project_id) : null;
-        const convertBtn  = canConvert
-          ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--gold)" onclick="convertSOBToInvoice(${s.id})">→ Invoice</button>`
-          : linkedInv
-            ? `<span style="font-size:10px;color:var(--green)">Invoice ${escapeHtml(linkedInv.or_num)}</span>`
-            : '';
-        const archiveBtn = isArchived
-          ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--ink-3)" onclick="restoreSOB(${s.id})">Restore</button>`
-          : `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--ink-3)" onclick="archiveSOB(${s.id})">Archive</button>`;
+        // Primary visible button
+        const primaryBtn = isArchived ? '' :
+          canConvert
+            ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--gold)" onclick="convertSOBToInvoice(${s.id})">→ Invoice</button>`
+            : linkedInv
+              ? `<span style="font-size:10px;color:var(--green);padding:0 2px">Invoice ${escapeHtml(linkedInv.or_num)}</span>`
+              : '';
+        // Email always visible (except archived)
+        const emailBtnVis = !isArchived
+          ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--blue)" onclick="openSOBSendEmail(${s.id})">Email</button>`
+          : '';
+        // ⋯ More dropdown items
+        const recordItem = !['Paid','Cancelled'].includes(s.status) && !isArchived
+          ? `<button onclick="openSOBRecordPayment(${s.id})">Record Payment</button>` : '';
+        const moreItems = isArchived
+          ? `<button onclick="printSOB(${s.id})">Download PDF</button>
+             <div class="action-menu-sep"></div>
+             <button onclick="restoreSOB(${s.id})">Restore</button>
+             <button class="menu-danger" onclick="handleDeleteSOB(${s.id})">Delete</button>`
+          : [
+              recordItem,
+              `<button onclick="printSOB(${s.id})">Download PDF</button>`,
+              `<button onclick="openEditSOB(${s.id})">Edit</button>`,
+              `<button onclick="openDuplicateSOB(${s.id})">Duplicate</button>`,
+              `<div class="action-menu-sep"></div>`,
+              `<button onclick="archiveSOB(${s.id})">Archive</button>`,
+              `<button class="menu-danger" onclick="handleDeleteSOB(${s.id})">Delete</button>`,
+            ].filter(Boolean).join('');
         return `
         <tr${isArchived ? ' style="opacity:0.6"' : ''}>
           <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(s.sob_num)}</td>
@@ -157,15 +177,13 @@ export function renderSOB(sobs: SOB[]) {
           <td style="font-size:11px;color:var(--ink-3)">${displayDate(s.due_date)}</td>
           <td><span class="badge badge-${statusClass(s.status)}">${escapeHtml(s.status)}</span></td>
           <td>
-            <div class="flex-gap" style="gap:4px;flex-wrap:wrap">
-              ${convertBtn}
-              ${!['Paid','Cancelled'].includes(s.status) && !isArchived ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--green)" onclick="openSOBRecordPayment(${s.id})">Record Payment</button>` : ''}
-              ${!isArchived ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--blue)" onclick="openSOBSendEmail(${s.id})">Send Email</button>` : ''}
-              <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="printSOB(${s.id})">Download PDF</button>
-              <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="openEditSOB(${s.id})">Edit</button>
-              <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="openDuplicateSOB(${s.id})">Duplicate</button>
-              ${archiveBtn}
-              <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--red)" onclick="handleDeleteSOB(${s.id})">Delete</button>
+            <div class="flex-gap" style="gap:4px">
+              ${primaryBtn}
+              ${emailBtnVis}
+              <div class="action-menu">
+                <button class="action-menu-trigger" onclick="toggleActionMenu(this)">···</button>
+                <div class="action-menu-dropdown">${moreItems}</div>
+              </div>
             </div>
           </td>
         </tr>`;
