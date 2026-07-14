@@ -424,6 +424,7 @@
 
     <!-- Receivables (SOBs + Invoices + OR) -->
     <div class="ftab" id="ftab-receivables">
+      <div id="receivables-stats" style="margin-bottom:16px"></div>
       <div id="ar-pipeline"></div>
 
       <!-- A. Statement of Billing -->
@@ -454,6 +455,18 @@
         </table>
       </div>
       <div id="ar-recent-payments" style="margin-top:16px"></div>
+
+      <!-- C. Official Receipt -->
+      <div style="margin-top:20px;margin-bottom:4px;font-size:11px;font-weight:600;color:var(--ink-2);letter-spacing:.08em;text-transform:uppercase">C. Official Receipt</div>
+      <div class="page-actions">
+        <div id="or-summary" style="font-size:11px;color:var(--ink-3)"></div>
+      </div>
+      <div style="border:1px solid var(--ink-4);overflow:hidden">
+        <table class="ledger-table">
+          <thead><tr><th>OR #</th><th>Client</th><th>Project</th><th>Amount Paid</th><th>Payment Date</th><th>Method</th><th>Reference</th><th></th></tr></thead>
+          <tbody id="or-tbody"></tbody>
+        </table>
+      </div>
     </div>
 
     <!-- Payables (AP) -->

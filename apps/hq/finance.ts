@@ -68,8 +68,10 @@ export async function loadFinance() {
   setBirFilings(bir || []);
   setSOBs(sobs || []);
   renderFinanceOverview(_invoices, _bills);
+  renderReceivablesDashboard();
   renderARPipeline();
   renderAR(_invoices);
+  renderOfficialReceipts();
   renderAP(_bills);
   renderPayroll(_payroll);
   renderBIR();
@@ -383,6 +385,38 @@ export async function advanceARProjectStage(id: number) {
   loadFinance();
 }
 
+// ── Receivables Dashboard ─────────────────────────────────────────────────────
+
+export function renderReceivablesDashboard() {
+  const el = document.getElementById('receivables-stats');
+  if (!el) return;
+  const summary = calcFinanceSummary(_invoices, _bills, _payroll);
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px">
+      <div class="stat-card" style="padding:10px 12px">
+        <div class="stat-label">Outstanding</div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:700;color:var(--amber)">${formatCurrency(summary.arOutstanding)}</div>
+      </div>
+      <div class="stat-card" style="padding:10px 12px">
+        <div class="stat-label">Overdue</div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:700;color:var(--red)">${formatCurrency(summary.overdueTotal)}</div>
+        <div style="font-size:10px;color:var(--ink-3);margin-top:2px">${summary.overdueCount} invoice${summary.overdueCount !== 1 ? 's' : ''}</div>
+      </div>
+      <div class="stat-card" style="padding:10px 12px">
+        <div class="stat-label">Collected Today</div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:700;color:var(--green)">${formatCurrency(summary.collectedToday)}</div>
+      </div>
+      <div class="stat-card" style="padding:10px 12px">
+        <div class="stat-label">Collected This Month</div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:700;color:var(--green)">${formatCurrency(summary.collectedThisMonth)}</div>
+      </div>
+      <div class="stat-card" style="padding:10px 12px">
+        <div class="stat-label">Avg Collection Time</div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:700">${summary.avgCollectionDays}<span style="font-size:12px;font-weight:400;color:var(--ink-3)"> days</span></div>
+      </div>
+    </div>`;
+}
+
 // ── AR (Invoices) ─────────────────────────────────────────────────────────────
 
 export function renderAR(invoices: Invoice[]) {
@@ -417,6 +451,12 @@ export function renderAR(invoices: Invoice[]) {
         const recordBtn = isActive && !isArchived
           ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--green)" onclick="openRecordPayment(${i.id})">Record</button>`
           : '';
+        const printORBtn = i.status === 'Paid' && !isArchived
+          ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--green)" onclick="printOfficialReceipt(${i.id})">Print OR</button>`
+          : '';
+        const emailBtn = !isArchived
+          ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--blue)" onclick="sendInvoiceEmail(${i.id})">Email</button>`
+          : '';
         const payMethodBadge = i.status === 'Paid' && i.payment_method
           ? `<span style="font-size:10px;color:var(--ink-3);margin-left:4px">${escapeHtml(i.payment_method)}</span>`
           : '';
@@ -438,6 +478,8 @@ export function renderAR(invoices: Invoice[]) {
           <td>
             <div class="flex-gap" style="gap:4px;flex-wrap:wrap">
               ${recordBtn}
+              ${printORBtn}
+              ${emailBtn}
               ${payLinkBtn}
               ${bpiBtn}
               <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="printInvoice(${i.id})">Print</button>
@@ -925,8 +967,10 @@ export async function saveRecordPayment() {
   const ok = await updateInvoice(_editingInvoiceId, payload);
   if (!ok) { toast('Could not record payment', 'error'); return; }
   toast('Payment recorded — invoice marked as Paid', 'success');
+  const paidId = _editingInvoiceId;
   closeModal();
   loadFinance();
+  setTimeout(() => printOfficialReceipt(paidId), 400);
 }
 
 export function openBpiQr(id: number, amount: number, client: string) {
@@ -1007,6 +1051,198 @@ export function copyPaymentLink() {
   navigator.clipboard.writeText(input.value)
     .then(() => toast('Link copied to clipboard', 'success'))
     .catch(() => toast('Could not copy — please copy manually', 'error'));
+}
+
+// ── Official Receipts ─────────────────────────────────────────────────────────
+
+export function renderOfficialReceipts() {
+  const paidInvoices = _invoices.filter(i => i.status === 'Paid' && !i.archived_at);
+  const summaryEl    = document.getElementById('or-summary');
+  const tbodyEl      = document.getElementById('or-tbody');
+  if (summaryEl) {
+    const total = paidInvoices.reduce((s, i) => s + (i.amount || 0), 0);
+    summaryEl.textContent = `${paidInvoices.length} official receipt${paidInvoices.length !== 1 ? 's' : ''} · ${formatCurrency(total)} collected`;
+  }
+  if (!tbodyEl) return;
+  tbodyEl.innerHTML = paidInvoices.length
+    ? [...paidInvoices]
+        .sort((a, b) => (b.payment_date || b.date || '').localeCompare(a.payment_date || a.date || ''))
+        .map(i => {
+          const proj       = i.project_id ? _projects.find(p => p.id === i.project_id) : null;
+          const linkedSOB  = _sobs.find(s => s.linked_invoice_id === i.id);
+          return `
+          <tr>
+            <td style="font-size:11px;color:var(--ink-3)">
+              ${escapeHtml(i.or_num)}
+              ${linkedSOB ? `<div style="font-size:9px;color:var(--ink-3);margin-top:1px">from ${escapeHtml(linkedSOB.sob_num)}</div>` : ''}
+            </td>
+            <td style="font-weight:500;color:var(--ink)">${escapeHtml(i.client ?? '—')}</td>
+            <td style="font-size:11px;color:var(--ink-3)">${proj ? escapeHtml(proj.name) : '—'}</td>
+            <td class="amount-cell">${formatCurrency(i.amount)}</td>
+            <td style="font-size:11px;color:var(--ink-3)">${i.payment_date ? displayDate(i.payment_date) : '—'}</td>
+            <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(i.payment_method ?? '—')}</td>
+            <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(i.payment_reference ?? '—')}</td>
+            <td>
+              <div class="flex-gap" style="gap:4px;flex-wrap:wrap">
+                <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="printOfficialReceipt(${i.id})">Print OR</button>
+                <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--blue)" onclick="sendInvoiceEmail(${i.id})">Email</button>
+              </div>
+            </td>
+          </tr>`;
+        }).join('')
+    : `<tr><td colspan="8"><div class="empty-state">No official receipts yet — paid invoices will appear here</div></td></tr>`;
+}
+
+export async function printOfficialReceipt(id: number) {
+  const inv = _invoices.find(x => x.id === id);
+  if (!inv) return;
+  if (inv.status !== 'Paid') { toast('OR can only be printed for paid invoices', 'error'); return; }
+  const linkedSOB  = _sobs.find(s => s.linked_invoice_id === id);
+  const proj       = _projects.find(p => p.id === inv.project_id);
+  const { banking } = APP_SETTINGS;
+  const w = window.open('', '_blank', 'width=860,height=700');
+  if (!w) { toast('Pop-up blocked — please allow pop-ups and try again', 'error'); return; }
+  w.document.write(`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Official Receipt ${escapeHtml(inv.or_num)}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Helvetica Neue',Arial,sans-serif;color:#1a1a1a;background:#fff;padding:48px}
+  .brand{font-size:28px;font-weight:700;letter-spacing:-0.5px}
+  .brand span{font-weight:300;color:#666}
+  .tagline{font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#888;margin-top:3px}
+  .doc-title{font-size:22px;font-weight:600;color:#999;text-align:right}
+  .doc-num{font-size:30px;font-weight:700;text-align:right;letter-spacing:-0.5px}
+  .label{font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:#888;margin-bottom:3px}
+  .value{font-size:13px;color:#1a1a1a}
+  .pay-box{background:#f5f9f2;border:1px solid #c8e6c9;border-radius:8px;padding:20px 24px;margin:32px 0}
+  .pay-amount{font-size:36px;font-weight:700;color:#1a7a45;margin:8px 0 4px}
+  .footer{margin-top:48px;padding-top:18px;border-top:1px solid #e8e3da;font-size:10px;color:#aaa;text-align:center;line-height:1.8}
+  @media print{body{padding:24px}.no-print{display:none}}
+</style>
+</head>
+<body>
+<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:40px">
+  <div>
+    <div class="brand">destine<span>vents</span></div>
+    <div class="tagline">DestineVents Collective OPC</div>
+    <div style="font-size:11px;color:#888;margin-top:8px;line-height:1.7">
+      Baguio City, Philippines<br>
+      ${escapeHtml(banking.bpiAccountName)}<br>
+      BPI Account: ${escapeHtml(banking.bpiAccountNumber)}
+    </div>
+  </div>
+  <div style="text-align:right">
+    <div class="doc-title">OFFICIAL RECEIPT</div>
+    <div class="doc-num">${escapeHtml(inv.or_num)}</div>
+    <div style="margin-top:8px;font-size:11px;color:#888">
+      Linked Invoice: ${escapeHtml(inv.or_num)}${linkedSOB ? ` · SOB: ${escapeHtml(linkedSOB.sob_num)}` : ''}
+    </div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;padding-bottom:24px;border-bottom:1px solid #e8e3da">
+  <div>
+    <div class="label">Received From</div>
+    <div class="value" style="font-weight:600;font-size:15px">${escapeHtml(inv.client ?? '—')}</div>
+    ${inv.tin ? `<div style="font-size:11px;color:#888;margin-top:2px">TIN: ${escapeHtml(inv.tin)}</div>` : ''}
+    ${inv.business_address ? `<div style="font-size:11px;color:#888;margin-top:2px">${escapeHtml(inv.business_address)}</div>` : ''}
+    ${proj ? `<div style="font-size:11px;color:#888;margin-top:3px">Project: ${escapeHtml(proj.name)}</div>` : ''}
+  </div>
+  <div>
+    <div class="label">Payment Date</div>
+    <div class="value" style="font-weight:600">${inv.payment_date ? formatDateShort(inv.payment_date) : '—'}</div>
+    ${inv.received_by ? `<div class="label" style="margin-top:10px">Received By</div><div class="value">${escapeHtml(inv.received_by)}</div>` : ''}
+  </div>
+</div>
+
+<div class="pay-box">
+  <div class="label">Amount Paid</div>
+  <div class="pay-amount">₱${(inv.amount || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
+    <div>
+      <div class="label">Payment Method</div>
+      <div class="value" style="font-weight:600">${escapeHtml(inv.payment_method ?? '—')}</div>
+    </div>
+    ${inv.payment_reference ? `<div><div class="label">Reference Number</div><div class="value" style="font-weight:600">${escapeHtml(inv.payment_reference)}</div></div>` : ''}
+  </div>
+</div>
+
+${inv.notes ? `<div style="margin-top:16px;padding:14px;background:#f9f6f0;border-radius:6px;font-size:12px;color:#555;line-height:1.7"><strong>Notes:</strong> ${escapeHtml(inv.notes)}</div>` : ''}
+
+<div style="margin-top:40px;display:grid;grid-template-columns:1fr 1fr;gap:32px">
+  <div style="border-top:1px solid #1a1a1a;padding-top:8px;text-align:center">
+    <div style="font-size:11px;color:#888">Issued By</div>
+    <div style="font-size:12px;margin-top:24px">${inv.received_by ? escapeHtml(inv.received_by) : '___________________________'}</div>
+  </div>
+  <div style="border-top:1px solid #1a1a1a;padding-top:8px;text-align:center">
+    <div style="font-size:11px;color:#888">Client Acknowledgement</div>
+    <div style="font-size:12px;margin-top:24px">___________________________</div>
+  </div>
+</div>
+
+<div style="margin-top:20px" class="no-print">
+  <button onclick="window.print()" style="padding:8px 20px;background:#1a1a1a;color:#fff;border:none;border-radius:4px;font-size:13px;cursor:pointer">Print / Save as PDF</button>
+</div>
+
+<div class="footer">
+  DestineVents Collective OPC · Baguio City, Philippines · destinevents.biz@gmail.com<br>
+  This is an official receipt of payment. Thank you for your partnership.
+</div>
+</body>
+</html>`);
+  w.document.close();
+  w.focus();
+}
+
+export function sendInvoiceEmail(id: number) {
+  const inv = _invoices.find(x => x.id === id);
+  if (!inv) return;
+  const isOR       = inv.status === 'Paid';
+  const docLabel   = isOR ? 'Official Receipt' : 'Invoice';
+  const defaultSubject = `${docLabel} ${escapeHtml(inv.or_num)} — ${escapeHtml(inv.client ?? 'Client')}`;
+  const defaultBody = [
+    `Dear ${inv.client ?? 'Client'},`,
+    '',
+    isOR
+      ? `Please find attached the Official Receipt ${inv.or_num} confirming payment of ${formatCurrency(inv.amount)} received on ${inv.payment_date ? formatDateShort(inv.payment_date) : 'file'}.`
+      : `Please find attached Invoice ${inv.or_num} amounting to ${formatCurrency(inv.amount)}.`,
+    !isOR && inv.due ? `Payment is due on ${formatDateShort(inv.due)}.` : '',
+    '',
+    'Please do not hesitate to reach out should you have any questions.',
+    '',
+    'Thank you for your continued partnership.',
+  ].filter(Boolean).join('\n');
+
+  openModal(`Send ${docLabel} via Email`, `
+    <div style="font-size:11px;color:var(--ink-3);margin-bottom:12px">
+      ${docLabel} <strong>${escapeHtml(inv.or_num)}</strong> · ${formatCurrency(inv.amount)}${!isOR && inv.due ? ' · Due ' + formatDateShort(inv.due) : ''}
+    </div>
+    <div class="form-grid">
+      <div class="form-group full"><div class="form-label">To (Recipient Email)</div><input class="form-input" id="iem-to" type="email" placeholder="client@example.com"/></div>
+      <div class="form-group full"><div class="form-label">CC (optional)</div><input class="form-input" id="iem-cc" type="email" placeholder="colleague@example.com"/></div>
+      <div class="form-group full"><div class="form-label">Subject</div><input class="form-input" id="iem-subject" value="${escapeHtml(defaultSubject)}"/></div>
+      <div class="form-group full"><div class="form-label">Message</div><textarea class="form-input" id="iem-body" rows="8" style="font-size:11.5px;line-height:1.6">${escapeHtml(defaultBody)}</textarea></div>
+    </div>
+    <div style="font-size:10.5px;color:var(--ink-3);margin-top:8px">
+      This will open your email client. Attach the PDF (click <strong>${isOR ? 'Print OR' : 'Print'}</strong> first to save it).
+    </div>`, async () => {
+    const to      = (document.getElementById('iem-to')      as HTMLInputElement).value.trim();
+    const cc      = (document.getElementById('iem-cc')      as HTMLInputElement).value.trim();
+    const subject = (document.getElementById('iem-subject') as HTMLInputElement).value.trim();
+    const body    = (document.getElementById('iem-body')    as HTMLTextAreaElement).value.trim();
+    if (!to) { toast('Recipient email is required', 'error'); return; }
+    const ccPart = cc ? `&cc=${encodeURIComponent(cc)}` : '';
+    window.open(`mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}${ccPart}&body=${encodeURIComponent(body)}`);
+    if (!isOR && inv.status === 'Draft') {
+      await updateInvoice(id, { status: 'Issued' } as Partial<Invoice>);
+    }
+    toast('Email client opened', 'success');
+    closeModal();
+    loadFinance();
+  }, 'Open Email Client');
 }
 
 // ── AP (Bills) ────────────────────────────────────────────────────────────────
