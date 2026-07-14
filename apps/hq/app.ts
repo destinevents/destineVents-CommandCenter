@@ -44,7 +44,7 @@ import {
   togglePaidInvoices, setInvoicePage, setORPage,
   showReceivablesTab,
 } from './finance.ts';
-import { loadProjects, openAddProject, openEditProject, handleDeleteProject, convertProposalToProject, openProjectDetail } from './projects.ts';
+import { loadProjects, openAddProject, openEditProject, handleDeleteProject, convertProposalToProject, openProjectDetail, addClientFromProposal } from './projects.ts';
 import { selectTemplate, copyAIOutput, simulateAI, saveAIOutput, initAIAutocomplete } from './ai.ts';
 import {
   loadEvents, openAddEvent, openEditEvent, handleDeleteEvent,
@@ -403,7 +403,7 @@ declare global {
     handleDeleteProposal: typeof handleDeleteProposal;
     openAddProject: typeof openAddProject; openEditProject: typeof openEditProject;
     handleDeleteProject: typeof handleDeleteProject; convertProposalToProject: typeof convertProposalToProject;
-    openProjectDetail: typeof openProjectDetail;
+    openProjectDetail: typeof openProjectDetail; addClientFromProposal: typeof addClientFromProposal;
     openAddInvoice: typeof openAddInvoice; openEditInvoice: typeof openEditInvoice;
     saveInvoice: typeof saveInvoice; handleDeleteInvoice: typeof handleDeleteInvoice;
     openDuplicateInvoice: typeof openDuplicateInvoice; printInvoice: typeof printInvoice;
@@ -459,7 +459,7 @@ Object.assign(window, {
   // Partners
   openAddPartner, openEditPartner, handleDeletePartner,
   // Projects
-  openAddProject, openEditProject, handleDeleteProject, convertProposalToProject, openProjectDetail,
+  openAddProject, openEditProject, handleDeleteProject, convertProposalToProject, openProjectDetail, addClientFromProposal,
   // Finance
   openAddInvoice, openEditInvoice, saveInvoice, handleDeleteInvoice,
   openDuplicateInvoice, printInvoice, archiveInvoice, restoreInvoice,

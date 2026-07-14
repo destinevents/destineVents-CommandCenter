@@ -6,7 +6,7 @@ import { APP_SETTINGS } from '../../config/settings.js';
 import {
   fetchProjects, createProject, updateProject, deleteProject,
 } from '../../shared/services/projectService.ts';
-import { fetchClients } from '../../shared/services/clientService.ts';
+import { fetchClients, createClient, findClientByName } from '../../shared/services/clientService.ts';
 import { fetchProposals } from '../../shared/services/proposalService.ts';
 import { fetchInvoices } from '../../shared/services/financeService.ts';
 import { _clients, _proposals, _projects, setClients, setProjects } from './state.ts';
@@ -187,10 +187,29 @@ export function convertProposalToProject(proposalId: number) {
   const p = _proposals.find(x => x.id === proposalId);
   if (!p) return;
   _editingProjectId = null;
-  openModal('New Project (from Proposal)', projectFormHTML({
-    name:   p.name,
-    client: p.client ?? undefined,
-    value:  p.value,
-    status: 'Proposal Approved',
-  }), saveProject);
+
+  const clientName   = p.client?.trim() ?? '';
+  const clientExists = !clientName || !!findClientByName(clientName, _clients);
+
+  const banner = clientExists ? '' : `
+    <div id="new-client-banner" style="background:#fef9ec;border:1px solid var(--amber);border-radius:4px;padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;gap:10px;font-size:12px">
+      <span style="color:var(--amber);font-size:14px">⚠</span>
+      <span style="flex:1"><strong>${escapeHtml(clientName)}</strong> is not in your client list yet.</span>
+      <button class="btn btn-ghost" style="font-size:11px;padding:3px 10px" onclick="addClientFromProposal('${escapeHtml(clientName)}')">+ Add as Client</button>
+    </div>`;
+
+  openModal(
+    'New Project (from Proposal)',
+    banner + projectFormHTML({ name: p.name, client: p.client ?? undefined, value: p.value, status: 'Proposal Approved' }),
+    saveProject
+  );
+}
+
+export async function addClientFromProposal(name: string) {
+  const result = await createClient({ name, total_value: 0 });
+  if (!result) { toast('Could not add client', 'error'); return; }
+  toast(`${name} added to clients`, 'success');
+  document.getElementById('new-client-banner')?.remove();
+  const fresh = await fetchClients();
+  setClients(fresh);
 }
