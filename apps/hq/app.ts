@@ -18,7 +18,7 @@ import {
 import { toast, closeModal, saveModal, toggleHqNav } from './ui.ts';
 import {
   loadClients, openAddClient, openEditClient, handleDeleteClient, openClientDetail,
-  loadProposals, openAddProposal, openEditProposal, handleDeleteProposal, openProposalInvoice,
+  loadProposals, openAddProposal, openEditProposal, handleDeleteProposal,
 } from './crm.ts';
 import {
   loadPartners, filterPartners, openAddPartner, openEditPartner, handleDeletePartner,
@@ -395,7 +395,7 @@ declare global {
     openAddClient: typeof openAddClient; openEditClient: typeof openEditClient;
     handleDeleteClient: typeof handleDeleteClient; openClientDetail: typeof openClientDetail;
     openAddProposal: typeof openAddProposal; openEditProposal: typeof openEditProposal;
-    handleDeleteProposal: typeof handleDeleteProposal; openProposalInvoice: typeof openProposalInvoice;
+    handleDeleteProposal: typeof handleDeleteProposal;
     openAddProject: typeof openAddProject; openEditProject: typeof openEditProject;
     handleDeleteProject: typeof handleDeleteProject; convertProposalToProject: typeof convertProposalToProject;
     openProjectDetail: typeof openProjectDetail;
@@ -448,8 +448,6 @@ Object.assign(window, {
   openAddProposal, openEditProposal, handleDeleteProposal,
   // Partners
   openAddPartner, openEditPartner, handleDeletePartner,
-  // Proposals
-  openProposalInvoice,
   // Projects
   openAddProject, openEditProject, handleDeleteProject, convertProposalToProject, openProjectDetail,
   // Finance

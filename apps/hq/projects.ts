@@ -191,6 +191,6 @@ export function convertProposalToProject(proposalId: number) {
     name:   p.name,
     client: p.client ?? undefined,
     value:  p.value,
-    status: 'Active',
+    status: 'Proposal Approved',
   }), saveProject);
 }
