@@ -398,7 +398,6 @@
     <div class="page-title">Finance</div>
     <div class="sub-tabs" id="finance-subtabs">
       <div class="sub-tab active" onclick="showFinanceTab('overview',this)">Overview</div>
-      <div class="sub-tab" onclick="showFinanceTab('billings',this)">Billings</div>
       <div class="sub-tab" onclick="showFinanceTab('receivables',this)">Receivables</div>
       <div class="sub-tab" onclick="showFinanceTab('payables',this)">Payables</div>
       <div class="sub-tab" onclick="showFinanceTab('payroll',this)">Payroll</div>
@@ -423,12 +422,16 @@
       <div id="finance-recent-ap" style="display:none"></div>
     </div>
 
-    <!-- Billings (SOB) -->
-    <div class="ftab" id="ftab-billings">
+    <!-- Receivables (SOBs + Invoices + OR) -->
+    <div class="ftab" id="ftab-receivables">
+      <div id="ar-pipeline"></div>
+
+      <!-- A. Statement of Billing -->
+      <div style="margin-top:16px;margin-bottom:4px;font-size:11px;font-weight:600;color:var(--ink-2);letter-spacing:.08em;text-transform:uppercase">A. Statement of Billing</div>
       <div class="page-actions">
         <div id="sob-summary" style="font-size:11px;color:var(--ink-3)"></div>
         <button class="btn btn-ghost" id="sob-archive-toggle" onclick="toggleArchivedSOBs()" style="font-size:12px">Archived (0)</button>
-        <button class="btn btn-primary" onclick="openAddSOB()">New Billing (SOB)</button>
+        <button class="btn btn-primary" onclick="openAddSOB()">New SOB</button>
       </div>
       <div style="border:1px solid var(--ink-4);overflow:hidden">
         <table class="ledger-table">
@@ -436,11 +439,9 @@
           <tbody id="sob-tbody"></tbody>
         </table>
       </div>
-    </div>
 
-    <!-- Receivables (AR) -->
-    <div class="ftab" id="ftab-receivables">
-      <div id="ar-pipeline"></div>
+      <!-- B. Invoice -->
+      <div style="margin-top:20px;margin-bottom:4px;font-size:11px;font-weight:600;color:var(--ink-2);letter-spacing:.08em;text-transform:uppercase">B. Invoice</div>
       <div class="page-actions">
         <div id="ar-summary" style="font-size:11px;color:var(--ink-3)"></div>
         <button class="btn btn-ghost" id="ar-archive-toggle" onclick="toggleArchivedInvoices()" style="font-size:12px">Archived (0)</button>
