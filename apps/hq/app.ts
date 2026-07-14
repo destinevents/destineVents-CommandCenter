@@ -53,7 +53,7 @@ import { loadUsers, approveUser, changeUserRole } from './users.ts';
 import {
   openAddSOB, openEditSOB, saveSOB, handleDeleteSOB,
   openDuplicateSOB, archiveSOB, restoreSOB, convertSOBToInvoice,
-  toggleArchivedSOBs, addSOBRow, recalcSOB, printSOB, openSOBRecordPayment,
+  toggleArchivedSOBs, addSOBRow, recalcSOB, printSOB, openSOBRecordPayment, openSOBSendEmail,
 } from './sob.ts';
 
 const gEl = (id: string) => document.getElementById(id)!;
@@ -409,7 +409,7 @@ declare global {
     archiveSOB: typeof archiveSOB; restoreSOB: typeof restoreSOB;
     convertSOBToInvoice: typeof convertSOBToInvoice; toggleArchivedSOBs: typeof toggleArchivedSOBs;
     addSOBRow: typeof addSOBRow; recalcSOB: typeof recalcSOB; printSOB: typeof printSOB;
-    openSOBRecordPayment: typeof openSOBRecordPayment;
+    openSOBRecordPayment: typeof openSOBRecordPayment; openSOBSendEmail: typeof openSOBSendEmail;
     openPaymentLink: typeof openPaymentLink; copyPaymentLink: typeof copyPaymentLink;
     openBpiQr: typeof openBpiQr; copyBpiText: typeof copyBpiText; downloadBpiQr: typeof downloadBpiQr;
     openRecordPayment: typeof openRecordPayment; saveRecordPayment: typeof saveRecordPayment;
@@ -478,7 +478,7 @@ Object.assign(window, {
   // SOB (Statement of Billing)
   openAddSOB, openEditSOB, saveSOB, handleDeleteSOB,
   openDuplicateSOB, archiveSOB, restoreSOB, convertSOBToInvoice,
-  toggleArchivedSOBs, addSOBRow, recalcSOB, printSOB, openSOBRecordPayment,
+  toggleArchivedSOBs, addSOBRow, recalcSOB, printSOB, openSOBRecordPayment, openSOBSendEmail,
   // Users (admin)
   approveUser, changeUserRole,
 });

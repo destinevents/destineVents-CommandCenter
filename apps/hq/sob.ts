@@ -160,6 +160,7 @@ export function renderSOB(sobs: SOB[]) {
             <div class="flex-gap" style="gap:4px;flex-wrap:wrap">
               ${convertBtn}
               ${!['Paid','Cancelled'].includes(s.status) && !isArchived ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--green)" onclick="openSOBRecordPayment(${s.id})">Record Payment</button>` : ''}
+              ${!isArchived ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--blue)" onclick="openSOBSendEmail(${s.id})">Send Email</button>` : ''}
               <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="printSOB(${s.id})">Download PDF</button>
               <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="openEditSOB(${s.id})">Edit</button>
               <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="openDuplicateSOB(${s.id})">Duplicate</button>
@@ -492,6 +493,51 @@ ${sob.notes ? `<div style="margin-top:12px;padding:14px;background:#f9f6f0;borde
 </html>`);
   w.document.close();
   w.focus();
+}
+
+export function openSOBSendEmail(id: number) {
+  const s = _sobs.find(x => x.id === id);
+  if (!s) return;
+  const defaultSubject = `Statement of Billing ${escapeHtml(s.sob_num)} — ${escapeHtml(s.client ?? 'Client')}`;
+  const defaultBody = [
+    `Dear ${s.client ?? 'Client'},`,
+    '',
+    `Please find attached the Statement of Billing ${s.sob_num} amounting to ${formatCurrency(s.total_amount)}.`,
+    s.due_date ? `Payment is due on ${formatDateShort(s.due_date)}.` : '',
+    s.payment_instructions ? `\nPayment Instructions:\n${s.payment_instructions}` : '',
+    '',
+    'Please do not hesitate to reach out should you have any questions.',
+    '',
+    'Thank you for your continued partnership.',
+  ].filter(line => line !== undefined).join('\n');
+
+  openModal('Send via Email', `
+    <div style="font-size:11px;color:var(--ink-3);margin-bottom:12px">
+      SOB <strong>${escapeHtml(s.sob_num)}</strong> · ${formatCurrency(s.total_amount)}${s.due_date ? ' · Due ' + formatDateShort(s.due_date) : ''}
+    </div>
+    <div class="form-grid">
+      <div class="form-group full"><div class="form-label">To (Recipient Email)</div><input class="form-input" id="sem-to" type="email" placeholder="client@example.com"/></div>
+      <div class="form-group full"><div class="form-label">CC (optional)</div><input class="form-input" id="sem-cc" type="email" placeholder="colleague@example.com"/></div>
+      <div class="form-group full"><div class="form-label">Subject</div><input class="form-input" id="sem-subject" value="${escapeHtml(defaultSubject)}"/></div>
+      <div class="form-group full"><div class="form-label">Message</div><textarea class="form-input" id="sem-body" rows="8" style="font-size:11.5px;line-height:1.6">${escapeHtml(defaultBody)}</textarea></div>
+    </div>
+    <div style="font-size:10.5px;color:var(--ink-3);margin-top:8px">
+      This will open your email client. Attach the SOB PDF (click <strong>Download PDF</strong> first to save it).
+    </div>`, async () => {
+    const to      = (document.getElementById('sem-to')      as HTMLInputElement).value.trim();
+    const cc      = (document.getElementById('sem-cc')      as HTMLInputElement).value.trim();
+    const subject = (document.getElementById('sem-subject') as HTMLInputElement).value.trim();
+    const body    = (document.getElementById('sem-body')    as HTMLTextAreaElement).value.trim();
+    if (!to) { toast('Recipient email is required', 'error'); return; }
+    const ccPart = cc ? `&cc=${encodeURIComponent(cc)}` : '';
+    window.open(`mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}${ccPart}&body=${encodeURIComponent(body)}`);
+    await updateSOB(id, { status: 'Sent' } as Partial<SOB>);
+    toast('Email client opened — SOB marked as Sent', 'success');
+    closeModal();
+    const fresh = await fetchSOBs();
+    setSOBs(fresh);
+    renderSOB(fresh);
+  }, 'Open Email Client');
 }
 
 export function openSOBRecordPayment(id: number) {
