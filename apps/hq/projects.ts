@@ -121,7 +121,10 @@ export async function saveProject() {
 export async function handleDeleteProject(id: number) {
   if (!confirm('Delete this project? This cannot be undone.')) return;
   const ok = await deleteProject(id);
-  if (!ok) { toast('Could not delete project', 'error'); return; }
+  if (!ok) {
+    toast('Cannot delete — project has linked SOBs or invoices. Remove those links first, or ask your admin to run the ON DELETE SET NULL migration.', 'error');
+    return;
+  }
   toast('Project deleted', '');
   loadProjects();
 }
