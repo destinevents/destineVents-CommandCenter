@@ -2,6 +2,7 @@ import { formatCurrency } from '../../shared/utils/formatUtils.ts';
 import { formatDateShort, todayISO } from '../../shared/utils/dateUtils.ts';
 import { escapeHtml, statusClass } from '../../shared/utils/helpers.ts';
 import { validateRequired } from '../../shared/utils/validators.ts';
+import { APP_SETTINGS } from '../../config/settings.js';
 import {
   fetchSOBs, fetchSOBLineItems, createSOB, updateSOB, deleteSOB, upsertSOBLineItems,
 } from '../../shared/services/sobService.ts';
@@ -152,6 +153,7 @@ export function renderSOB(sobs: SOB[]) {
           <td>
             <div class="flex-gap" style="gap:4px;flex-wrap:wrap">
               ${convertBtn}
+              <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="printSOB(${s.id})">Print</button>
               <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="openEditSOB(${s.id})">Edit</button>
               <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="openDuplicateSOB(${s.id})">Duplicate</button>
               ${archiveBtn}
@@ -355,6 +357,133 @@ export function recalcSOB() {
   if (stEl)  stEl.textContent  = formatCurrency(subtotal);
   if (vatEl) vatEl.textContent = formatCurrency(vatTotal);
   if (totEl) totEl.textContent = formatCurrency(total);
+}
+
+export async function printSOB(id: number) {
+  const sob = _sobs.find(x => x.id === id);
+  if (!sob) return;
+  const items  = await fetchSOBLineItems(id);
+  const subtotal  = sob.subtotal ?? items.reduce((s, li) => s + li.quantity * li.unit_price, 0);
+  const vatAmount = sob.vat_amount ?? items.reduce((s, li) => s + li.quantity * li.unit_price * li.vat_rate / 100, 0);
+  const discount  = sob.discount ?? 0;
+  const { banking } = APP_SETTINGS;
+  const proj = _projects.find(p => p.id === sob.project_id);
+  const lineRowsHTML = items.length
+    ? items.map(li => {
+        const lineAmt = li.quantity * li.unit_price * (1 + li.vat_rate / 100);
+        return `<tr>
+          <td style="padding:8px 10px;border-bottom:1px solid #e8e3da">${escapeHtml(li.description)}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid #e8e3da;text-align:right">${li.quantity}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid #e8e3da;text-align:right">${formatCurrency(li.unit_price)}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid #e8e3da;text-align:right">${li.vat_rate}%</td>
+          <td style="padding:8px 10px;border-bottom:1px solid #e8e3da;text-align:right;font-weight:600">${formatCurrency(lineAmt)}</td>
+        </tr>`;
+      }).join('')
+    : `<tr><td colspan="5" style="padding:8px 10px;color:#888">—</td></tr>`;
+  const w = window.open('', '_blank', 'width=860,height=700');
+  if (!w) { toast('Pop-up blocked — please allow pop-ups and try again', 'error'); return; }
+  w.document.write(`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Statement of Billing ${escapeHtml(sob.sob_num)}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Helvetica Neue',Arial,sans-serif;color:#1a1a1a;background:#fff;padding:48px}
+  .brand{font-size:28px;font-weight:700;letter-spacing:-0.5px}
+  .brand span{font-weight:300;color:#666}
+  .tagline{font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#888;margin-top:3px}
+  .doc-title{font-size:22px;font-weight:600;color:#999;text-align:right}
+  .doc-num{font-size:30px;font-weight:700;text-align:right;letter-spacing:-0.5px}
+  table.items{width:100%;border-collapse:collapse;margin:20px 0}
+  table.items thead th{background:#f5f0e8;padding:8px 10px;text-align:left;font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#666}
+  table.items thead th:not(:first-child){text-align:right}
+  .label{font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:#888;margin-bottom:3px}
+  .value{font-size:13px;color:#1a1a1a}
+  .total-row{display:flex;justify-content:space-between;font-size:13px;padding:4px 0}
+  .total-final{font-size:20px;font-weight:700;border-top:2px solid #1a1a1a;padding-top:10px;margin-top:8px;display:flex;justify-content:space-between}
+  .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase}
+  .badge-draft{background:#f5f0e8;color:#666}
+  .badge-sent{background:#dbeafe;color:#1e40af}
+  .badge-paid{background:#d4f5e2;color:#1a7a45}
+  .footer{margin-top:48px;padding-top:18px;border-top:1px solid #e8e3da;font-size:10px;color:#aaa;text-align:center;line-height:1.8}
+  @media print{body{padding:24px}.no-print{display:none}}
+</style>
+</head>
+<body>
+<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:40px">
+  <div>
+    <div class="brand">destine<span>vents</span></div>
+    <div class="tagline">DestineVents Collective OPC</div>
+    <div style="font-size:11px;color:#888;margin-top:8px;line-height:1.7">
+      Baguio City, Philippines<br>
+      ${escapeHtml(banking.bpiAccountName)}<br>
+      BPI Account: ${escapeHtml(banking.bpiAccountNumber)}
+    </div>
+  </div>
+  <div style="text-align:right">
+    <div class="doc-title">STATEMENT OF BILLING</div>
+    <div class="doc-num">${escapeHtml(sob.sob_num)}</div>
+    <div style="margin-top:8px">
+      <span class="badge badge-${sob.status === 'Paid' ? 'paid' : sob.status === 'Sent' ? 'sent' : 'draft'}">${escapeHtml(sob.status)}</span>
+    </div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;margin-bottom:32px;padding-bottom:24px;border-bottom:1px solid #e8e3da">
+  <div>
+    <div class="label">Billed To</div>
+    <div class="value" style="font-weight:600;font-size:15px">${escapeHtml(sob.client ?? '—')}</div>
+    ${proj ? `<div style="font-size:11px;color:#888;margin-top:3px">Project: ${escapeHtml(proj.name)}</div>` : ''}
+  </div>
+  <div>
+    <div class="label">Issue Date</div>
+    <div class="value">${sob.issue_date ? formatDateShort(sob.issue_date) : '—'}</div>
+    <div class="label" style="margin-top:10px">Due Date</div>
+    <div class="value">${sob.due_date ? formatDateShort(sob.due_date) : '—'}</div>
+  </div>
+  <div>
+    ${sob.prepared_by ? `<div class="label">Prepared By</div><div class="value">${escapeHtml(sob.prepared_by)}</div>` : ''}
+    ${sob.approved_by ? `<div class="label" style="margin-top:10px">Approved By</div><div class="value">${escapeHtml(sob.approved_by)}</div>` : ''}
+  </div>
+</div>
+
+${sob.description ? `<div style="margin-bottom:24px;font-size:13px;color:#555;line-height:1.6">${escapeHtml(sob.description)}</div>` : ''}
+
+<table class="items">
+  <thead><tr>
+    <th style="width:45%">Description</th>
+    <th style="width:10%">Qty</th>
+    <th style="width:15%">Unit Price</th>
+    <th style="width:10%">VAT</th>
+    <th style="width:20%">Amount</th>
+  </tr></thead>
+  <tbody>${lineRowsHTML}</tbody>
+</table>
+<div style="display:flex;justify-content:flex-end">
+  <div style="width:280px">
+    <div class="total-row"><span style="color:#888">Subtotal</span><span>${formatCurrency(subtotal)}</span></div>
+    ${vatAmount > 0 ? `<div class="total-row"><span style="color:#888">VAT</span><span>${formatCurrency(vatAmount)}</span></div>` : ''}
+    ${discount > 0 ? `<div class="total-row"><span style="color:#888">Discount</span><span>-${formatCurrency(discount)}</span></div>` : ''}
+    <div class="total-final"><span>Total Due</span><span>${formatCurrency(sob.total_amount)}</span></div>
+  </div>
+</div>
+
+${sob.payment_instructions ? `<div style="margin-top:24px;padding:14px;background:#f9f6f0;border-radius:6px;font-size:12px;color:#555;line-height:1.7"><strong>Payment Instructions:</strong> ${escapeHtml(sob.payment_instructions)}</div>` : ''}
+${sob.notes ? `<div style="margin-top:12px;padding:14px;background:#f9f6f0;border-radius:6px;font-size:12px;color:#555;line-height:1.7"><strong>Notes:</strong> ${escapeHtml(sob.notes)}</div>` : ''}
+
+<div style="margin-top:20px" class="no-print">
+  <button onclick="window.print()" style="padding:8px 20px;background:#1a1a1a;color:#fff;border:none;border-radius:4px;font-size:13px;cursor:pointer">Print / Save as PDF</button>
+</div>
+
+<div class="footer">
+  DestineVents Collective OPC · Baguio City, Philippines · destinevents.biz@gmail.com<br>
+  Thank you for your trust and partnership.
+</div>
+</body>
+</html>`);
+  w.document.close();
+  w.focus();
 }
 
 // Extend Window to include the cross-module SOB→Invoice bridge

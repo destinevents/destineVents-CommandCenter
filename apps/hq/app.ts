@@ -52,7 +52,7 @@ import { loadUsers, approveUser, changeUserRole } from './users.ts';
 import {
   openAddSOB, openEditSOB, saveSOB, handleDeleteSOB,
   openDuplicateSOB, archiveSOB, restoreSOB, convertSOBToInvoice,
-  toggleArchivedSOBs, addSOBRow, recalcSOB,
+  toggleArchivedSOBs, addSOBRow, recalcSOB, printSOB,
 } from './sob.ts';
 
 const gEl = (id: string) => document.getElementById(id)!;
@@ -407,7 +407,7 @@ declare global {
     handleDeleteSOB: typeof handleDeleteSOB; openDuplicateSOB: typeof openDuplicateSOB;
     archiveSOB: typeof archiveSOB; restoreSOB: typeof restoreSOB;
     convertSOBToInvoice: typeof convertSOBToInvoice; toggleArchivedSOBs: typeof toggleArchivedSOBs;
-    addSOBRow: typeof addSOBRow; recalcSOB: typeof recalcSOB;
+    addSOBRow: typeof addSOBRow; recalcSOB: typeof recalcSOB; printSOB: typeof printSOB;
     openPaymentLink: typeof openPaymentLink; copyPaymentLink: typeof copyPaymentLink;
     openBpiQr: typeof openBpiQr; copyBpiText: typeof copyBpiText; downloadBpiQr: typeof downloadBpiQr;
     openRecordPayment: typeof openRecordPayment; saveRecordPayment: typeof saveRecordPayment;
@@ -474,7 +474,7 @@ Object.assign(window, {
   // SOB (Statement of Billing)
   openAddSOB, openEditSOB, saveSOB, handleDeleteSOB,
   openDuplicateSOB, archiveSOB, restoreSOB, convertSOBToInvoice,
-  toggleArchivedSOBs, addSOBRow, recalcSOB,
+  toggleArchivedSOBs, addSOBRow, recalcSOB, printSOB,
   // Users (admin)
   approveUser, changeUserRole,
 });

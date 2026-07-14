@@ -326,9 +326,13 @@ export function renderAR(invoices: Invoice[]) {
         const archiveBtn = isArchived
           ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--ink-3)" onclick="restoreInvoice(${i.id})">Restore</button>`
           : `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--ink-3)" onclick="archiveInvoice(${i.id})">Archive</button>`;
+        const linkedSOB = _sobs.find(s => s.linked_invoice_id === i.id);
+        const sobBadge = linkedSOB
+          ? `<div style="font-size:9px;color:var(--ink-3);margin-top:1px">from ${escapeHtml(linkedSOB.sob_num)}</div>`
+          : '';
         return `
         <tr${isArchived ? ' style="opacity:0.6"' : ''}>
-          <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(i.or_num)}</td>
+          <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(i.or_num)}${sobBadge}</td>
           <td style="font-weight:500;color:var(--ink)">${escapeHtml(i.client)}</td>
           <td class="amount-cell">${formatCurrency(i.amount)}</td>
           <td style="font-size:11px;color:var(--ink-3)">${displayDate(i.date)}</td>
@@ -349,6 +353,32 @@ export function renderAR(invoices: Invoice[]) {
         </tr>`;
       }).join('')
     : `<tr><td colspan="7"><div class="empty-state">${_showArchivedInvoices ? 'No archived invoices' : 'No invoices yet'}</div></td></tr>`;
+
+  // ── Recent Payments ────────────────────────────────────────────────────────
+  const recentPayEl = document.getElementById('ar-recent-payments');
+  if (recentPayEl && !_showArchivedInvoices) {
+    const recentPaid = invoices
+      .filter(i => i.status === 'Paid' && !i.archived_at)
+      .sort((a, b) => (b.payment_date || b.date || '').localeCompare(a.payment_date || a.date || ''))
+      .slice(0, 5);
+    if (recentPaid.length) {
+      recentPayEl.innerHTML = `
+        <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:8px">Recent Payments</div>
+        ${recentPaid.map(p => `
+          <div class="activity-item">
+            <div class="activity-dot green"></div>
+            <div style="flex:1">
+              <div class="activity-text">${escapeHtml(p.client ?? '—')} · ${escapeHtml(p.or_num)}</div>
+              <div class="activity-time">${p.payment_date ? displayDate(p.payment_date) : displayDate(p.date)}${p.payment_method ? ` · ${escapeHtml(p.payment_method)}` : ''}</div>
+            </div>
+            <div style="font-family:'Cormorant Garamond',serif;font-size:13px;font-weight:600;color:var(--green)">${formatCurrency(p.amount)}</div>
+          </div>`).join('')}`;
+    } else {
+      recentPayEl.innerHTML = '';
+    }
+  } else if (recentPayEl) {
+    recentPayEl.innerHTML = '';
+  }
 }
 
 export function toggleArchivedInvoices() {
@@ -552,7 +582,7 @@ export async function openDuplicateInvoice(id: number) {
   const draft: Partial<Invoice> = {
     client:     original.client,
     amount:     original.amount,
-    status:     'Unpaid',
+    status:     'Draft',
     date:       null,
     due:        null,
     project_id: original.project_id,
@@ -627,7 +657,7 @@ export async function printInvoice(id: number) {
     </div>
   </div>
   <div style="text-align:right">
-    <div class="inv-title">OFFICIAL RECEIPT</div>
+    <div class="inv-title">${inv.status === 'Paid' ? 'OFFICIAL RECEIPT' : 'INVOICE'}</div>
     <div class="inv-or">${escapeHtml(inv.or_num)}</div>
     <div style="margin-top:8px">
       <span class="badge badge-${inv.status === 'Paid' ? 'paid' : inv.status === 'Overdue' ? 'overdue' : 'unpaid'}">${escapeHtml(inv.status)}</span>
