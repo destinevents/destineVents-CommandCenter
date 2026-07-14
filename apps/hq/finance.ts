@@ -9,10 +9,10 @@ import {
   fetchPayrollRuns, createPayrollRun, updatePayrollRun, deletePayrollRun,
   calcFinanceSummary, fetchLineItems, upsertLineItems,
 } from '../../shared/services/financeService.ts';
-import { fetchSOBs, updateSOB } from '../../shared/services/sobService.ts';
+import { fetchSOBs, updateSOB, createSOB } from '../../shared/services/sobService.ts';
 import { createInvoicePaymentLink } from '../../shared/services/paymentService.ts';
 import { fetchClients } from '../../shared/services/clientService.ts';
-import { fetchProjects } from '../../shared/services/projectService.ts';
+import { fetchProjects, updateProject } from '../../shared/services/projectService.ts';
 import { fetchPartners } from '../../shared/services/partnerService.ts';
 import { fetchBirFilings, createBirFiling } from '../../shared/services/birService.ts';
 import { renderSOB } from './sob.ts';
@@ -68,6 +68,7 @@ export async function loadFinance() {
   setBirFilings(bir || []);
   setSOBs(sobs || []);
   renderFinanceOverview(_invoices, _bills);
+  renderARPipeline();
   renderAR(_invoices);
   renderAP(_bills);
   renderPayroll(_payroll);
@@ -284,6 +285,131 @@ export function renderFinanceOverview(invoices: Invoice[], bills: Bill[]) {
   const apEl = document.getElementById('finance-recent-ap');
   if (arEl) arEl.innerHTML = '';
   if (apEl) apEl.innerHTML = '';
+}
+
+// ── AR Billing Pipeline ────────────────────────────────────────────────────────
+
+const AR_PIPELINE = [
+  'Proposal Approved',
+  'Statement of Billing',
+  'Invoice',
+  'Payment',
+  'Official Receipt',
+  'Completed',
+] as const;
+type ARStage = typeof AR_PIPELINE[number];
+
+export function renderARPipeline() {
+  const el = document.getElementById('ar-pipeline');
+  if (!el) return;
+  const active = _projects.filter(p => AR_PIPELINE.includes(p.status as ARStage) && p.status !== 'Completed');
+  if (!active.length) { el.innerHTML = ''; return; }
+  const sorted = [...active].sort((a, b) =>
+    AR_PIPELINE.indexOf(a.status as ARStage) - AR_PIPELINE.indexOf(b.status as ARStage)
+  );
+  const s = 'padding:3px 8px;font-size:11px;color:var(--blue)';
+  el.innerHTML = `
+    <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:8px">Billing Pipeline (${active.length})</div>
+    <div style="border:1px solid var(--ink-4);overflow:hidden;margin-bottom:16px">
+      <table class="ledger-table">
+        <thead><tr><th>Project</th><th>Client</th><th>Value</th><th>Stage</th><th></th></tr></thead>
+        <tbody>
+          ${sorted.map(p => {
+            const idx = AR_PIPELINE.indexOf(p.status as ARStage);
+            let nextBtn = '';
+            if (idx === 0) nextBtn = `<button class="btn btn-ghost" style="${s}" onclick="openARProjectSOB(${p.id})">→ SOB</button>`;
+            else if (idx === 1) nextBtn = `<button class="btn btn-ghost" style="${s}" onclick="openARProjectInvoice(${p.id})">→ Invoice</button>`;
+            else if (idx === 2) nextBtn = `<button class="btn btn-ghost" style="${s}" onclick="advanceARProjectStage(${p.id})">→ Payment</button>`;
+            else if (idx === 3) nextBtn = `<button class="btn btn-ghost" style="${s}" onclick="advanceARProjectStage(${p.id})">→ OR</button>`;
+            else if (idx === 4) nextBtn = `<button class="btn btn-ghost" style="${s}" onclick="advanceARProjectStage(${p.id})">→ Complete</button>`;
+            return `<tr>
+              <td style="font-weight:500;color:var(--ink)">${escapeHtml(p.name)}</td>
+              <td style="font-size:11px;color:var(--ink-2)">${escapeHtml(p.client || '—')}</td>
+              <td class="amount-cell">${formatCurrency(p.value)}</td>
+              <td><span class="badge badge-${statusClass(p.status)}">${escapeHtml(p.status)}</span></td>
+              <td><div class="flex-gap" style="gap:4px">${nextBtn}</div></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+export function openARProjectSOB(id: number) {
+  const p = _projects.find(x => x.id === id);
+  if (!p) return;
+  openModal('Create Statement of Billing', `<div class="form-grid">
+    <div class="form-group"><div class="form-label">SOB Number</div><input class="form-input" id="arsob-num" placeholder="SOB-2026-001"/></div>
+    <div class="form-group"><div class="form-label">Client</div><input class="form-input" id="arsob-client" value="${escapeHtml(p.client || '')}"/></div>
+    <div class="form-group"><div class="form-label">Amount (₱)</div><input class="form-input" id="arsob-amount" type="number" value="${p.value || 0}" min="0"/></div>
+    <div class="form-group"><div class="form-label">Issue Date</div><input class="form-input" id="arsob-issue" type="date" value="${todayISO()}"/></div>
+    <div class="form-group"><div class="form-label">Due Date</div><input class="form-input" id="arsob-due" type="date"/></div>
+    <div class="form-group full" style="font-size:11px;color:var(--ink-3)">Project: <strong>${escapeHtml(p.name)}</strong> · ${formatCurrency(p.value)}</div>
+  </div>`, async () => {
+    const sob_num = (document.getElementById('arsob-num') as HTMLInputElement).value.trim();
+    if (!sob_num) { toast('SOB number is required', 'error'); return; }
+    const amount = +(document.getElementById('arsob-amount') as HTMLInputElement).value || 0;
+    const result = await createSOB({
+      sob_num,
+      client:       (document.getElementById('arsob-client') as HTMLInputElement).value.trim(),
+      total_amount: amount,
+      subtotal:     amount,
+      discount:     0,
+      vat_amount:   0,
+      issue_date:   (document.getElementById('arsob-issue') as HTMLInputElement).value || null,
+      due_date:     (document.getElementById('arsob-due') as HTMLInputElement).value || null,
+      project_id:   p.id,
+      status:       'Draft',
+      currency:     'PHP',
+    });
+    if (!result) { toast('Could not create SOB. Please try again.', 'error'); return; }
+    await updateProject(p.id, { status: 'Statement of Billing', updated_at: new Date().toISOString() });
+    toast('SOB created — project moved to Statement of Billing', 'success');
+    closeModal();
+    loadFinance();
+  });
+}
+
+export function openARProjectInvoice(id: number) {
+  const p = _projects.find(x => x.id === id);
+  if (!p) return;
+  openModal('Issue Invoice', `<div class="form-grid">
+    <div class="form-group"><div class="form-label">OR Number</div><input class="form-input" id="arinv-or" placeholder="OR-2026-001"/></div>
+    <div class="form-group"><div class="form-label">Client</div><input class="form-input" id="arinv-client" value="${escapeHtml(p.client || '')}"/></div>
+    <div class="form-group"><div class="form-label">Amount (₱)</div><input class="form-input" id="arinv-amount" type="number" value="${p.value || 0}" min="0"/></div>
+    <div class="form-group"><div class="form-label">Date Issued</div><input class="form-input" id="arinv-date" type="date" value="${todayISO()}"/></div>
+    <div class="form-group"><div class="form-label">Due Date</div><input class="form-input" id="arinv-due" type="date"/></div>
+    <div class="form-group full" style="font-size:11px;color:var(--ink-3)">Project: <strong>${escapeHtml(p.name)}</strong> · ${formatCurrency(p.value)}</div>
+  </div>`, async () => {
+    const or_num = (document.getElementById('arinv-or') as HTMLInputElement).value.trim();
+    if (!or_num) { toast('OR number is required', 'error'); return; }
+    const result = await createInvoice({
+      or_num,
+      client:     (document.getElementById('arinv-client') as HTMLInputElement).value.trim(),
+      amount:     +(document.getElementById('arinv-amount') as HTMLInputElement).value || 0,
+      status:     'Unpaid',
+      date:       (document.getElementById('arinv-date') as HTMLInputElement).value || null,
+      due:        (document.getElementById('arinv-due') as HTMLInputElement).value || null,
+      project_id: p.id,
+    });
+    if (!result) { toast('Could not create invoice. Please try again.', 'error'); return; }
+    await updateProject(p.id, { status: 'Invoice', updated_at: new Date().toISOString() });
+    toast('Invoice created — project moved to Invoice stage', 'success');
+    closeModal();
+    loadFinance();
+  });
+}
+
+export async function advanceARProjectStage(id: number) {
+  const p = _projects.find(x => x.id === id);
+  if (!p) return;
+  const idx = AR_PIPELINE.indexOf(p.status as ARStage);
+  if (idx === -1 || idx >= AR_PIPELINE.length - 1) return;
+  const nextStage = AR_PIPELINE[idx + 1];
+  const ok = await updateProject(id, { status: nextStage, updated_at: new Date().toISOString() });
+  if (!ok) { toast('Could not update project status', 'error'); return; }
+  toast(`Advanced to: ${nextStage}`, 'success');
+  loadFinance();
 }
 
 // ── AR (Invoices) ─────────────────────────────────────────────────────────────

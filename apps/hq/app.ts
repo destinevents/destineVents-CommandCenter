@@ -38,8 +38,9 @@ import {
   openAddBill, openEditBill, handleDeleteBill,
   openAddPayroll, openEditPayroll, handleDeletePayroll,
   estimateDeductions,
+  openARProjectSOB, openARProjectInvoice, advanceARProjectStage,
 } from './finance.ts';
-import { loadProjects, openAddProject, openEditProject, handleDeleteProject, convertProposalToProject, openProjectDetail, openProjectInvoice, openProjectSOB, advanceProjectStage } from './projects.ts';
+import { loadProjects, openAddProject, openEditProject, handleDeleteProject, convertProposalToProject, openProjectDetail, openProjectInvoice } from './projects.ts';
 import { selectTemplate, copyAIOutput, simulateAI, saveAIOutput, initAIAutocomplete } from './ai.ts';
 import {
   loadEvents, openAddEvent, openEditEvent, handleDeleteEvent,
@@ -398,7 +399,6 @@ declare global {
     openAddProject: typeof openAddProject; openEditProject: typeof openEditProject;
     handleDeleteProject: typeof handleDeleteProject; convertProposalToProject: typeof convertProposalToProject;
     openProjectDetail: typeof openProjectDetail; openProjectInvoice: typeof openProjectInvoice;
-    openProjectSOB: typeof openProjectSOB; advanceProjectStage: typeof advanceProjectStage;
     openAddInvoice: typeof openAddInvoice; openEditInvoice: typeof openEditInvoice;
     saveInvoice: typeof saveInvoice; handleDeleteInvoice: typeof handleDeleteInvoice;
     openDuplicateInvoice: typeof openDuplicateInvoice; printInvoice: typeof printInvoice;
@@ -414,6 +414,7 @@ declare global {
     openRecordPayment: typeof openRecordPayment; saveRecordPayment: typeof saveRecordPayment;
     addInvoiceRow: typeof addInvoiceRow; recalcInvoice: typeof recalcInvoice;
     togglePaymentFields: typeof togglePaymentFields;
+    openARProjectSOB: typeof openARProjectSOB; openARProjectInvoice: typeof openARProjectInvoice; advanceARProjectStage: typeof advanceARProjectStage;
     openAddBill: typeof openAddBill;
     openEditBill: typeof openEditBill; handleDeleteBill: typeof handleDeleteBill;
     openAddPayroll: typeof openAddPayroll; openEditPayroll: typeof openEditPayroll;
@@ -450,7 +451,6 @@ Object.assign(window, {
   openProposalInvoice,
   // Projects
   openAddProject, openEditProject, handleDeleteProject, convertProposalToProject, openProjectDetail, openProjectInvoice,
-  openProjectSOB, advanceProjectStage,
   // Finance
   openAddInvoice, openEditInvoice, saveInvoice, handleDeleteInvoice,
   openDuplicateInvoice, printInvoice, archiveInvoice, restoreInvoice,
@@ -459,6 +459,7 @@ Object.assign(window, {
   openBpiQr, copyBpiText, downloadBpiQr,
   openRecordPayment, saveRecordPayment,
   addInvoiceRow, recalcInvoice, togglePaymentFields,
+  openARProjectSOB, openARProjectInvoice, advanceARProjectStage,
   openAddBill, openEditBill, handleDeleteBill,
   openAddPayroll, openEditPayroll, handleDeletePayroll,
   openFileBir, showFinanceTab, estimateDeductions,
