@@ -487,19 +487,8 @@
 
     </div>
 
-    <!-- Payables (AP) -->
-    <div class="ftab" id="ftab-payables">
-      <div class="page-actions">
-        <div id="ap-summary" style="font-size:11px;color:var(--ink-3)"></div>
-        <button class="btn btn-primary" onclick="openAddBill()">New Bill</button>
-      </div>
-      <div style="border:1px solid var(--ink-4);overflow:hidden">
-        <table class="ledger-table">
-          <thead><tr><th>Payee</th><th>Amount</th><th>Date</th><th>Category</th><th>EWT Rate</th><th>Status</th><th></th></tr></thead>
-          <tbody id="ap-tbody"></tbody>
-        </table>
-      </div>
-    </div>
+    <!-- Payables (AP) — fully rendered by renderAP() in finance.ts -->
+    <div class="ftab" id="ftab-payables"></div>
 
     <!-- Payroll -->
     <div class="ftab" id="ftab-payroll">

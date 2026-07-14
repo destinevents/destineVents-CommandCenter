@@ -157,13 +157,25 @@ export interface Invoice {
 
 export interface Bill {
   id: number;
+  expense_number: string | null;
   payee: string;
+  vendor: string | null;
   amount: number;
   date: string | null;
+  due_date: string | null;
   category: string | null;
+  invoice_number: string | null;
+  purchase_order: string | null;
+  receipt_url: string | null;
   ewt: string;
   status: string;
+  remarks: string | null;
   partner_id: number | null;
+  project_id: number | null;
+  archived_at: string | null;
+  approved_by: string | null;
+  created_by: string | null;
+  modified_by: string | null;
   created_at: string;
 }
 

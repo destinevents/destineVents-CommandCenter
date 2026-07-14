@@ -35,7 +35,10 @@ import {
   openBpiQr, copyBpiText, downloadBpiQr,
   openRecordPayment, openRecordPaymentBpi, saveRecordPayment,
   addInvoiceRow, recalcInvoice, togglePaymentFields,
-  openAddBill, openEditBill, handleDeleteBill,
+  openAddBill, openEditBill, handleDeleteBill, saveBill,
+  submitBillForApproval, approveBill, saveApproveBill, rejectBill,
+  markBillPaid, archiveBill, printExpenseVoucher,
+  setApFilter, clearApFilters, setApBillPage,
   openAddPayroll, openEditPayroll, handleDeletePayroll,
   estimateDeductions,
   openARProjectSOB, advanceARProjectStage,
@@ -426,8 +429,14 @@ declare global {
     togglePaidInvoices: typeof togglePaidInvoices; setInvoicePage: typeof setInvoicePage;
     setORPage: typeof setORPage; setSOBPage: typeof setSOBPage;
     showReceivablesTab: typeof showReceivablesTab;
-    openAddBill: typeof openAddBill;
+    openAddBill: typeof openAddBill; saveBill: typeof saveBill;
     openEditBill: typeof openEditBill; handleDeleteBill: typeof handleDeleteBill;
+    submitBillForApproval: typeof submitBillForApproval;
+    approveBill: typeof approveBill; saveApproveBill: typeof saveApproveBill;
+    rejectBill: typeof rejectBill; markBillPaid: typeof markBillPaid;
+    archiveBill: typeof archiveBill; printExpenseVoucher: typeof printExpenseVoucher;
+    setApFilter: typeof setApFilter; clearApFilters: typeof clearApFilters;
+    setApBillPage: typeof setApBillPage;
     openAddPayroll: typeof openAddPayroll; openEditPayroll: typeof openEditPayroll;
     handleDeletePayroll: typeof handleDeletePayroll; openFileBir: typeof openFileBir;
     showFinanceTab: typeof showFinanceTab; estimateDeductions: typeof estimateDeductions;
@@ -473,7 +482,10 @@ Object.assign(window, {
   toggleActionMenu,
   togglePaidInvoices, setInvoicePage, setORPage,
   showReceivablesTab,
-  openAddBill, openEditBill, handleDeleteBill,
+  openAddBill, openEditBill, handleDeleteBill, saveBill,
+  submitBillForApproval, approveBill, saveApproveBill, rejectBill,
+  markBillPaid, archiveBill, printExpenseVoucher,
+  setApFilter, clearApFilters, setApBillPage,
   openAddPayroll, openEditPayroll, handleDeletePayroll,
   openFileBir, showFinanceTab, estimateDeductions,
   // Operations

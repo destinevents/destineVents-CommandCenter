@@ -101,7 +101,7 @@ export function calcFinanceSummary(invoices: Invoice[], bills: Bill[], payrollRu
   const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
   const arOutstanding    = invoices.filter(i => i.status !== 'Paid').reduce((s, i) => s + (i.amount || 0), 0);
-  const apOutstanding    = bills.filter(b => b.status !== 'Paid').reduce((s, b) => s + (b.amount || 0), 0);
+  const apOutstanding    = bills.filter(b => !['Paid', 'Cancelled'].includes(b.status) && !b.archived_at).reduce((s, b) => s + (b.amount || 0), 0);
   const revenueCollected = invoices.filter(i => i.status === 'Paid').reduce((s, i) => s + (i.amount || 0), 0);
   const expensesPaid     = bills.filter(b => b.status === 'Paid').reduce((s, b) => s + (b.amount || 0), 0);
 
@@ -114,7 +114,7 @@ export function calcFinanceSummary(invoices: Invoice[], bills: Bill[], payrollRu
     .reduce((s, b) => s + (b.amount || 0), 0);
 
   const overdueInvoices = invoices.filter(i => i.status === 'Overdue');
-  const pendingBills    = bills.filter(b => b.status !== 'Paid');
+  const pendingBills    = bills.filter(b => !['Paid', 'Cancelled'].includes(b.status) && !b.archived_at);
   const payrollDue      = payrollRuns.filter(p => p.status === 'Pending').reduce((s, p) => s + (p.net || 0), 0);
 
   const today = now.toISOString().slice(0, 10);

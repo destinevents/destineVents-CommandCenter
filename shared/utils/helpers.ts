@@ -84,6 +84,7 @@ export function statusClass(s = ''): string {
     'Active':'active','Completed':'completed','NDA Signed':'nda','Lead':'lead','Proposal':'proposal',
     'Paid':'paid','Unpaid':'unpaid','Overdue':'overdue',
     'Draft':'draft','Issued':'issued','Cancelled':'cancelled',
+    'For Approval':'for-approval','Approved':'approved',
     'Won':'won','Lost':'lost','Sent':'sent','Expired':'expired',
     'Released':'released','Pending':'pending',
     'Proposal Approved':'active',
