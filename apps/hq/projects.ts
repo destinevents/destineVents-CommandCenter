@@ -8,7 +8,7 @@ import {
 } from '../../shared/services/projectService.ts';
 import { fetchClients } from '../../shared/services/clientService.ts';
 import { fetchProposals } from '../../shared/services/proposalService.ts';
-import { fetchInvoices, createInvoice } from '../../shared/services/financeService.ts';
+import { fetchInvoices } from '../../shared/services/financeService.ts';
 import { _clients, _proposals, _projects, setClients, setProjects } from './state.ts';
 import { toast, openModal, closeModal } from './ui.ts';
 import type { Project, Proposal } from '../../shared/types.ts';
@@ -45,7 +45,6 @@ export function renderProjects(projects: Project[]) {
           <td>
             <div class="flex-gap" style="gap:4px;flex-wrap:wrap">
               <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="openProjectDetail(${p.id})">View</button>
-              <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--blue)" onclick="openProjectInvoice(${p.id})">→ Invoice</button>
               <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="openEditProject(${p.id})">Edit</button>
               <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--red)" onclick="handleDeleteProject(${p.id})">Delete</button>
             </div>
@@ -183,38 +182,6 @@ export async function openProjectDetail(id: number) {
       </div>`).join('') : '<div style="font-size:11px;color:var(--ink-3);padding:4px 0">No invoices for this client</div>'}`;
 }
 
-// ── Project → Invoice shortcut ────────────────────────────────────────────────
-
-export function openProjectInvoice(id: number) {
-  const p = _projects.find(x => x.id === id);
-  if (!p) return;
-  openModal('Issue Invoice (from Project)', `<div class="form-grid">
-    <div class="form-group"><div class="form-label">OR Number</div><input class="form-input" id="priv-or" placeholder="OR-2026-001"/></div>
-    <div class="form-group"><div class="form-label">Client</div><input class="form-input" id="priv-client" value="${escapeHtml(p.client || '')}" /></div>
-    <div class="form-group"><div class="form-label">Amount (₱)</div><input class="form-input" id="priv-amount" type="number" value="${p.value || 0}" min="0"/></div>
-    <div class="form-group"><div class="form-label">Status</div>
-      <select class="form-input" id="priv-status"><option>Unpaid</option><option>Paid</option></select>
-    </div>
-    <div class="form-group"><div class="form-label">Date Issued</div><input class="form-input" id="priv-date" type="date" value="${todayISO()}"/></div>
-    <div class="form-group"><div class="form-label">Due Date</div><input class="form-input" id="priv-due" type="date"/></div>
-    <div class="form-group full" style="font-size:11px;color:var(--ink-3)">Project: <strong>${escapeHtml(p.name)}</strong> · ${formatCurrency(p.value)}</div>
-  </div>`, async () => {
-    const or_num = gVal('priv-or').trim();
-    if (!or_num) { toast('OR number is required', 'error'); return; }
-    const result = await createInvoice({
-      or_num,
-      client:     gVal('priv-client').trim(),
-      amount:     +gVal('priv-amount') || 0,
-      status:     gVal('priv-status'),
-      date:       gVal('priv-date') || null,
-      due:        gVal('priv-due') || null,
-      project_id: p.id,
-    });
-    if (!result) { toast('Could not create invoice. Please try again.', 'error'); return; }
-    toast('Invoice created — check Finance › AR', 'success');
-    closeModal();
-  });
-}
 
 export function convertProposalToProject(proposalId: number) {
   const p = _proposals.find(x => x.id === proposalId);

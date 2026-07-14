@@ -318,7 +318,7 @@ export function renderARPipeline() {
             const idx = AR_PIPELINE.indexOf(p.status as ARStage);
             let nextBtn = '';
             if (idx === 0) nextBtn = `<button class="btn btn-ghost" style="${s}" onclick="openARProjectSOB(${p.id})">→ SOB</button>`;
-            else if (idx === 1) nextBtn = `<button class="btn btn-ghost" style="${s}" onclick="openARProjectInvoice(${p.id})">→ Invoice</button>`;
+            else if (idx === 1) nextBtn = `<span style="font-size:11px;color:var(--ink-3)">Use SOB → Invoice below</span>`;
             else if (idx === 2) nextBtn = `<button class="btn btn-ghost" style="${s}" onclick="advanceARProjectStage(${p.id})">→ Payment</button>`;
             else if (idx === 3) nextBtn = `<button class="btn btn-ghost" style="${s}" onclick="advanceARProjectStage(${p.id})">→ OR</button>`;
             else if (idx === 4) nextBtn = `<button class="btn btn-ghost" style="${s}" onclick="advanceARProjectStage(${p.id})">→ Complete</button>`;
@@ -370,35 +370,6 @@ export function openARProjectSOB(id: number) {
   });
 }
 
-export function openARProjectInvoice(id: number) {
-  const p = _projects.find(x => x.id === id);
-  if (!p) return;
-  openModal('Issue Invoice', `<div class="form-grid">
-    <div class="form-group"><div class="form-label">OR Number</div><input class="form-input" id="arinv-or" placeholder="OR-2026-001"/></div>
-    <div class="form-group"><div class="form-label">Client</div><input class="form-input" id="arinv-client" value="${escapeHtml(p.client || '')}"/></div>
-    <div class="form-group"><div class="form-label">Amount (₱)</div><input class="form-input" id="arinv-amount" type="number" value="${p.value || 0}" min="0"/></div>
-    <div class="form-group"><div class="form-label">Date Issued</div><input class="form-input" id="arinv-date" type="date" value="${todayISO()}"/></div>
-    <div class="form-group"><div class="form-label">Due Date</div><input class="form-input" id="arinv-due" type="date"/></div>
-    <div class="form-group full" style="font-size:11px;color:var(--ink-3)">Project: <strong>${escapeHtml(p.name)}</strong> · ${formatCurrency(p.value)}</div>
-  </div>`, async () => {
-    const or_num = (document.getElementById('arinv-or') as HTMLInputElement).value.trim();
-    if (!or_num) { toast('OR number is required', 'error'); return; }
-    const result = await createInvoice({
-      or_num,
-      client:     (document.getElementById('arinv-client') as HTMLInputElement).value.trim(),
-      amount:     +(document.getElementById('arinv-amount') as HTMLInputElement).value || 0,
-      status:     'Unpaid',
-      date:       (document.getElementById('arinv-date') as HTMLInputElement).value || null,
-      due:        (document.getElementById('arinv-due') as HTMLInputElement).value || null,
-      project_id: p.id,
-    });
-    if (!result) { toast('Could not create invoice. Please try again.', 'error'); return; }
-    await updateProject(p.id, { status: 'Invoice', updated_at: new Date().toISOString() });
-    toast('Invoice created — project moved to Invoice stage', 'success');
-    closeModal();
-    loadFinance();
-  });
-}
 
 export async function advanceARProjectStage(id: number) {
   const p = _projects.find(x => x.id === id);
