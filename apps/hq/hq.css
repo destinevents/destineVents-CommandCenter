@@ -11,8 +11,8 @@
   /* ink family — maps to forest for text */
   --ink:     #252f27;
   --ink-2:   #3a4a3c;
-  --ink-3:   rgba(37,47,39,0.5);
-  --ink-4:   rgba(37,47,39,0.12);
+  --ink-3:   #6b7280;
+  --ink-4:   #e4ddd0;
   --ink-5:   rgba(37,47,39,0.05);
   --red:     #C0392B;
   --green:   #2a7a4b;
@@ -22,6 +22,32 @@
   --shadow:    0 4px 16px rgba(37,47,39,0.10), 0 2px 4px rgba(37,47,39,0.06);
   --shadow-lg: 0 20px 50px rgba(37,47,39,0.16), 0 6px 16px rgba(37,47,39,0.08);
   --ease:    cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Readability overrides — match ICC component sizes */
+  --btn-font-size:   13px;
+  --btn-font-weight: 600;
+  --btn-padding:     9px 18px;
+  --btn-sm-padding:  6px 14px;
+  --btn-sm-font-size: 11px;
+
+  --input-font-size: 13.5px;
+
+  --table-th-size:   11px;
+
+  --modal-title-size:      17px;
+  --modal-title-weight:    800;
+  --modal-title-transform: none;
+  --modal-title-spacing:   normal;
+
+  --badge-font-size:   11px;
+  --badge-font-weight: 600;
+
+  --form-label-size:    12px;
+  --form-label-color:   #374151;
+  --form-label-weight:  600;
+  --form-label-spacing: normal;
+
+  --toast-font-size: 13px;
 }
 
 @keyframes pulse   { 0%,80%,100%{opacity:0.15} 40%{opacity:1} }
