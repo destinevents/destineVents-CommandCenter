@@ -1,12 +1,12 @@
 // @ts-nocheck
 import { createPager, attachFilterToolbar, escapeHtml, badge, pBadge, skillPill } from '../../shared/utils/helpers.ts';
 import { emptyStateHTML } from '../../shared/components/emptyState.ts';
-import { renderSkillPicker, resetSkillPicker } from '../../shared/components/skillPicker.ts';
+import { renderSkillPicker, resetSkillPicker } from './components/skillPicker.ts';
 import { STATUS_LABELS, STATUS_COLORS, KANBAN_COLS } from '../../shared/constants.ts';
 import { formatDateShort, todayISO } from '../../shared/utils/dateUtils.ts';
 import { validateRequired } from '../../shared/utils/validators.ts';
-import { createTask, updateTask, deleteTask } from '../../shared/services/taskService.ts';
-import { logAudit } from '../../shared/services/auditService.ts';
+import { createTask, updateTask, deleteTask } from './services/taskService.ts';
+import { logAudit } from './services/auditService.ts';
 import { currentUser, taskFilter, setTaskFilterValue, liveTasks, liveUsers, liveTimesheets, myTasks, user } from './state.ts';
 import { toast, openModal, closeModal, MODAL_CLOSE_HOOKS } from './ui.ts';
 import { loadLiveTasks, loadLiveTimesheets, loadLiveUsers } from './data.ts';

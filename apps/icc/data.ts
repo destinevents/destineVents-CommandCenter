@@ -1,8 +1,8 @@
 // @ts-nocheck
 // ─── ICC DATA LOADING (imports services + state only) ────────────────────────
-import { fetchUsers } from '../../shared/services/userService.ts';
-import { fetchTasks } from '../../shared/services/taskService.ts';
-import { fetchTimesheets } from '../../shared/services/timesheetService.ts';
+import { fetchUsers } from '@shared/services/core/userService.ts';
+import { fetchTasks } from './services/taskService.ts';
+import { fetchTimesheets } from './services/timesheetService.ts';
 import { currentUser, setLiveUsers, setLiveTasks, setLiveTimesheets } from './state.ts';
 
 export async function loadLiveUsers() {

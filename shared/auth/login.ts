@@ -1,6 +1,6 @@
 import './authPage.ts';
-import { sb } from '../services/supabase';
-import { signIn, signOut, getSession } from '../services/authService.ts';
+import { sb } from '@shared/services/core/supabase';
+import { signIn, signOut, getSession } from '@shared/services/core/authService.ts';
 import { validateEmail } from '../utils/validators.ts';
 import { HQ_ROLES, ICC_ROLES } from '../../config/roles.ts';
 import type { UserRole } from '../types';

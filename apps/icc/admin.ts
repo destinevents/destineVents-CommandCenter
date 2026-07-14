@@ -1,6 +1,6 @@
 // @ts-nocheck
-import { sb } from '../../shared/services/supabase';
-import { fetchAuditLogs } from '../../shared/services/auditService.ts';
+import { sb } from '@shared/services/core/supabase';
+import { fetchAuditLogs } from './services/auditService.ts';
 import { escapeHtml, avatarEl, skillPill, skillPillGreen } from '../../shared/utils/helpers.ts';
 import { formatDateShort, formatTime } from '../../shared/utils/dateUtils.ts';
 import { liveUsers, liveTasks, liveTimesheets, pendingApprovals } from './state.ts';

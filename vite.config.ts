@@ -6,6 +6,14 @@ import { defineConfig as defineVitestConfig } from 'vitest/config';
 // served as a classic script anymore.
 export default mergeConfig(
   defineConfig({
+    resolve: {
+      alias: {
+        '@shared': resolve(__dirname, 'shared'),
+        '@hq':     resolve(__dirname, 'apps/hq'),
+        '@icc':    resolve(__dirname, 'apps/icc'),
+        '@config': resolve(__dirname, 'config'),
+      },
+    },
     build: {
       rollupOptions: {
         input: {

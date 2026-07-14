@@ -2,12 +2,12 @@
 import { createPager, attachFilterToolbar, escapeHtml, badge, avatarEl, skillPillGreen } from '../../shared/utils/helpers.ts';
 import { renderStatCards } from '../../shared/components/statCard.ts';
 import { renderFilterTabs } from '../../shared/components/filterTabs.ts';
-import { renderSkillPicker, resetSkillPicker } from '../../shared/components/skillPicker.ts';
+import { renderSkillPicker, resetSkillPicker } from './components/skillPicker.ts';
 import { STATUS_LABELS, MAX_DAILY_HOURS } from '../../shared/constants.ts';
 import { formatDateShort } from '../../shared/utils/dateUtils.ts';
 import { validateDailyHours } from '../../shared/utils/validators.ts';
-import { createTimesheet, updateTimesheet, deleteTimesheet } from '../../shared/services/timesheetService.ts';
-import { logAudit } from '../../shared/services/auditService.ts';
+import { createTimesheet, updateTimesheet, deleteTimesheet } from './services/timesheetService.ts';
+import { logAudit } from './services/auditService.ts';
 import { currentUser, activePage, sheetFilter, setSheetFilterValue, liveTasks, liveUsers, liveTimesheets, myTasks, mySheets } from './state.ts';
 import { toast, openModal, closeModal, updateBadges } from './ui.ts';
 import { loadLiveTimesheets } from './data.ts';

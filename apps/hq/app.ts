@@ -1,16 +1,16 @@
 // ─── HQ APP SHELL: auth, routing, realtime, dashboard, window shims ──────────
 // Top of the module graph. index.html keeps its inline onclick handlers, so
 // every function they reference is re-attached to window at the bottom.
-import { sb } from '../../shared/services/supabase';
-import { signIn, signOut, getSession } from '../../shared/services/authService.ts';
+import { sb } from '@shared/services/core/supabase';
+import { signIn, signOut, getSession } from '@shared/services/core/authService.ts';
 import { formatCurrency } from '../../shared/utils/formatUtils.ts';
 import { formatDateShort, todayISO } from '../../shared/utils/dateUtils.ts';
 import { escapeHtml } from '../../shared/utils/helpers.ts';
-import { fetchClients } from '../../shared/services/clientService.ts';
-import { fetchProposals } from '../../shared/services/proposalService.ts';
-import { fetchPartners } from '../../shared/services/partnerService.ts';
-import { fetchInvoices, fetchBills } from '../../shared/services/financeService.ts';
-import { fetchProjects } from '../../shared/services/projectService.ts';
+import { fetchClients } from '@shared/services/crm/clientService.ts';
+import { fetchProposals } from '@shared/services/crm/proposalService.ts';
+import { fetchPartners } from '@shared/services/projects/partnerService.ts';
+import { fetchInvoices, fetchBills } from '@shared/services/finance/financeService.ts';
+import { fetchProjects } from '@shared/services/projects/projectService.ts';
 import {
   _clients, _proposals, _partners, _invoices, _projects,
   setClients, setProposals, setPartners, setInvoices, setBills, setProjects,
@@ -19,13 +19,13 @@ import { toast, closeModal, saveModal, toggleHqNav } from './ui.ts';
 import {
   loadClients, openAddClient, openEditClient, handleDeleteClient, openClientDetail,
   loadProposals, openAddProposal, openEditProposal, handleDeleteProposal,
-} from './crm.ts';
+} from './crm/crm.ts';
 import {
   loadPartners, filterPartners, openAddPartner, openEditPartner, handleDeletePartner,
   loadDocuments, handleFileSelect, openDocPreview, closeDocPreview, handleDeleteDocument,
   loadNDA, npGoStep2, npGoStep1, npFinish, downloadNDA,
   loadImpact, saveImpactEntry, openEditImpact, handleDeleteImpact,
-} from './operations.ts';
+} from './operations/operations.ts';
 import {
   loadFinance, showFinanceTab, openFileBir,
   openAddInvoice, openEditInvoice, saveInvoice, handleDeleteInvoice,
@@ -46,14 +46,14 @@ import {
   toggleActionMenu,
   togglePaidInvoices, setInvoicePage, setORPage,
   showReceivablesTab,
-} from './finance.ts';
-import { loadProjects, openAddProject, openEditProject, handleDeleteProject, convertProposalToProject, openProjectDetail, addClientFromProposal } from './projects.ts';
-import { selectTemplate, copyAIOutput, simulateAI, saveAIOutput, initAIAutocomplete } from './ai.ts';
+} from './finance/finance.ts';
+import { loadProjects, openAddProject, openEditProject, handleDeleteProject, convertProposalToProject, openProjectDetail, addClientFromProposal } from './projects/projects.ts';
+import { selectTemplate, copyAIOutput, simulateAI, saveAIOutput, initAIAutocomplete } from './ai/ai.ts';
 import {
   loadEvents, openAddEvent, openEditEvent, handleDeleteEvent,
   filterEvents, viewEventRegistrations, backToEvents, copyRegisterUrl,
   handleUpdateRegistrationStatus, openIssueEventInvoice,
-} from './events.ts';
+} from './events/events.ts';
 import { HQ_ALLOWED_PAGES, isHQRole, isICCRole } from '../../config/roles.ts';
 import type { UserRole } from '../../shared/types';
 import { loadUsers, approveUser, changeUserRole } from './users.ts';
@@ -62,7 +62,7 @@ import {
   openDuplicateSOB, archiveSOB, restoreSOB, convertSOBToInvoice,
   toggleArchivedSOBs, addSOBRow, recalcSOB, printSOB, openSOBRecordPayment, openSOBSendEmail,
   setSOBPage,
-} from './sob.ts';
+} from './finance/sob.ts';
 
 const gEl = (id: string) => document.getElementById(id)!;
 

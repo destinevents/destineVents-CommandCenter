@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { updateProfile, updatePassword } from '../../shared/services/authService.ts';
+import { updateProfile, updatePassword } from '@shared/services/core/authService.ts';
 import { validatePassword } from '../../shared/utils/validators.ts';
 import { currentUser } from './state.ts';
 import { toast } from './ui.ts';

@@ -1,4 +1,4 @@
-import { fetchPendingUsers, fetchAllUsers, updateUserRole } from '../../shared/services/userService.ts';
+import { fetchPendingUsers, fetchAllUsers, updateUserRole } from '@shared/services/core/userService.ts';
 import { ROLE_LABELS, HQ_ROLES, ICC_ROLES } from '../../config/roles.ts';
 import { escapeHtml } from '../../shared/utils/helpers.ts';
 import { toast } from './ui.ts';

@@ -1,5 +1,5 @@
 import './authPage.ts';
-import { signUp } from '../services/authService.ts';
+import { signUp } from '@shared/services/core/authService.ts';
 import { validatePassword } from '../utils/validators.ts';
 import { ICC_ROLES } from '../../config/roles.ts';
 import type { UserRole } from '../types';

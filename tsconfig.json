@@ -10,7 +10,14 @@
     "skipLibCheck": true,
     "allowImportingTsExtensions": true,
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "types": ["vite/client", "node"]
+    "types": ["vite/client", "node"],
+    "baseUrl": ".",
+    "paths": {
+      "@shared/*": ["shared/*"],
+      "@hq/*":     ["apps/hq/*"],
+      "@icc/*":    ["apps/icc/*"],
+      "@config/*": ["config/*"]
+    }
   },
   "include": [
     "apps/**/*",

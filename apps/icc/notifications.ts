@@ -3,7 +3,7 @@
 // intern_notifications table (rows are created by DB triggers — see
 // database/schema/notifications.sql). Live toasts come from the realtime
 // INSERT subscription in app.js calling handleIncomingNotification.
-import { fetchNotifications, markNotificationsRead } from '../../shared/services/notificationService.ts';
+import { fetchNotifications, markNotificationsRead } from './services/notificationService.ts';
 import { showToast } from '../../shared/components/toast.ts';
 import { escapeHtml } from '../../shared/utils/helpers.ts';
 import { formatDateShort } from '../../shared/utils/dateUtils.ts';

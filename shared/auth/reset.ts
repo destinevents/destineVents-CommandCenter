@@ -3,8 +3,8 @@
 // the shared client (shared/services/supabase.ts) is created, which is what
 // authorizes the updatePassword call below.
 import './authPage.ts';
-import { sb } from '../services/supabase';
-import { signOut, getSession, updatePassword } from '../services/authService.ts';
+import { sb } from '@shared/services/core/supabase';
+import { signOut, getSession, updatePassword } from '@shared/services/core/authService.ts';
 import { validatePassword } from '../utils/validators.ts';
 
 function setResetError(msg: string, ok?: boolean) {
