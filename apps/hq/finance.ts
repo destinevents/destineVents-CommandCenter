@@ -101,7 +101,7 @@ function invoiceRowHTML(i: Invoice): string {
       : `<button onclick="openPaymentLink(${i.id},${i.amount},'${escapeHtml(i.client ?? '')}','${escapeHtml(i.or_num)}')">Pay Link</button>`
     : '';
   const bpiItem = isActive && APP_SETTINGS.banking.bpiQrImageUrl
-    ? `<button onclick="openBpiQr(${i.id},${i.amount},'${escapeHtml(i.client ?? '')}')">BPI QR</button>`
+    ? `<button onclick="openBpiQr(${i.id},${i.amount},'${escapeHtml(i.client ?? '')}','${escapeHtml(i.or_num)}')">BPI QR</button>`
     : '';
   const moreItems = isArchived
     ? `<button onclick="restoreInvoice(${i.id})">Restore</button>
@@ -1103,15 +1103,16 @@ export async function saveRecordPayment() {
   setTimeout(() => printOfficialReceipt(paidId), 400);
 }
 
-export function openBpiQr(id: number, amount: number, client: string) {
+export function openBpiQr(id: number, amount: number, client: string, orNum: string) {
   const { banking } = APP_SETTINGS;
   const bpiBranch = (banking as typeof banking & { bpiBranch?: string }).bpiBranch ?? '';
-  const copyText = `BPI Transfer Details:\nAccount Name: ${banking.bpiAccountName}\nBranch: ${bpiBranch}\nAccount Number: ${banking.bpiAccountNumber}\nAmount: ₱${amount.toLocaleString('en-PH', { minimumFractionDigits: 2 })}\nReference: Invoice payment — ${client}`;
+  const copyText = `BPI Transfer Details:\nAccount Name: ${banking.bpiAccountName}\nBranch: ${bpiBranch}\nAccount Number: ${banking.bpiAccountNumber}\nAmount: ₱${amount.toLocaleString('en-PH', { minimumFractionDigits: 2 })}\nFor: ${orNum} — ${client}`;
   openModal('BPI Business QR — Pay via Bank Transfer', `
     <div style="text-align:center;margin-bottom:16px">
       <img src="${escapeHtml(banking.bpiQrImageUrl)}" alt="BPI QR Code" style="max-width:220px;border-radius:8px;border:1px solid var(--border)"/>
     </div>
     <div style="font-size:13px;line-height:2.2;border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:14px">
+      <div><span style="color:var(--ink-3)">Invoice #:</span> <strong>${escapeHtml(orNum)}</strong></div>
       <div><span style="color:var(--ink-3)">Account Name:</span> <strong>${escapeHtml(banking.bpiAccountName)}</strong></div>
       <div><span style="color:var(--ink-3)">Branch:</span> <strong>${escapeHtml(bpiBranch)}</strong></div>
       <div><span style="color:var(--ink-3)">Account Number:</span> <strong>${escapeHtml(banking.bpiAccountNumber)}</strong></div>
@@ -1122,8 +1123,19 @@ export function openBpiQr(id: number, amount: number, client: string) {
     <div style="display:flex;gap:8px;margin-top:10px">
       <button class="btn btn-primary" style="flex:1" onclick="copyBpiText()">Copy Bank Details</button>
       <button class="btn btn-ghost" style="flex:1;border:1px solid var(--border)" onclick="downloadBpiQr()">Download QR</button>
+    </div>
+    <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+      <div style="font-size:11px;color:var(--ink-3);margin-bottom:8px">Once the client has transferred payment, record it here:</div>
+      <button class="btn btn-ghost" style="width:100%;border:1px solid var(--green);color:var(--green);font-weight:600" onclick="openRecordPaymentBpi(${id})">✓ Record BPI Payment Received</button>
     </div>`, () => closeModal());
-  void id;
+}
+
+export function openRecordPaymentBpi(id: number) {
+  openRecordPayment(id);
+  setTimeout(() => {
+    const sel = document.getElementById('rp-method') as HTMLSelectElement | null;
+    if (sel) sel.value = 'BPI';
+  }, 50);
 }
 
 export function copyBpiText() {

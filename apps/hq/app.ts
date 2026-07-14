@@ -33,7 +33,7 @@ import {
   toggleArchivedInvoices, openInvoiceFromSOB,
   openPaymentLink, copyPaymentLink,
   openBpiQr, copyBpiText, downloadBpiQr,
-  openRecordPayment, saveRecordPayment,
+  openRecordPayment, openRecordPaymentBpi, saveRecordPayment,
   addInvoiceRow, recalcInvoice, togglePaymentFields,
   openAddBill, openEditBill, handleDeleteBill,
   openAddPayroll, openEditPayroll, handleDeletePayroll,
@@ -417,7 +417,7 @@ declare global {
     openSOBRecordPayment: typeof openSOBRecordPayment; openSOBSendEmail: typeof openSOBSendEmail;
     openPaymentLink: typeof openPaymentLink; copyPaymentLink: typeof copyPaymentLink;
     openBpiQr: typeof openBpiQr; copyBpiText: typeof copyBpiText; downloadBpiQr: typeof downloadBpiQr;
-    openRecordPayment: typeof openRecordPayment; saveRecordPayment: typeof saveRecordPayment;
+    openRecordPayment: typeof openRecordPayment; openRecordPaymentBpi: typeof openRecordPaymentBpi; saveRecordPayment: typeof saveRecordPayment;
     addInvoiceRow: typeof addInvoiceRow; recalcInvoice: typeof recalcInvoice;
     togglePaymentFields: typeof togglePaymentFields;
     openARProjectSOB: typeof openARProjectSOB; advanceARProjectStage: typeof advanceARProjectStage;
@@ -466,7 +466,7 @@ Object.assign(window, {
   toggleArchivedInvoices, openInvoiceFromSOB,
   openPaymentLink, copyPaymentLink,
   openBpiQr, copyBpiText, downloadBpiQr,
-  openRecordPayment, saveRecordPayment,
+  openRecordPayment, openRecordPaymentBpi, saveRecordPayment,
   addInvoiceRow, recalcInvoice, togglePaymentFields,
   openARProjectSOB, advanceARProjectStage,
   sendInvoiceEmail, printOfficialReceipt, openPaymentHistory,
