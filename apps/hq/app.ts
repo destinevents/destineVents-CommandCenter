@@ -39,7 +39,7 @@ import {
   openAddPayroll, openEditPayroll, handleDeletePayroll,
   estimateDeductions,
 } from './finance.ts';
-import { loadProjects, openAddProject, openEditProject, handleDeleteProject, convertProposalToProject, openProjectDetail, openProjectInvoice } from './projects.ts';
+import { loadProjects, openAddProject, openEditProject, handleDeleteProject, convertProposalToProject, openProjectDetail, openProjectInvoice, openProjectSOB, advanceProjectStage } from './projects.ts';
 import { selectTemplate, copyAIOutput, simulateAI, saveAIOutput, initAIAutocomplete } from './ai.ts';
 import {
   loadEvents, openAddEvent, openEditEvent, handleDeleteEvent,
@@ -398,6 +398,7 @@ declare global {
     openAddProject: typeof openAddProject; openEditProject: typeof openEditProject;
     handleDeleteProject: typeof handleDeleteProject; convertProposalToProject: typeof convertProposalToProject;
     openProjectDetail: typeof openProjectDetail; openProjectInvoice: typeof openProjectInvoice;
+    openProjectSOB: typeof openProjectSOB; advanceProjectStage: typeof advanceProjectStage;
     openAddInvoice: typeof openAddInvoice; openEditInvoice: typeof openEditInvoice;
     saveInvoice: typeof saveInvoice; handleDeleteInvoice: typeof handleDeleteInvoice;
     openDuplicateInvoice: typeof openDuplicateInvoice; printInvoice: typeof printInvoice;
@@ -449,6 +450,7 @@ Object.assign(window, {
   openProposalInvoice,
   // Projects
   openAddProject, openEditProject, handleDeleteProject, convertProposalToProject, openProjectDetail, openProjectInvoice,
+  openProjectSOB, advanceProjectStage,
   // Finance
   openAddInvoice, openEditInvoice, saveInvoice, handleDeleteInvoice,
   openDuplicateInvoice, printInvoice, archiveInvoice, restoreInvoice,

@@ -86,6 +86,11 @@ export function statusClass(s = ''): string {
     'Draft':'draft','Issued':'issued','Cancelled':'cancelled',
     'Won':'won','Lost':'lost','Sent':'sent','Expired':'expired',
     'Released':'released','Pending':'pending',
+    'Proposal Approved':'active',
+    'Statement of Billing':'proposal',
+    'Invoice':'sent',
+    'Payment':'pending',
+    'Official Receipt':'released',
   } as Record<string, string>)[s] || 'lead';
 }
 

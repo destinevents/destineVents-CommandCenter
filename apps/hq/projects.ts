@@ -9,12 +9,54 @@ import {
 import { fetchClients } from '../../shared/services/clientService.ts';
 import { fetchProposals } from '../../shared/services/proposalService.ts';
 import { fetchInvoices, createInvoice } from '../../shared/services/financeService.ts';
+import { createSOB } from '../../shared/services/sobService.ts';
 import { _clients, _proposals, _projects, setClients, setProjects } from './state.ts';
 import { toast, openModal, closeModal } from './ui.ts';
 import type { Project, Proposal } from '../../shared/types.ts';
 
 const gEl = (id: string) => document.getElementById(id)!;
 const gVal = (id: string) => (document.getElementById(id) as HTMLInputElement).value;
+
+const PIPELINE_STAGES = [
+  'Proposal Approved',
+  'Statement of Billing',
+  'Invoice',
+  'Payment',
+  'Official Receipt',
+  'Completed',
+] as const;
+type PipelineStage = typeof PIPELINE_STAGES[number];
+
+function pipelineNextBtn(p: Project): string {
+  const idx = PIPELINE_STAGES.indexOf(p.status as PipelineStage);
+  const s = 'padding:3px 8px;font-size:11px;color:var(--blue)';
+  if (idx === 0) return `<button class="btn btn-ghost" style="${s}" onclick="openProjectSOB(${p.id})">→ SOB</button>`;
+  if (idx === 1) return `<button class="btn btn-ghost" style="${s}" onclick="openProjectInvoice(${p.id})">→ Invoice</button>`;
+  if (idx === 2) return `<button class="btn btn-ghost" style="${s}" onclick="advanceProjectStage(${p.id})">→ Payment</button>`;
+  if (idx === 3) return `<button class="btn btn-ghost" style="${s}" onclick="advanceProjectStage(${p.id})">→ OR</button>`;
+  if (idx === 4) return `<button class="btn btn-ghost" style="${s}" onclick="advanceProjectStage(${p.id})">→ Complete</button>`;
+  if (idx === 5) return '';
+  return `<button class="btn btn-ghost" style="${s}" onclick="openProjectInvoice(${p.id})">→ Invoice</button>`;
+}
+
+function pipelineStepperHTML(currentStatus: string): string {
+  const currentIdx = PIPELINE_STAGES.indexOf(currentStatus as PipelineStage);
+  return `<div style="display:flex;align-items:flex-start;gap:0;margin-bottom:16px;overflow-x:auto;padding:2px 0">
+    ${PIPELINE_STAGES.map((stage, i) => {
+      const isDone    = currentIdx !== -1 && i < currentIdx;
+      const isCurrent = i === currentIdx;
+      const dotBg     = isDone ? 'var(--green)' : isCurrent ? 'var(--blue)' : 'var(--ink-4)';
+      const lineBg    = isDone ? 'var(--green)' : 'var(--border)';
+      const textColor = isDone ? 'var(--green)' : isCurrent ? 'var(--blue)' : 'var(--ink-3)';
+      const fontW     = isCurrent ? '700' : '400';
+      const line      = i > 0 ? `<div style="flex:1;min-width:6px;height:2px;background:${lineBg};margin-top:9px"></div>` : '';
+      return `${line}<div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-width:60px;max-width:72px;flex-shrink:0">
+        <div style="width:20px;height:20px;border-radius:50%;background:${dotBg};color:white;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700">${isDone ? '✓' : i + 1}</div>
+        <div style="font-size:8.5px;color:${textColor};text-align:center;font-weight:${fontW};line-height:1.3">${stage}</div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
 
 let _editingProjectId: number | null = null;
 
@@ -45,7 +87,7 @@ export function renderProjects(projects: Project[]) {
           <td>
             <div class="flex-gap" style="gap:4px;flex-wrap:wrap">
               <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="openProjectDetail(${p.id})">View</button>
-              <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--blue)" onclick="openProjectInvoice(${p.id})">→ Invoice</button>
+              ${pipelineNextBtn(p)}
               <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="openEditProject(${p.id})">Edit</button>
               <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--red)" onclick="handleDeleteProject(${p.id})">Delete</button>
             </div>
@@ -55,9 +97,11 @@ export function renderProjects(projects: Project[]) {
 }
 
 function projectFormHTML(p: Partial<Project> = {}) {
-  const brands      = (APP_SETTINGS.company.brands || ['DestineVents', 'DDC', 'AYA Baguio']).map((b: string) => `<option${b === p.brand ? ' selected' : ''}>${escapeHtml(b)}</option>`).join('');
-  const statuses    = ['Lead', 'Proposal Sent', 'NDA Signed', 'Active', 'Completed'].map(s => `<option${s === p.status ? ' selected' : ''}>${s}</option>`).join('');
-  const cats        = ['Events', 'Training', 'Digital', 'CSR', 'Community'].map(c => `<option${c === p.category ? ' selected' : ''}>${c}</option>`).join('');
+  const brands        = (APP_SETTINGS.company.brands || ['DestineVents', 'DDC', 'AYA Baguio']).map((b: string) => `<option${b === p.brand ? ' selected' : ''}>${escapeHtml(b)}</option>`).join('');
+  const pipelineOpts  = PIPELINE_STAGES.map(s => `<option${s === p.status ? ' selected' : ''}>${s}</option>`).join('');
+  const legacyOpts    = ['Lead','Proposal Sent','NDA Signed','Active'].map(s => `<option${s === p.status ? ' selected' : ''}>${s}</option>`).join('');
+  const statuses      = `<optgroup label="Pipeline">${pipelineOpts}</optgroup><optgroup label="General">${legacyOpts}</optgroup>`;
+  const cats          = ['Events', 'Training', 'Digital', 'CSR', 'Community'].map(c => `<option${c === p.category ? ' selected' : ''}>${c}</option>`).join('');
   const clientOpts  = _clients.map(c => `<option value="${escapeHtml(c.name)}"/>`).join('');
   return `
     <datalist id="hq-client-list">${clientOpts}</datalist>
@@ -147,6 +191,7 @@ export async function openProjectDetail(id: number) {
   const dot     = (st: string) => (st === 'Won' || st === 'Active' || st === 'Paid') ? 'green' : (st === 'Lost' || st === 'Overdue') ? 'red' : 'blue';
 
   gEl('modal-body').innerHTML = `
+    ${pipelineStepperHTML(p.status)}
     <div style="margin-bottom:12px">
       <span class="badge badge-${statusClass(p.status)}">${escapeHtml(p.status)}</span>
       <span style="font-size:11px;color:var(--ink-3);margin-left:8px">${escapeHtml(p.category || '—')} · ${escapeHtml(p.brand || '—')}</span>
@@ -208,9 +253,59 @@ export function openProjectInvoice(id: number) {
       project_id: p.id,
     });
     if (!result) { toast('Could not create invoice. Please try again.', 'error'); return; }
+    if (p.status === 'Statement of Billing') {
+      await updateProject(p.id, { status: 'Invoice', updated_at: new Date().toISOString() });
+    }
     toast('Invoice created — check Finance › AR', 'success');
     closeModal();
+    loadProjects();
   });
+}
+
+export function openProjectSOB(id: number) {
+  const p = _projects.find(x => x.id === id);
+  if (!p) return;
+  openModal('Create Statement of Billing', `<div class="form-grid">
+    <div class="form-group"><div class="form-label">SOB Number</div><input class="form-input" id="psob-num" placeholder="SOB-2026-001"/></div>
+    <div class="form-group"><div class="form-label">Client</div><input class="form-input" id="psob-client" value="${escapeHtml(p.client || '')}"/></div>
+    <div class="form-group"><div class="form-label">Amount (₱)</div><input class="form-input" id="psob-amount" type="number" value="${p.value || 0}" min="0"/></div>
+    <div class="form-group"><div class="form-label">Issue Date</div><input class="form-input" id="psob-issue" type="date" value="${todayISO()}"/></div>
+    <div class="form-group"><div class="form-label">Due Date</div><input class="form-input" id="psob-due" type="date"/></div>
+    <div class="form-group full" style="font-size:11px;color:var(--ink-3)">Project: <strong>${escapeHtml(p.name)}</strong> · ${formatCurrency(p.value)}</div>
+  </div>`, async () => {
+    const sob_num = gVal('psob-num').trim();
+    if (!sob_num) { toast('SOB number is required', 'error'); return; }
+    const result = await createSOB({
+      sob_num,
+      client:       gVal('psob-client').trim(),
+      total_amount: +gVal('psob-amount') || 0,
+      subtotal:     +gVal('psob-amount') || 0,
+      discount:     0,
+      vat_amount:   0,
+      issue_date:   gVal('psob-issue') || null,
+      due_date:     gVal('psob-due') || null,
+      project_id:   p.id,
+      status:       'Draft',
+      currency:     'PHP',
+    });
+    if (!result) { toast('Could not create SOB. Please try again.', 'error'); return; }
+    await updateProject(p.id, { status: 'Statement of Billing', updated_at: new Date().toISOString() });
+    toast('SOB created — project advanced to Statement of Billing', 'success');
+    closeModal();
+    loadProjects();
+  });
+}
+
+export async function advanceProjectStage(id: number) {
+  const p = _projects.find(x => x.id === id);
+  if (!p) return;
+  const idx = PIPELINE_STAGES.indexOf(p.status as PipelineStage);
+  if (idx === -1 || idx >= PIPELINE_STAGES.length - 1) return;
+  const nextStage = PIPELINE_STAGES[idx + 1];
+  const ok = await updateProject(id, { status: nextStage, updated_at: new Date().toISOString() });
+  if (!ok) { toast('Could not update project status', 'error'); return; }
+  toast(`Project advanced to: ${nextStage}`, 'success');
+  loadProjects();
 }
 
 export function convertProposalToProject(proposalId: number) {
