@@ -424,51 +424,67 @@
 
     <!-- Receivables (SOBs + Invoices + OR) -->
     <div class="ftab" id="ftab-receivables">
-      <div id="receivables-stats" style="margin-bottom:16px"></div>
-      <div id="ar-pipeline"></div>
 
-      <!-- A. Statement of Billing -->
-      <div style="margin-top:16px;margin-bottom:4px;font-size:11px;font-weight:600;color:var(--ink-2);letter-spacing:.08em;text-transform:uppercase">A. Statement of Billing</div>
-      <div class="page-actions">
-        <div id="sob-summary" style="font-size:11px;color:var(--ink-3)"></div>
-        <button class="btn btn-ghost" id="sob-archive-toggle" onclick="toggleArchivedSOBs()" style="font-size:12px">Archived (0)</button>
-        <button class="btn btn-primary" onclick="openAddSOB()">New SOB</button>
-      </div>
-      <div style="border:1px solid var(--ink-4);overflow:hidden">
-        <table class="ledger-table">
-          <thead><tr><th>SOB #</th><th>Client</th><th>Project</th><th>Total</th><th>Issue Date</th><th>Due Date</th><th>Status</th><th></th></tr></thead>
-          <tbody id="sob-tbody"></tbody>
-        </table>
-        <div id="sob-pagination"></div>
+      <!-- Sub-nav -->
+      <div class="sub-tabs" id="receivables-subtabs">
+        <div class="sub-tab active" onclick="showReceivablesTab('overview',this)">Overview</div>
+        <div class="sub-tab" onclick="showReceivablesTab('sob',this)">Statement of Billing</div>
+        <div class="sub-tab" onclick="showReceivablesTab('invoice',this)">Invoices</div>
+        <div class="sub-tab" onclick="showReceivablesTab('or',this)">Official Receipts</div>
       </div>
 
-      <!-- B. Invoice -->
-      <div style="margin-top:20px;margin-bottom:4px;font-size:11px;font-weight:600;color:var(--ink-2);letter-spacing:.08em;text-transform:uppercase">B. Invoice</div>
-      <div class="page-actions">
-        <div id="ar-summary" style="font-size:11px;color:var(--ink-3)"></div>
-        <button class="btn btn-ghost" id="ar-archive-toggle" onclick="toggleArchivedInvoices()" style="font-size:12px">Archived (0)</button>
-        <button class="btn btn-primary" onclick="openAddInvoice()">New Invoice</button>
+      <!-- Overview tab -->
+      <div class="rtab active" id="rtab-overview">
+        <div id="receivables-stats" style="margin-bottom:16px"></div>
+        <div id="ar-pipeline"></div>
+        <div id="ar-recent-payments" style="margin-top:16px"></div>
       </div>
-      <div style="border:1px solid var(--ink-4);overflow:hidden">
-        <table class="ledger-table">
-          <thead><tr><th>OR #</th><th>Client</th><th>Amount</th><th>Date</th><th>Due Date</th><th>Status</th><th></th></tr></thead>
-          <tbody id="ar-tbody"></tbody>
-        </table>
-      </div>
-      <div id="ar-recent-payments" style="margin-top:16px"></div>
 
-      <!-- C. Official Receipt -->
-      <div style="margin-top:20px;margin-bottom:4px;font-size:11px;font-weight:600;color:var(--ink-2);letter-spacing:.08em;text-transform:uppercase">C. Official Receipt</div>
-      <div class="page-actions">
-        <div id="or-summary" style="font-size:11px;color:var(--ink-3)"></div>
+      <!-- Statement of Billing tab -->
+      <div class="rtab" id="rtab-sob">
+        <div class="page-actions">
+          <div id="sob-summary" style="font-size:11px;color:var(--ink-3)"></div>
+          <button class="btn btn-ghost" id="sob-archive-toggle" onclick="toggleArchivedSOBs()" style="font-size:12px">Archived (0)</button>
+          <button class="btn btn-primary" onclick="openAddSOB()">New SOB</button>
+        </div>
+        <div style="border:1px solid var(--ink-4);overflow:hidden">
+          <table class="ledger-table">
+            <thead><tr><th>SOB #</th><th>Client</th><th>Project</th><th>Total</th><th>Issue Date</th><th>Due Date</th><th>Status</th><th></th></tr></thead>
+            <tbody id="sob-tbody"></tbody>
+          </table>
+          <div id="sob-pagination"></div>
+        </div>
       </div>
-      <div style="border:1px solid var(--ink-4);overflow:hidden">
-        <table class="ledger-table">
-          <thead><tr><th>OR #</th><th>Client</th><th>Project</th><th>Amount Paid</th><th>Payment Date</th><th>Method</th><th>Reference</th><th></th></tr></thead>
-          <tbody id="or-tbody"></tbody>
-        </table>
-        <div id="or-pagination"></div>
+
+      <!-- Invoices tab -->
+      <div class="rtab" id="rtab-invoice">
+        <div class="page-actions">
+          <div id="ar-summary" style="font-size:11px;color:var(--ink-3)"></div>
+          <button class="btn btn-ghost" id="ar-archive-toggle" onclick="toggleArchivedInvoices()" style="font-size:12px">Archived (0)</button>
+          <button class="btn btn-primary" onclick="openAddInvoice()">New Invoice</button>
+        </div>
+        <div style="border:1px solid var(--ink-4);overflow:hidden">
+          <table class="ledger-table">
+            <thead><tr><th>OR #</th><th>Client</th><th>Amount</th><th>Date</th><th>Due Date</th><th>Status</th><th></th></tr></thead>
+            <tbody id="ar-tbody"></tbody>
+          </table>
+        </div>
       </div>
+
+      <!-- Official Receipts tab -->
+      <div class="rtab" id="rtab-or">
+        <div class="page-actions">
+          <div id="or-summary" style="font-size:11px;color:var(--ink-3)"></div>
+        </div>
+        <div style="border:1px solid var(--ink-4);overflow:hidden">
+          <table class="ledger-table">
+            <thead><tr><th>OR #</th><th>Client</th><th>Project</th><th>Amount Paid</th><th>Payment Date</th><th>Method</th><th>Reference</th><th></th></tr></thead>
+            <tbody id="or-tbody"></tbody>
+          </table>
+          <div id="or-pagination"></div>
+        </div>
+      </div>
+
     </div>
 
     <!-- Payables (AP) -->

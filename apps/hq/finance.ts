@@ -198,6 +198,13 @@ export function showFinanceTab(name: string, el: HTMLElement) {
   el.classList.add('active');
 }
 
+export function showReceivablesTab(name: string, el: HTMLElement) {
+  document.querySelectorAll('#ftab-receivables .rtab').forEach(t => t.classList.remove('active'));
+  gEl('rtab-' + name).classList.add('active');
+  document.querySelectorAll('#receivables-subtabs .sub-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+}
+
 function renderRevenueByProject(invoices: Invoice[], projects: typeof _projects) {
   const el = document.getElementById('finance-revenue-by-project');
   if (!el) return;

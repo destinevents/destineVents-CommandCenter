@@ -42,6 +42,7 @@ import {
   sendInvoiceEmail, printOfficialReceipt, openPaymentHistory,
   toggleActionMenu,
   togglePaidInvoices, setInvoicePage, setORPage,
+  showReceivablesTab,
 } from './finance.ts';
 import { loadProjects, openAddProject, openEditProject, handleDeleteProject, convertProposalToProject, openProjectDetail } from './projects.ts';
 import { selectTemplate, copyAIOutput, simulateAI, saveAIOutput, initAIAutocomplete } from './ai.ts';
@@ -424,6 +425,7 @@ declare global {
     openPaymentHistory: typeof openPaymentHistory; toggleActionMenu: typeof toggleActionMenu;
     togglePaidInvoices: typeof togglePaidInvoices; setInvoicePage: typeof setInvoicePage;
     setORPage: typeof setORPage; setSOBPage: typeof setSOBPage;
+    showReceivablesTab: typeof showReceivablesTab;
     openAddBill: typeof openAddBill;
     openEditBill: typeof openEditBill; handleDeleteBill: typeof handleDeleteBill;
     openAddPayroll: typeof openAddPayroll; openEditPayroll: typeof openEditPayroll;
@@ -470,6 +472,7 @@ Object.assign(window, {
   sendInvoiceEmail, printOfficialReceipt, openPaymentHistory,
   toggleActionMenu,
   togglePaidInvoices, setInvoicePage, setORPage,
+  showReceivablesTab,
   openAddBill, openEditBill, handleDeleteBill,
   openAddPayroll, openEditPayroll, handleDeletePayroll,
   openFileBir, showFinanceTab, estimateDeductions,
