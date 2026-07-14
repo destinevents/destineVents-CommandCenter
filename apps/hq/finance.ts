@@ -727,9 +727,17 @@ function invoiceFormHTML(i: Partial<Invoice> = {}, items: InvoiceLineItem[] = []
 }
 
 export function openAddInvoice() {
-  _editingInvoiceId = null;
+  _editingInvoiceId    = null;
   _pendingSOBConvertId = null;
-  openModal('New Invoice (AR)', invoiceFormHTML(), saveInvoice);
+  const unlinkedSOBs = _sobs.filter(s => !s.linked_invoice_id && !s.archived_at && !['Paid','Cancelled'].includes(s.status));
+  const sobTip = unlinkedSOBs.length > 0
+    ? `<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#1e40af">
+        💡 <strong>${unlinkedSOBs.length} unlinked SOB${unlinkedSOBs.length !== 1 ? 's' : ''}</strong> exist (${unlinkedSOBs.map(s => escapeHtml(s.sob_num)).join(', ')}). Consider converting one instead of creating manually.
+      </div>`
+    : `<div style="background:var(--linen-3);border:1px solid var(--ink-4);border-radius:4px;padding:8px 14px;margin-bottom:16px;font-size:12px;color:var(--ink-3)">
+        Creating a standalone invoice — not linked to a Statement of Billing.
+      </div>`;
+  openModal('New Invoice (AR)', sobTip + invoiceFormHTML(), saveInvoice);
 }
 
 export function openInvoiceFromSOB(draft: Partial<Invoice>, items: InvoiceLineItem[], sobId: number) {
@@ -1053,6 +1061,7 @@ export function togglePaymentFields(status: string) {
 export function openRecordPayment(id: number) {
   const inv = _invoices.find(x => x.id === id);
   if (!inv) return;
+  if (inv.status === 'Paid') { toast('This invoice is already marked as paid', 'error'); return; }
   _editingInvoiceId = id;
   const payMethodOpts = ['GCash', 'BPI', 'PayMongo', 'Cash', 'Check', 'Bank Transfer', 'Other']
     .map(m => `<option value="${m}">${m}</option>`).join('');
