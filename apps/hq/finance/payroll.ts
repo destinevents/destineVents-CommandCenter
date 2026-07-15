@@ -23,7 +23,7 @@ export async function loadPayroll() {
   renderPayroll(_payroll);
 }
 
-function _nextPayrollNumber(runs: PayrollRun[]): string {
+export function _nextPayrollNumber(runs: PayrollRun[]): string {
   const year = new Date().getFullYear();
   const existing = runs
     .map(r => r.payroll_number ?? '')
@@ -179,21 +179,21 @@ export function autoFillDeductions(): void {
   const total      = sss + philhealth + pagibig;
   const dedInput   = document.getElementById('pp-ded') as HTMLInputElement | null;
   if (dedInput) { dedInput.value = String(total); recalcPayroll(); }
-  toast(`Auto-deductions: SSS ₱${sss} + PhilHealth ₱${philhealth} + Pag-IBIG ₱${pagibig} = ₱${total}`, 'success');
+  toast(`Auto-deductions: SSS ${formatCurrency(sss)} + PhilHealth ${formatCurrency(philhealth)} + Pag-IBIG ${formatCurrency(pagibig)} = ${formatCurrency(total)}`, 'success');
 }
 
 export async function savePayroll() {
-  const employee_name = (document.getElementById('pp-employee') as HTMLInputElement).value.trim();
+  const employee_name = gVal('pp-employee').trim();
   const empErr = validateRequired(employee_name, 'Employee name');
   if (empErr) { toast(empErr, 'error'); return; }
   const period    = gVal('pp-period').trim();
   const periodErr = validateRequired(period, 'Pay period');
   if (periodErr) { toast(periodErr, 'error'); return; }
-  const basic_pay  = +(document.getElementById('pp-basic')     as HTMLInputElement).value || 0;
+  const basic_pay  = +gVal('pp-basic') || 0;
   if (!basic_pay || basic_pay <= 0) { toast('Basic pay must be greater than ₱0', 'error'); return; }
-  const overtime   = +(document.getElementById('pp-overtime')  as HTMLInputElement).value || 0;
-  const allowances = +(document.getElementById('pp-allowances') as HTMLInputElement).value || 0;
-  const deductions = +(document.getElementById('pp-ded')       as HTMLInputElement).value || 0;
+  const overtime   = +gVal('pp-overtime')   || 0;
+  const allowances = +gVal('pp-allowances') || 0;
+  const deductions = +gVal('pp-ded')        || 0;
   if (overtime < 0 || allowances < 0 || deductions < 0) {
     toast('Overtime, allowances, and deductions cannot be negative', 'error'); return;
   }
@@ -202,11 +202,11 @@ export async function savePayroll() {
     toast('Deductions cannot exceed gross pay', 'error'); return;
   }
   const net          = gross - deductions;
-  const hours_worked = +(document.getElementById('pp-hours') as HTMLInputElement).value || null;
+  const hours_worked = +gVal('pp-hours') || null;
 
   const payload: Partial<PayrollRun> = {
     employee_name,
-    employee_type: (document.getElementById('pp-type') as HTMLSelectElement).value as PayrollRun['employee_type'],
+    employee_type: gVal('pp-type') as PayrollRun['employee_type'],
     period,
     hours_worked:  hours_worked ?? undefined,
     basic_pay,
@@ -215,8 +215,8 @@ export async function savePayroll() {
     gross,
     deductions,
     net,
-    status:   (document.getElementById('pp-status') as HTMLSelectElement).value,
-    notes:    (document.getElementById('pp-notes')  as HTMLInputElement).value.trim() || null,
+    status:    gVal('pp-status'),
+    notes:     gVal('pp-notes').trim() || null,
     employees: 1,
   };
 
@@ -386,10 +386,11 @@ export function sendPayrollEmail(id: number) {
     <div style="font-size:10.5px;color:var(--ink-3);margin-top:8px">
       This will open your email client. Attach the payslip PDF (click <strong>Generate Payslip</strong> first to save it).
     </div>`, () => {
-    const to      = (document.getElementById('pe-to')      as HTMLInputElement).value.trim();
-    const subject = (document.getElementById('pe-subject') as HTMLInputElement).value.trim();
-    const body    = (document.getElementById('pe-body')    as HTMLTextAreaElement).value.trim();
+    const to      = gVal('pe-to').trim();
+    const subject = gVal('pe-subject').trim();
+    const body    = gVal('pe-body').trim();
     if (!to) { toast('Recipient email is required', 'error'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) { toast('Enter a valid email address', 'error'); return; }
     window.open(`mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
     toast('Email client opened', 'success');
     closeModal();
