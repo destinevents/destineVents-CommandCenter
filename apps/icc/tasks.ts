@@ -77,7 +77,7 @@ export async function renderTasks() {
   KANBAN_COLS.forEach(col => { byStatus[col] = []; });
   tasks.forEach(t => { byStatus[t.status]?.push(t); });
 
-  const tabs = ['all', ...KANBAN_COLS];
+  const tabs = ['all', 'on_hold', ...KANBAN_COLS.filter(c => c !== 'on_hold')];
   document.getElementById('task-filters').innerHTML = tabs.map(t => {
     const label = t === 'all' ? 'All' : STATUS_LABELS[t];
     const count = t === 'all' ? tasks.length : byStatus[t].length;
