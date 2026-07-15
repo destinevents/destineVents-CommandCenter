@@ -39,10 +39,6 @@ import {
   submitBillForApproval, approveBill, saveApproveBill, rejectBill,
   markBillPaid, archiveBill, printExpenseVoucher,
   setApFilter, clearApFilters, setApBillPage,
-  openAddPayroll, openEditPayroll, handleDeletePayroll,
-  recalcPayroll, autoFillDeductions, markPayrollReleased,
-  printPayslip, sendPayrollEmail,
-  setPayrollFilter, clearPayrollFilters,
   openARProjectSOB, advanceARProjectStage,
   sendInvoiceEmail, printOfficialReceipt, openPaymentHistory,
   toggleActionMenu,
@@ -59,6 +55,12 @@ import {
 import { HQ_ALLOWED_PAGES, isHQRole, isICCRole } from '../../config/roles.ts';
 import type { UserRole } from '../../shared/types';
 import { loadUsers, approveUser, changeUserRole } from './users.ts';
+import {
+  openAddPayroll, openEditPayroll, handleDeletePayroll,
+  recalcPayroll, autoFillDeductions, markPayrollReleased,
+  printPayslip, sendPayrollEmail,
+  setPayrollFilter, clearPayrollFilters,
+} from './finance/payroll.ts';
 import {
   openAddSOB, openEditSOB, saveSOB, handleDeleteSOB,
   openDuplicateSOB, archiveSOB, restoreSOB, convertSOBToInvoice,
