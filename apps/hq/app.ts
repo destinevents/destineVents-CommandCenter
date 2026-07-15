@@ -40,7 +40,9 @@ import {
   markBillPaid, archiveBill, printExpenseVoucher,
   setApFilter, clearApFilters, setApBillPage,
   openAddPayroll, openEditPayroll, handleDeletePayroll,
-  estimateDeductions,
+  recalcPayroll, autoFillDeductions, markPayrollReleased,
+  printPayslip, sendPayrollEmail,
+  setPayrollFilter, clearPayrollFilters,
   openARProjectSOB, advanceARProjectStage,
   sendInvoiceEmail, printOfficialReceipt, openPaymentHistory,
   toggleActionMenu,
@@ -438,8 +440,13 @@ declare global {
     setApFilter: typeof setApFilter; clearApFilters: typeof clearApFilters;
     setApBillPage: typeof setApBillPage;
     openAddPayroll: typeof openAddPayroll; openEditPayroll: typeof openEditPayroll;
-    handleDeletePayroll: typeof handleDeletePayroll; openFileBir: typeof openFileBir;
-    showFinanceTab: typeof showFinanceTab; estimateDeductions: typeof estimateDeductions;
+    handleDeletePayroll: typeof handleDeletePayroll;
+    recalcPayroll: typeof recalcPayroll; autoFillDeductions: typeof autoFillDeductions;
+    markPayrollReleased: typeof markPayrollReleased;
+    printPayslip: typeof printPayslip; sendPayrollEmail: typeof sendPayrollEmail;
+    setPayrollFilter: typeof setPayrollFilter; clearPayrollFilters: typeof clearPayrollFilters;
+    openFileBir: typeof openFileBir;
+    showFinanceTab: typeof showFinanceTab;
     filterPartners: typeof filterPartners; handleFileSelect: typeof handleFileSelect;
     npGoStep1: typeof npGoStep1; npGoStep2: typeof npGoStep2; npFinish: typeof npFinish;
     downloadNDA: typeof downloadNDA; saveImpactEntry: typeof saveImpactEntry;
@@ -487,7 +494,10 @@ Object.assign(window, {
   markBillPaid, archiveBill, printExpenseVoucher,
   setApFilter, clearApFilters, setApBillPage,
   openAddPayroll, openEditPayroll, handleDeletePayroll,
-  openFileBir, showFinanceTab, estimateDeductions,
+  recalcPayroll, autoFillDeductions, markPayrollReleased,
+  printPayslip, sendPayrollEmail,
+  setPayrollFilter, clearPayrollFilters,
+  openFileBir, showFinanceTab,
   // Operations
   filterPartners, handleFileSelect, npGoStep1, npGoStep2, npFinish, downloadNDA,
   saveImpactEntry, openEditImpact, handleDeleteImpact,

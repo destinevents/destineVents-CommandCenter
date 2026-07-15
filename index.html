@@ -490,19 +490,8 @@
     <!-- Payables (AP) — fully rendered by renderAP() in finance.ts -->
     <div class="ftab" id="ftab-payables"></div>
 
-    <!-- Payroll -->
-    <div class="ftab" id="ftab-payroll">
-      <div class="page-actions">
-        <div style="font-size:11px;color:var(--ink-3)">SSS / PhilHealth / Pag-IBIG deductions auto-computed</div>
-        <button class="btn btn-primary" onclick="openAddPayroll()">New Payroll Run</button>
-      </div>
-      <div style="border:1px solid var(--ink-4);overflow:hidden">
-        <table class="ledger-table">
-          <thead><tr><th>Period</th><th>Employees</th><th>Gross Pay</th><th>Deductions</th><th>Net Pay</th><th>Status</th><th></th></tr></thead>
-          <tbody id="payroll-tbody"></tbody>
-        </table>
-      </div>
-    </div>
+    <!-- Payroll — fully rendered by renderPayroll() in finance.ts -->
+    <div class="ftab" id="ftab-payroll"></div>
 
     <!-- BIR Reports -->
     <div class="ftab" id="ftab-bir">

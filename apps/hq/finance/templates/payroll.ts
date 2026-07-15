@@ -2,39 +2,126 @@ import type { PayrollRun } from '@shared/types.ts';
 import { escapeHtml, statusClass } from '@shared/utils/helpers.ts';
 import { formatCurrency } from '@shared/utils/formatUtils.ts';
 
+const EMPLOYEE_TYPES = ['Employee', 'Freelancer', 'Intern', 'Contractor'] as const;
+const PAYROLL_STATUSES = ['Draft', 'Pending', 'Released'] as const;
+
+export { EMPLOYEE_TYPES, PAYROLL_STATUSES };
+
 export function payrollTableHTML(runs: PayrollRun[]): string {
-  return runs.length
-    ? runs.map(r => `
-        <tr>
-          <td style="font-weight:500;color:var(--ink)">${escapeHtml(r.period)}</td>
-          <td style="font-size:11.5px;color:var(--ink-3)">${r.employees}</td>
-          <td class="amount-cell">${formatCurrency(r.gross)}</td>
-          <td style="font-size:12px;color:var(--ink-3)">${formatCurrency(r.deductions)}</td>
-          <td class="amount-cell">${formatCurrency(r.net)}</td>
-          <td><span class="badge badge-${statusClass(r.status)}">${escapeHtml(r.status)}</span></td>
-          <td>
-            <div class="flex-gap" style="gap:4px">
-              <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="openEditPayroll(${r.id})">Edit</button>
-              <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--red)" onclick="handleDeletePayroll(${r.id})">Delete</button>
+  if (!runs.length) {
+    return `<tr><td colspan="9"><div class="empty-state">No payroll records yet — add one to get started</div></td></tr>`;
+  }
+  return runs.map(r => {
+    const empLabel = r.employee_name
+      ? `<div style="font-weight:500;color:var(--ink)">${escapeHtml(r.employee_name)}</div><div style="font-size:10.5px;color:var(--ink-3)">${escapeHtml(r.employee_type ?? 'Employee')}</div>`
+      : `<div style="font-size:11px;color:var(--ink-3)">${r.employees} employee${r.employees !== 1 ? 's' : ''}</div>`;
+    const payrollNum = r.payroll_number
+      ? `<div style="font-size:10px;color:var(--ink-3);font-family:monospace">${escapeHtml(r.payroll_number)}</div>`
+      : '';
+    const isReleased = r.status === 'Released';
+    return `
+      <tr>
+        <td>
+          <div style="font-weight:500;color:var(--ink)">${escapeHtml(r.period)}</div>
+          ${payrollNum}
+        </td>
+        <td>${empLabel}</td>
+        <td style="font-size:11.5px;color:var(--ink-2)">
+          ${r.basic_pay ? formatCurrency(r.basic_pay) : '—'}
+          ${r.overtime ? `<div style="font-size:10px;color:var(--ink-3)">+ ${formatCurrency(r.overtime)} OT</div>` : ''}
+          ${r.allowances ? `<div style="font-size:10px;color:var(--ink-3)">+ ${formatCurrency(r.allowances)} allow.</div>` : ''}
+        </td>
+        <td style="font-size:12px;color:var(--ink-3)">${formatCurrency(r.deductions)}</td>
+        <td class="amount-cell">${formatCurrency(r.net)}</td>
+        <td><span class="badge badge-${statusClass(r.status)}">${escapeHtml(r.status)}</span></td>
+        <td>
+          <div class="action-menu">
+            <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="toggleActionMenu(this)">Actions ▾</button>
+            <div class="action-menu-dropdown">
+              <button onclick="printPayslip(${r.id})">Generate Payslip</button>
+              <button onclick="sendPayrollEmail(${r.id})">Email Payslip</button>
+              ${!isReleased ? `<button onclick="markPayrollReleased(${r.id})" style="color:var(--green)">Mark as Released</button>` : ''}
+              <button onclick="openEditPayroll(${r.id})">Edit</button>
+              <button onclick="handleDeletePayroll(${r.id})" style="color:var(--red)">Delete</button>
             </div>
-          </td>
-        </tr>`).join('')
-    : `<tr><td colspan="7"><div class="empty-state">No payroll runs yet</div></td></tr>`;
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
 }
 
 export function payrollFormHTML(r: Partial<PayrollRun> = {}): string {
-  return `<div class="form-grid">
-    <div class="form-group"><div class="form-label">Period</div><input class="form-input" id="pp-period" value="${escapeHtml(r.period || '')}" placeholder="e.g. Jun 2026"/></div>
-    <div class="form-group"><div class="form-label">No. of Employees</div><input class="form-input" id="pp-emp" type="number" value="${r.employees || 0}"/></div>
-    <div class="form-group"><div class="form-label">Gross Pay (₱)</div><input class="form-input" id="pp-gross" type="number" value="${r.gross || 0}" oninput="estimateDeductions()"/></div>
-    <div class="form-group"><div class="form-label">Est. Deductions (₱)</div><input class="form-input" id="pp-ded" type="number" value="${r.deductions || 0}"/></div>
-    <div class="form-group"><div class="form-label">Net Pay (₱)</div><input class="form-input" id="pp-net" type="number" value="${r.net || 0}"/></div>
-    <div class="form-group"><div class="form-label">Status</div>
-      <select class="form-input" id="pp-status">
-        <option${r.status === 'Pending' || !r.status ? ' selected' : ''}>Pending</option>
-        <option${r.status === 'Released' ? ' selected' : ''}>Released</option>
+  const typeOpts = EMPLOYEE_TYPES.map(t =>
+    `<option${r.employee_type === t ? ' selected' : ''}>${t}</option>`
+  ).join('');
+  const statusOpts = PAYROLL_STATUSES.map(s =>
+    `<option${(r.status ?? 'Pending') === s ? ' selected' : ''}>${s}</option>`
+  ).join('');
+
+  return `
+  <div class="form-grid">
+    <div class="form-group">
+      <div class="form-label">Employee Name *</div>
+      <input class="form-input" id="pp-employee" value="${escapeHtml(r.employee_name || '')}" placeholder="Full name"/>
+    </div>
+    <div class="form-group">
+      <div class="form-label">Employee Type</div>
+      <select class="form-input" id="pp-type">
+        ${typeOpts}
       </select>
     </div>
+    <div class="form-group">
+      <div class="form-label">Pay Period *</div>
+      <input class="form-input" id="pp-period" value="${escapeHtml(r.period || '')}" placeholder="e.g. Jul 1–15, 2026"/>
+    </div>
+    <div class="form-group">
+      <div class="form-label">Hours Worked</div>
+      <input class="form-input" id="pp-hours" type="number" value="${r.hours_worked ?? ''}" placeholder="e.g. 80" oninput="recalcPayroll()"/>
+    </div>
+    <div class="form-group">
+      <div class="form-label">Basic Pay (₱) *</div>
+      <input class="form-input" id="pp-basic" type="number" value="${r.basic_pay || 0}" oninput="recalcPayroll()"/>
+    </div>
+    <div class="form-group">
+      <div class="form-label">Overtime (₱)</div>
+      <input class="form-input" id="pp-overtime" type="number" value="${r.overtime || 0}" oninput="recalcPayroll()"/>
+    </div>
+    <div class="form-group">
+      <div class="form-label">Allowances (₱)</div>
+      <input class="form-input" id="pp-allowances" type="number" value="${r.allowances || 0}" oninput="recalcPayroll()"/>
+    </div>
+    <div class="form-group">
+      <div class="form-label">Deductions (₱)</div>
+      <input class="form-input" id="pp-ded" type="number" value="${r.deductions || 0}" oninput="recalcPayroll()"/>
+    </div>
+    <div class="form-group">
+      <div class="form-label">Status</div>
+      <select class="form-input" id="pp-status">
+        ${statusOpts}
+      </select>
+    </div>
+    <div class="form-group">
+      <div class="form-label">Notes</div>
+      <input class="form-input" id="pp-notes" value="${escapeHtml(r.notes || '')}" placeholder="Optional"/>
+    </div>
   </div>
-  <div style="font-size:10px;color:var(--ink-3);margin-top:-8px">SSS ≈ 4.5% · PhilHealth ≈ 2.5% · Pag-IBIG ≈ 2% of gross</div>`;
+
+  <div style="background:var(--linen-2);border:1px solid var(--ink-4);border-radius:6px;padding:12px 16px;margin-top:4px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <span style="font-size:11px;color:var(--ink-3)">Gross Pay (Basic + OT + Allowances)</span>
+      <strong id="pp-gross-display" style="font-family:'Cormorant Garamond',serif;font-size:15px">${formatCurrency((r.basic_pay||0)+(r.overtime||0)+(r.allowances||0))}</strong>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <span style="font-size:11px;color:var(--ink-3)">Deductions</span>
+      <span id="pp-ded-display" style="font-size:13px;color:var(--red)">− ${formatCurrency(r.deductions||0)}</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--ink-4);padding-top:8px;margin-top:2px">
+      <span style="font-size:12px;font-weight:700;color:var(--ink)">Net Pay</span>
+      <strong id="pp-net-display" style="font-family:'Cormorant Garamond',serif;font-size:18px;color:var(--green)">${formatCurrency((r.basic_pay||0)+(r.overtime||0)+(r.allowances||0)-(r.deductions||0))}</strong>
+    </div>
+  </div>
+  <div style="font-size:10px;color:var(--ink-3);margin-top:6px">
+    Suggested deductions: SSS ≈ 4.5% · PhilHealth ≈ 2.5% · Pag-IBIG ≈ 2% · Total ≈ 9% of basic pay
+    <button type="button" class="btn btn-ghost" style="padding:2px 8px;font-size:10px;margin-left:8px" onclick="autoFillDeductions()">Auto-fill deductions</button>
+  </div>`;
 }
