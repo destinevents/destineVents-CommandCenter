@@ -48,38 +48,16 @@ export function clearPayrollFilters() {
   renderPayroll(_payroll);
 }
 
-export function renderPayroll(runs: PayrollRun[]) {
-  const container = document.getElementById('ftab-payroll');
-  if (!container) return;
-
-  const now = new Date();
-
-  const pending  = runs.filter(r => r.status === 'Pending');
-  const released = runs.filter(r => r.status === 'Released');
+function _payrollStatsHTML(runs: PayrollRun[], now: Date): string {
+  const pending      = runs.filter(r => r.status === 'Pending');
+  const released     = runs.filter(r => r.status === 'Released');
   const relThisMonth = released.filter(r =>
     r.period.includes(String(now.getFullYear())) &&
     r.period.toLowerCase().includes(now.toLocaleString('en-PH', { month: 'short' }).toLowerCase())
   );
   const totalNet = runs.reduce((s, r) => s + (r.net || 0), 0);
   const sumOf    = (arr: PayrollRun[]) => arr.reduce((s, r) => s + (r.net || 0), 0);
-
-  let filtered = [...runs];
-  if (_payrollSearch)       filtered = filtered.filter(r =>
-    (r.employee_name ?? '').toLowerCase().includes(_payrollSearch) ||
-    (r.payroll_number ?? '').toLowerCase().includes(_payrollSearch) ||
-    r.period.toLowerCase().includes(_payrollSearch)
-  );
-  if (_payrollFilterType)   filtered = filtered.filter(r => r.employee_type === _payrollFilterType);
-  if (_payrollFilterStatus) filtered = filtered.filter(r => r.status === _payrollFilterStatus);
-
-  const hasFilters = !!(_payrollSearch || _payrollFilterType || _payrollFilterStatus);
-
-  const typeOpts = EMPLOYEE_TYPES
-    .map(t => `<option value="${t}"${_payrollFilterType === t ? ' selected' : ''}>${t}</option>`).join('');
-  const statusOpts = PAYROLL_STATUSES
-    .map(s => `<option value="${s}"${_payrollFilterStatus === s ? ' selected' : ''}>${s}</option>`).join('');
-
-  container.innerHTML = `
+  return `
     <div class="finance-stat-grid" style="margin-bottom:16px">
       <div class="stat-card">
         <div class="stat-label">Pending Payroll</div>
@@ -101,8 +79,11 @@ export function renderPayroll(runs: PayrollRun[]) {
         <div class="stat-value" style="font-size:22px">${formatCurrency(totalNet)}</div>
         <div class="stat-change">${runs.length} record${runs.length !== 1 ? 's' : ''}</div>
       </div>
-    </div>
+    </div>`;
+}
 
+function _payrollToolbarHTML(typeOpts: string, statusOpts: string, hasFilters: boolean): string {
+  return `
     <div class="page-actions" style="margin-bottom:12px;flex-wrap:wrap;gap:8px">
       <div style="display:flex;gap:8px;flex:1;flex-wrap:wrap;align-items:center">
         <input class="form-input" id="pr-search" placeholder="Search name, payroll #, period…"
@@ -118,21 +99,35 @@ export function renderPayroll(runs: PayrollRun[]) {
         ${hasFilters ? `<button class="btn btn-ghost" onclick="clearPayrollFilters()" style="font-size:12px">Clear</button>` : ''}
       </div>
       <button class="btn btn-primary" onclick="openAddPayroll()">+ New Payroll Record</button>
-    </div>
+    </div>`;
+}
 
+export function renderPayroll(runs: PayrollRun[]) {
+  const container = document.getElementById('ftab-payroll');
+  if (!container) return;
+
+  let filtered = [...runs];
+  if (_payrollSearch)       filtered = filtered.filter(r =>
+    (r.employee_name ?? '').toLowerCase().includes(_payrollSearch) ||
+    (r.payroll_number ?? '').toLowerCase().includes(_payrollSearch) ||
+    r.period.toLowerCase().includes(_payrollSearch)
+  );
+  if (_payrollFilterType)   filtered = filtered.filter(r => r.employee_type === _payrollFilterType);
+  if (_payrollFilterStatus) filtered = filtered.filter(r => r.status === _payrollFilterStatus);
+
+  const hasFilters = !!(_payrollSearch || _payrollFilterType || _payrollFilterStatus);
+  const typeOpts   = EMPLOYEE_TYPES.map(t => `<option value="${t}"${_payrollFilterType === t ? ' selected' : ''}>${t}</option>`).join('');
+  const statusOpts = PAYROLL_STATUSES.map(s => `<option value="${s}"${_payrollFilterStatus === s ? ' selected' : ''}>${s}</option>`).join('');
+
+  container.innerHTML =
+    _payrollStatsHTML(runs, new Date()) +
+    _payrollToolbarHTML(typeOpts, statusOpts, hasFilters) + `
     <div style="border:1px solid var(--ink-4);overflow:hidden">
       <table class="ledger-table">
-        <thead>
-          <tr>
-            <th>Period</th>
-            <th>Employee</th>
-            <th>Pay Breakdown</th>
-            <th>Deductions</th>
-            <th>Net Pay</th>
-            <th>Status</th>
-            <th></th>
-          </tr>
-        </thead>
+        <thead><tr>
+          <th>Period</th><th>Employee</th><th>Pay Breakdown</th>
+          <th>Deductions</th><th>Net Pay</th><th>Status</th><th></th>
+        </tr></thead>
         <tbody>
           ${filtered.length
             ? payrollTableHTML(filtered)
@@ -250,19 +245,8 @@ export async function handleDeletePayroll(id: number) {
   await loadPayroll();
 }
 
-export function printPayslip(id: number) {
-  const r = _payroll.find(x => x.id === id);
-  if (!r) return;
-  const { company } = APP_SETTINGS;
-  const gross = r.gross ?? ((r.basic_pay || 0) + (r.overtime || 0) + (r.allowances || 0));
-  const w = window.open('', '_blank', 'width=860,height=700');
-  if (!w) { toast('Pop-up blocked — please allow pop-ups and try again', 'error'); return; }
-  w.document.write(`<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8"/>
-<title>Payslip ${escapeHtml(r.payroll_number ?? String(r.id))}</title>
-<style>
+function _payslipCSS(): string {
+  return `
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Helvetica Neue',Arial,sans-serif;color:#1a1a1a;background:#fff;padding:48px}
   .brand{font-size:26px;font-weight:700;letter-spacing:-0.5px}
@@ -281,10 +265,11 @@ export function printPayslip(id: number) {
   .sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;margin-top:40px}
   .sig-line{border-top:1px solid #1a1a1a;padding-top:8px;font-size:11px;color:#888;margin-top:40px}
   .footer{margin-top:40px;padding-top:16px;border-top:1px solid #e8e3da;font-size:10px;color:#aaa;text-align:center;line-height:1.8}
-  @media print{body{padding:24px}.no-print{display:none}}
-</style>
-</head>
-<body>
+  @media print{body{padding:24px}.no-print{display:none}}`;
+}
+
+function _payslipHeaderHTML(r: PayrollRun, company: { name: string; address: string }): string {
+  return `
 <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:36px">
   <div>
     <div class="brand">destine<span>vents</span></div>
@@ -296,8 +281,11 @@ export function printPayslip(id: number) {
     <div class="doc-num">${escapeHtml(r.payroll_number ?? `PAY-${r.id}`)}</div>
     <div style="text-align:right;margin-top:6px;font-size:12px;color:#888">${escapeHtml(r.status)}</div>
   </div>
-</div>
+</div>`;
+}
 
+function _payslipBodyHTML(r: PayrollRun, gross: number): string {
+  return `
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;padding-bottom:24px;border-bottom:1px solid #e8e3da">
   <div>
     <div class="label">Employee</div>
@@ -311,50 +299,52 @@ export function printPayslip(id: number) {
     ${r.hours_worked ? `<div class="label">Hours Worked</div><div class="value">${r.hours_worked} hrs</div>` : ''}
   </div>
 </div>
-
 <div class="section-head">Earnings</div>
 <table class="pay-table">
   <tr><td>Basic Pay</td><td>${formatCurrency(r.basic_pay || 0)}</td></tr>
-  ${r.overtime  ? `<tr><td>Overtime</td><td>${formatCurrency(r.overtime)}</td></tr>`   : ''}
+  ${r.overtime   ? `<tr><td>Overtime</td><td>${formatCurrency(r.overtime)}</td></tr>`    : ''}
   ${r.allowances ? `<tr><td>Allowances</td><td>${formatCurrency(r.allowances)}</td></tr>` : ''}
   <tr style="background:#f9f6f0"><td style="font-weight:700">Gross Pay</td><td style="font-weight:700">${formatCurrency(gross)}</td></tr>
 </table>
-
 <div class="section-head">Deductions</div>
 <table class="pay-table">
   <tr><td>Total Deductions (SSS / PhilHealth / Pag-IBIG)</td><td style="color:#c0392b">− ${formatCurrency(r.deductions || 0)}</td></tr>
 </table>
-
 <div class="net-box">
   <div class="label" style="font-size:11px">Net Pay</div>
   <div class="net-amount">₱${(r.net || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</div>
 </div>
-
 ${r.notes ? `<div style="padding:12px 16px;background:#f9f6f0;border-radius:6px;font-size:12px;color:#555;margin-bottom:16px"><strong>Notes:</strong> ${escapeHtml(r.notes)}</div>` : ''}
-
 <div class="sig-grid">
-  <div>
-    <div class="label">Prepared By</div>
-    <div class="sig-line"></div>
-    <div style="font-size:11px;color:#888;margin-top:6px">HR / Finance Officer</div>
-  </div>
-  <div>
-    <div class="label">Received By</div>
-    <div class="sig-line"></div>
-    <div style="font-size:11px;color:#888;margin-top:6px">${escapeHtml(r.employee_name ?? 'Employee')}</div>
-  </div>
+  <div><div class="label">Prepared By</div><div class="sig-line"></div><div style="font-size:11px;color:#888;margin-top:6px">HR / Finance Officer</div></div>
+  <div><div class="label">Received By</div><div class="sig-line"></div><div style="font-size:11px;color:#888;margin-top:6px">${escapeHtml(r.employee_name ?? 'Employee')}</div></div>
 </div>
-
 <div class="no-print" style="margin-top:28px">
   <button onclick="window.print()" style="padding:8px 20px;background:#1a1a1a;color:#fff;border:none;border-radius:4px;font-size:13px;cursor:pointer">Print / Save as PDF</button>
 </div>
-
 <div class="footer">
   DestineVents Collective OPC · Baguio City, Philippines · destinevents.biz@gmail.com<br>
   This payslip is confidential. For payroll-related concerns, contact HR.
-</div>
-</body>
-</html>`);
+</div>`;
+}
+
+function _buildPayslipDoc(r: PayrollRun, gross: number, company: { name: string; address: string }): string {
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
+<title>Payslip ${escapeHtml(r.payroll_number ?? String(r.id))}</title>
+<style>${_payslipCSS()}</style></head><body>
+${_payslipHeaderHTML(r, company)}
+${_payslipBodyHTML(r, gross)}
+</body></html>`;
+}
+
+export function printPayslip(id: number) {
+  const r = _payroll.find(x => x.id === id);
+  if (!r) return;
+  const { company } = APP_SETTINGS;
+  const gross = r.gross ?? ((r.basic_pay || 0) + (r.overtime || 0) + (r.allowances || 0));
+  const w = window.open('', '_blank', 'width=860,height=700');
+  if (!w) { toast('Pop-up blocked — please allow pop-ups and try again', 'error'); return; }
+  w.document.write(_buildPayslipDoc(r, gross, company));
   w.document.close();
   w.focus();
 }
