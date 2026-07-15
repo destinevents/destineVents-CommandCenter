@@ -9,7 +9,7 @@ export { EMPLOYEE_TYPES, PAYROLL_STATUSES };
 
 export function payrollTableHTML(runs: PayrollRun[]): string {
   if (!runs.length) {
-    return `<tr><td colspan="9"><div class="empty-state">No payroll records yet — add one to get started</div></td></tr>`;
+    return `<tr><td colspan="7"><div class="empty-state">No payroll records yet — add one to get started</div></td></tr>`;
   }
   return runs.map(r => {
     const empLabel = r.employee_name

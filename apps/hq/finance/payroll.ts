@@ -227,7 +227,7 @@ export async function savePayroll() {
     employees: 1,
   };
 
-  if (_editingPayrollId) {
+  if (_editingPayrollId !== null) {
     const ok = await updatePayrollRun(_editingPayrollId, payload);
     if (!ok) { toast('Could not update payroll record', 'error'); return; }
     toast('Payroll record updated', 'success');
@@ -253,7 +253,7 @@ export async function handleDeletePayroll(id: number) {
   if (!confirm('Delete this payroll record? This cannot be undone.')) return;
   const ok = await deletePayrollRun(id);
   if (!ok) { toast('Could not delete payroll record', 'error'); return; }
-  toast('Payroll record deleted', '');
+  toast('Payroll record deleted', 'success');
   await loadPayroll();
 }
 
@@ -367,7 +367,7 @@ export function printPayslip(id: number) {
 export function sendPayrollEmail(id: number) {
   const r = _payroll.find(x => x.id === id);
   if (!r) return;
-  const defaultSubject = `Payslip ${r.payroll_number ?? ''} — ${r.period}`;
+  const defaultSubject = `Payslip${r.payroll_number ? ` ${r.payroll_number}` : ''} — ${r.period}`;
   const defaultBody = [
     `Dear ${r.employee_name ?? 'Team Member'},`,
     '',
