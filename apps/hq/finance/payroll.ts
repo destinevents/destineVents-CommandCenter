@@ -1,6 +1,6 @@
 import { formatCurrency } from '@shared/utils/formatUtils.ts';
 import { escapeHtml } from '@shared/utils/helpers.ts';
-import { validateRequired } from '@shared/utils/validators.ts';
+import { validateRequired, validateEmail } from '@shared/utils/validators.ts';
 import { APP_SETTINGS } from '@config/settings.js';
 import { payrollTableHTML, payrollFormHTML, PAYROLL_STATUSES, EMPLOYEE_TYPES } from './templates/payroll.ts';
 import {
@@ -10,7 +10,8 @@ import { _payroll, setPayroll } from '@hq/state.ts';
 import { toast, openModal, closeModal } from '@hq/ui.ts';
 import type { PayrollRun } from '@shared/types.ts';
 
-const gVal = (id: string) => (document.getElementById(id) as HTMLInputElement).value;
+// H2: null-safe — consistent with setPayrollFilter which already uses optional chaining
+const gVal = (id: string) => (document.getElementById(id) as HTMLInputElement | null)?.value ?? '';
 
 let _editingPayrollId: number | null = null;
 let _payrollSearch       = '';
@@ -19,10 +20,20 @@ let _payrollFilterStatus = '';
 let _payrollFilterDateFrom = '';
 let _payrollFilterDateTo   = '';
 
+// L4: named constants — rates are legally significant and updated periodically
+const SSS_RATE        = 0.045;
+const PHILHEALTH_RATE = 0.025;
+const PAGIBIG_RATE    = 0.02;
+
 export async function loadPayroll() {
-  const runs = await fetchPayrollRuns();
-  setPayroll(runs || []);
-  renderPayroll(_payroll);
+  try {
+    const runs = await fetchPayrollRuns();
+    setPayroll(runs || []);
+    renderPayroll(_payroll);
+  } catch (error) {
+    console.error('loadPayroll failed:', error);
+    toast('Could not load payroll records', 'error');
+  }
 }
 
 export function _nextPayrollNumber(runs: PayrollRun[]): string {
@@ -138,7 +149,7 @@ export function renderPayroll(runs: PayrollRun[]) {
       <table class="ledger-table">
         <thead><tr>
           <th>Period</th><th>Employee</th><th>Pay Breakdown</th>
-          <th>Deductions</th><th>Net Pay</th><th>Status</th><th></th>
+          <th>Deductions</th><th>Net Pay</th><th>Status</th><th aria-label="Actions"></th>
         </tr></thead>
         <tbody>
           ${filtered.length
@@ -180,9 +191,9 @@ export function recalcPayroll(): void {
 
 export function autoFillDeductions(): void {
   const basic      = +((document.getElementById('pp-basic') as HTMLInputElement | null)?.value ?? '0') || 0;
-  const sss        = Math.round(basic * 0.045);
-  const philhealth = Math.round(basic * 0.025);
-  const pagibig    = Math.round(basic * 0.02);
+  const sss        = Math.round(basic * SSS_RATE);
+  const philhealth = Math.round(basic * PHILHEALTH_RATE);
+  const pagibig    = Math.round(basic * PAGIBIG_RATE);
   const total      = sss + philhealth + pagibig;
   const dedInput   = document.getElementById('pp-ded') as HTMLInputElement | null;
   if (dedInput) {
@@ -192,72 +203,105 @@ export function autoFillDeductions(): void {
   }
 }
 
-export async function savePayroll() {
+// H3: validation/read extracted so savePayroll stays under 50 lines
+function _readPayrollForm(): Partial<PayrollRun> | null {
   const employee_name = gVal('pp-employee').trim();
   const empErr = validateRequired(employee_name, 'Employee name');
-  if (empErr) { toast(empErr, 'error'); return; }
+  if (empErr) { toast(empErr, 'error'); return null; }
+
   const period    = gVal('pp-period').trim();
   const periodErr = validateRequired(period, 'Pay period');
-  if (periodErr) { toast(periodErr, 'error'); return; }
-  const basic_pay  = +gVal('pp-basic') || 0;
-  if (!basic_pay || basic_pay <= 0) { toast('Basic pay must be greater than ₱0', 'error'); return; }
+  if (periodErr) { toast(periodErr, 'error'); return null; }
+
+  const basic_pay = +gVal('pp-basic') || 0;
+  if (basic_pay <= 0) { toast('Basic pay must be greater than ₱0', 'error'); return null; }
+
   const overtime   = +gVal('pp-overtime')   || 0;
   const allowances = +gVal('pp-allowances') || 0;
   const deductions = +gVal('pp-ded')        || 0;
   if (overtime < 0 || allowances < 0 || deductions < 0) {
-    toast('Overtime, allowances, and deductions cannot be negative', 'error'); return;
+    toast('Overtime, allowances, and deductions cannot be negative', 'error'); return null;
   }
   const gross = basic_pay + overtime + allowances;
   if (deductions > gross) {
-    toast('Deductions cannot exceed gross pay', 'error'); return;
+    toast('Deductions cannot exceed gross pay', 'error'); return null;
   }
-  const net          = gross - deductions;
-  const hours_worked = +gVal('pp-hours') || null;
 
-  const payload: Partial<PayrollRun> = {
+  // M1: explicit parse so hours=0 is preserved (not dropped by || null)
+  const rawHours   = gVal('pp-hours').trim();
+  const hours_worked = rawHours === '' ? undefined : Number(rawHours);
+
+  // M5: validate against allowed enum values before casting
+  const rawType   = gVal('pp-type');
+  const rawStatus = gVal('pp-status');
+  const employee_type = (EMPLOYEE_TYPES as readonly string[]).includes(rawType)
+    ? rawType as PayrollRun['employee_type']
+    : 'Employee';
+  const status = (PAYROLL_STATUSES as readonly string[]).includes(rawStatus) ? rawStatus : 'Draft';
+
+  return {
     employee_name,
-    employee_type: gVal('pp-type') as PayrollRun['employee_type'],
+    employee_type,
     period,
-    hours_worked:  hours_worked ?? undefined,
+    hours_worked,
     basic_pay,
     overtime,
     allowances,
     gross,
     deductions,
-    net,
-    status:    gVal('pp-status'),
+    net: gross - deductions,
+    status,
     notes:     gVal('pp-notes').trim() || null,
     employees: 1,
   };
+}
 
-  if (_editingPayrollId !== null) {
-    const ok = await updatePayrollRun(_editingPayrollId, payload);
-    if (!ok) { toast('Could not update payroll record', 'error'); return; }
-    toast('Payroll record updated', 'success');
-  } else {
-    payload.payroll_number = _nextPayrollNumber(_payroll);
-    const result = await createPayrollRun(payload);
-    if (!result) { toast('Could not save payroll record. Please try again.', 'error'); return; }
-    toast('Payroll record saved', 'success');
+export async function savePayroll() {
+  const payload = _readPayrollForm();
+  if (!payload) return;
+  try {
+    if (_editingPayrollId !== null) {
+      const ok = await updatePayrollRun(_editingPayrollId, payload);
+      if (!ok) { toast('Could not update payroll record', 'error'); return; }
+      toast('Payroll record updated', 'success');
+    } else {
+      payload.payroll_number = _nextPayrollNumber(_payroll);
+      const result = await createPayrollRun(payload);
+      if (!result) { toast('Could not save payroll record. Please try again.', 'error'); return; }
+      toast('Payroll record saved', 'success');
+    }
+    closeModal();
+    await loadPayroll();
+  } catch (error) {
+    console.error('savePayroll failed:', error);
+    toast('An unexpected error occurred. Please try again.', 'error');
   }
-  closeModal();
-  await loadPayroll();
 }
 
 export async function markPayrollPaid(id: number) {
   if (!confirm('Mark this payroll as Paid?')) return;
-  const ok = await updatePayrollRun(id, { status: 'Paid' });
-  if (!ok) { toast('Could not mark as Paid', 'error'); return; }
-  toast('Payroll marked as Paid', 'success');
-  await loadPayroll();
+  try {
+    const ok = await updatePayrollRun(id, { status: 'Paid' });
+    if (!ok) { toast('Could not mark as Paid', 'error'); return; }
+    toast('Payroll marked as Paid', 'success');
+    await loadPayroll();
+  } catch (error) {
+    console.error('markPayrollPaid failed:', error);
+    toast('An unexpected error occurred. Please try again.', 'error');
+  }
 }
 
 export async function handleDeletePayroll(id: number) {
   if (!confirm('Delete this payroll record? This cannot be undone.')) return;
-  const ok = await deletePayrollRun(id);
-  if (!ok) { toast('Could not delete payroll record', 'error'); return; }
-  toast('Payroll record deleted', 'success');
-  await loadPayroll();
+  try {
+    const ok = await deletePayrollRun(id);
+    if (!ok) { toast('Could not delete payroll record', 'error'); return; }
+    toast('Payroll record deleted', 'success');
+    await loadPayroll();
+  } catch (error) {
+    console.error('handleDeletePayroll failed:', error);
+    toast('An unexpected error occurred. Please try again.', 'error');
+  }
 }
 
 function _payslipCSS(): string {
@@ -314,7 +358,7 @@ function _payslipBodyHTML(r: PayrollRun, gross: number): string {
   <div>
     <div class="label">Pay Period</div>
     <div class="value" style="font-weight:600">${escapeHtml(r.period)}</div>
-    ${r.hours_worked ? `<div class="label">Hours Worked</div><div class="value">${r.hours_worked} hrs</div>` : ''}
+    ${r.hours_worked != null ? `<div class="label">Hours Worked</div><div class="value">${r.hours_worked} hrs</div>` : ''}
   </div>
 </div>
 <div class="section-head">Earnings</div>
@@ -330,7 +374,7 @@ function _payslipBodyHTML(r: PayrollRun, gross: number): string {
 </table>
 <div class="net-box">
   <div class="label" style="font-size:11px">Net Pay</div>
-  <div class="net-amount">₱${(r.net || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</div>
+  <div class="net-amount">${formatCurrency(r.net || 0)}</div>
 </div>
 ${r.notes ? `<div style="padding:12px 16px;background:#f9f6f0;border-radius:6px;font-size:12px;color:#555;margin-bottom:16px"><strong>Notes:</strong> ${escapeHtml(r.notes)}</div>` : ''}
 <div class="sig-grid">
@@ -362,9 +406,15 @@ export function printPayslip(id: number) {
   const gross = r.gross ?? ((r.basic_pay || 0) + (r.overtime || 0) + (r.allowances || 0));
   const w = window.open('', '_blank', 'width=860,height=700');
   if (!w) { toast('Pop-up blocked — please allow pop-ups and try again', 'error'); return; }
-  w.document.write(_buildPayslipDoc(r, gross, company, banking.tin));
-  w.document.close();
-  w.focus();
+  try {
+    w.document.write(_buildPayslipDoc(r, gross, company, banking.tin));
+    w.document.close();
+    w.focus();
+  } catch (error) {
+    console.error('printPayslip failed:', error);
+    w.close();
+    toast('Could not generate payslip. Please try again.', 'error');
+  }
 }
 
 export function sendPayrollEmail(id: number) {
@@ -375,7 +425,7 @@ export function sendPayrollEmail(id: number) {
     `Dear ${r.employee_name ?? 'Team Member'},`,
     '',
     `Please find attached your payslip for the period ${r.period}.`,
-    `Net Pay: ₱${(r.net || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`,
+    `Net Pay: ${formatCurrency(r.net || 0)}`,
     '',
     'For any questions regarding this payslip, please reach out to HR.',
     '',
@@ -398,7 +448,9 @@ export function sendPayrollEmail(id: number) {
     const subject = gVal('pe-subject').trim();
     const body    = gVal('pe-body').trim();
     if (!to) { toast('Recipient email is required', 'error'); return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) { toast('Enter a valid email address', 'error'); return; }
+    // L7: reuse shared validateEmail instead of duplicating the regex
+    const emailErr = validateEmail(to);
+    if (emailErr) { toast(emailErr, 'error'); return; }
     window.open(`mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
     toast('Email client opened', 'success');
     closeModal();

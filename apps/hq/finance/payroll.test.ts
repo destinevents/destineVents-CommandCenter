@@ -14,19 +14,20 @@ vi.mock('@shared/utils/helpers.ts', () => ({
 
 vi.mock('@shared/utils/validators.ts', () => ({
   validateRequired: (val: string, label: string) => (val ? null : `${label} is required`),
+  validateEmail: (val: string) => (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val) ? null : 'Enter a valid email address'),
 }));
 
 vi.mock('@config/settings.js', () => ({
   APP_SETTINGS: {
     company: { name: 'DestineVents', address: 'Baguio City, PH' },
-    banking: {},
+    banking: { tin: '' },
     finance: {},
   },
 }));
 
 vi.mock('./templates/payroll.ts', () => ({
-  payrollTableHTML: () => '',
-  payrollFormHTML:  () => '',
+  payrollTableHTML: vi.fn().mockReturnValue(''),
+  payrollFormHTML:  vi.fn().mockReturnValue(''),
   PAYROLL_STATUSES: ['Draft', 'Pending', 'Paid'],
   EMPLOYEE_TYPES:   ['Employee', 'Freelancer', 'Intern', 'Contractor'],
 }));
@@ -55,13 +56,17 @@ vi.mock('@hq/ui.ts', () => ({
 // ── Subject ───────────────────────────────────────────────────────────────────
 
 import { _nextPayrollNumber, autoFillDeductions, recalcPayroll } from './payroll.ts';
+import { payrollTableHTML } from './templates/payroll.ts';
 import { toast } from '@hq/ui.ts';
+import { setPayroll } from '@hq/state.ts';
 import {
   fetchPayrollRuns, createPayrollRun, updatePayrollRun, deletePayrollRun,
 } from '@shared/services/finance/financeService.ts';
 import type { PayrollRun } from '@shared/types.ts';
 
-const mockToast = toast as ReturnType<typeof vi.fn>;
+const mockToast        = toast as ReturnType<typeof vi.fn>;
+const mockTableHTML    = payrollTableHTML as ReturnType<typeof vi.fn>;
+const mockSetPayroll   = setPayroll as (v: unknown[]) => void;
 
 function makeRun(overrides: Partial<PayrollRun> = {}): PayrollRun {
   return {
@@ -295,7 +300,6 @@ describe('handleDeletePayroll', () => {
 describe('createPayrollRun service call', () => {
   it('shows error toast when create fails', async () => {
     (createPayrollRun as ReturnType<typeof vi.fn>).mockResolvedValueOnce(null);
-    // We test by calling savePayroll with a fully-wired DOM
     document.body.innerHTML = `
       <input id="pp-employee" value="Maria"/>
       <input id="pp-period"   value="Jul 2026"/>
@@ -313,5 +317,177 @@ describe('createPayrollRun service call', () => {
     expect(mockToast).toHaveBeenCalledWith(
       expect.stringContaining('Could not save'), 'error',
     );
+  });
+});
+
+// ── savePayroll validation branches ──────────────────────────────────────────
+
+describe('savePayroll validation', () => {
+  function setForm(overrides: Record<string, string> = {}) {
+    const defaults: Record<string, string> = {
+      'pp-employee': 'Ana Santos', 'pp-period': 'Jul 2026',
+      'pp-basic': '20000', 'pp-overtime': '0', 'pp-allowances': '0',
+      'pp-ded': '0', 'pp-hours': '', 'pp-type': 'Employee',
+      'pp-status': 'Draft', 'pp-notes': '',
+    };
+    document.body.innerHTML = Object.entries({ ...defaults, ...overrides })
+      .map(([id, val]) => `<input id="${id}" value="${val}"/>`)
+      .join('');
+  }
+
+  beforeEach(() => { document.body.innerHTML = ''; });
+
+  it('rejects missing employee name', async () => {
+    setForm({ 'pp-employee': '' });
+    const { savePayroll } = await import('./payroll.ts');
+    await savePayroll();
+    expect(mockToast).toHaveBeenCalledWith(expect.stringContaining('Employee name'), 'error');
+    expect(createPayrollRun).not.toHaveBeenCalled();
+  });
+
+  it('rejects missing period', async () => {
+    setForm({ 'pp-period': '' });
+    const { savePayroll } = await import('./payroll.ts');
+    await savePayroll();
+    expect(mockToast).toHaveBeenCalledWith(expect.stringContaining('Pay period'), 'error');
+    expect(createPayrollRun).not.toHaveBeenCalled();
+  });
+
+  it('rejects basic pay of 0', async () => {
+    setForm({ 'pp-basic': '0' });
+    const { savePayroll } = await import('./payroll.ts');
+    await savePayroll();
+    expect(mockToast).toHaveBeenCalledWith(expect.stringContaining('Basic pay'), 'error');
+    expect(createPayrollRun).not.toHaveBeenCalled();
+  });
+
+  it('rejects negative overtime', async () => {
+    setForm({ 'pp-overtime': '-500' });
+    const { savePayroll } = await import('./payroll.ts');
+    await savePayroll();
+    expect(mockToast).toHaveBeenCalledWith(expect.stringContaining('negative'), 'error');
+    expect(createPayrollRun).not.toHaveBeenCalled();
+  });
+
+  it('rejects deductions exceeding gross pay', async () => {
+    setForm({ 'pp-basic': '10000', 'pp-ded': '99999' });
+    const { savePayroll } = await import('./payroll.ts');
+    await savePayroll();
+    expect(mockToast).toHaveBeenCalledWith(expect.stringContaining('exceed'), 'error');
+    expect(createPayrollRun).not.toHaveBeenCalled();
+  });
+
+  it('preserves hours_worked = 0 (does not drop it as falsy)', async () => {
+    setForm({ 'pp-hours': '0' });
+    document.body.innerHTML += '<div id="ftab-payroll"></div>';
+    const { savePayroll } = await import('./payroll.ts');
+    await savePayroll();
+    expect(createPayrollRun).toHaveBeenCalledWith(
+      expect.objectContaining({ hours_worked: 0 }),
+    );
+  });
+});
+
+// ── savePayroll edit path ─────────────────────────────────────────────────────
+
+describe('savePayroll edit path', () => {
+  beforeEach(() => { document.body.innerHTML = ''; });
+
+  it('calls updatePayrollRun for an existing record', async () => {
+    mockSetPayroll([makeRun({ id: 5 })]);
+    document.body.innerHTML = `
+      <input id="pp-employee" value="Maria"/>
+      <input id="pp-period"   value="Aug 2026"/>
+      <input id="pp-basic"    value="18000"/>
+      <input id="pp-overtime" value="0"/>
+      <input id="pp-allowances" value="0"/>
+      <input id="pp-ded"      value="0"/>
+      <input id="pp-hours"    value=""/>
+      <input id="pp-type"     value="Employee"/>
+      <input id="pp-status"   value="Draft"/>
+      <input id="pp-notes"    value=""/>
+      <div id="ftab-payroll"></div>
+    `;
+    const { openEditPayroll, savePayroll } = await import('./payroll.ts');
+    openEditPayroll(5);
+    await savePayroll();
+    expect(updatePayrollRun).toHaveBeenCalledWith(5, expect.objectContaining({ employee_name: 'Maria' }));
+    expect(createPayrollRun).not.toHaveBeenCalled();
+  });
+});
+
+// ── renderPayroll filter logic ────────────────────────────────────────────────
+
+describe('renderPayroll filters', () => {
+  // Reset shared state so clearPayrollFilters/setPayrollFilter don't render
+  // stale records from earlier tests (module state persists across tests)
+  beforeEach(async () => {
+    mockSetPayroll([]);
+    document.body.innerHTML = '<div id="ftab-payroll"></div>';
+    // Render once to get the toolbar into the DOM so we can manipulate its inputs
+    const { clearPayrollFilters } = await import('./payroll.ts');
+    clearPayrollFilters();
+    mockTableHTML.mockClear();
+  });
+
+  it('passes all runs to payrollTableHTML when no filters active', async () => {
+    const runs = [makeRun({ id: 1 }), makeRun({ id: 2 })];
+    const { renderPayroll } = await import('./payroll.ts');
+    renderPayroll(runs);
+    expect(mockTableHTML).toHaveBeenCalledWith(runs);
+  });
+
+  it('filters by employee name search', async () => {
+    const ana  = makeRun({ id: 1, employee_name: 'Ana Santos' });
+    const beth = makeRun({ id: 2, employee_name: 'Beth Cruz' });
+    const { renderPayroll, setPayrollFilter } = await import('./payroll.ts');
+
+    (document.getElementById('pr-search') as HTMLInputElement).value = 'ana';
+    setPayrollFilter();
+    mockTableHTML.mockClear();
+
+    renderPayroll([ana, beth]);
+    expect(mockTableHTML).toHaveBeenCalledWith([ana]);
+  });
+
+  it('filters by status', async () => {
+    const draft = makeRun({ id: 1, status: 'Draft' });
+    const paid  = makeRun({ id: 2, status: 'Paid' });
+    const { renderPayroll, setPayrollFilter } = await import('./payroll.ts');
+
+    (document.getElementById('pr-filter-status') as HTMLSelectElement).value = 'Paid';
+    setPayrollFilter();
+    mockTableHTML.mockClear();
+
+    renderPayroll([draft, paid]);
+    expect(mockTableHTML).toHaveBeenCalledWith([paid]);
+  });
+
+  it('filters by date range — excludes records outside bounds', async () => {
+    const jul1  = makeRun({ id: 1, created_at: '2026-07-01' });
+    const jul15 = makeRun({ id: 2, created_at: '2026-07-15' });
+    const aug1  = makeRun({ id: 3, created_at: '2026-08-01' });
+    const { renderPayroll, setPayrollFilter } = await import('./payroll.ts');
+
+    (document.getElementById('pr-date-from') as HTMLInputElement).value = '2026-07-01';
+    (document.getElementById('pr-date-to')   as HTMLInputElement).value = '2026-07-31';
+    setPayrollFilter();
+    mockTableHTML.mockClear();
+
+    renderPayroll([jul1, jul15, aug1]);
+    expect(mockTableHTML).toHaveBeenCalledWith([jul1, jul15]);
+  });
+
+  it('shows no-results empty state when filters match nothing', async () => {
+    const run = makeRun({ id: 1, employee_name: 'Ana' });
+    const { renderPayroll, setPayrollFilter } = await import('./payroll.ts');
+
+    (document.getElementById('pr-search') as HTMLInputElement).value = 'zzznomatch';
+    setPayrollFilter();
+    mockTableHTML.mockClear();
+
+    renderPayroll([run]);
+    expect(mockTableHTML).not.toHaveBeenCalled();
+    expect(document.getElementById('ftab-payroll')!.innerHTML).toContain('No records match filters');
   });
 });

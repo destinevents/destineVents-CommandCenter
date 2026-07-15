@@ -8,9 +8,6 @@ const PAYROLL_STATUSES = ['Draft', 'Pending', 'Paid'] as const;
 export { EMPLOYEE_TYPES, PAYROLL_STATUSES };
 
 export function payrollTableHTML(runs: PayrollRun[]): string {
-  if (!runs.length) {
-    return `<tr><td colspan="7"><div class="empty-state">No payroll records yet — add one to get started</div></td></tr>`;
-  }
   return runs.map(r => {
     const empLabel = r.employee_name
       ? `<div style="font-weight:500;color:var(--ink)">${escapeHtml(r.employee_name)}</div><div style="font-size:10.5px;color:var(--ink-3)">${escapeHtml(r.employee_type ?? 'Employee')}</div>`
@@ -36,13 +33,15 @@ export function payrollTableHTML(runs: PayrollRun[]): string {
         <td><span class="badge badge-${statusClass(r.status)}">${escapeHtml(r.status)}</span></td>
         <td>
           <div class="action-menu">
-            <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="toggleActionMenu(this)">Actions ▾</button>
-            <div class="action-menu-dropdown">
-              <button onclick="printPayslip(${r.id})">Generate Payslip</button>
-              <button onclick="sendPayrollEmail(${r.id})">Email Payslip</button>
-              ${!isPaid ? `<button onclick="markPayrollPaid(${r.id})" style="color:var(--green)">Mark as Paid</button>` : ''}
-              <button onclick="openEditPayroll(${r.id})">Edit</button>
-              <button onclick="handleDeletePayroll(${r.id})" style="color:var(--red)">Delete</button>
+            <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px"
+              aria-haspopup="true" aria-expanded="false"
+              onclick="toggleActionMenu(this)">Actions ▾</button>
+            <div class="action-menu-dropdown" role="menu">
+              <button role="menuitem" onclick="printPayslip(${r.id})">Generate Payslip</button>
+              <button role="menuitem" onclick="sendPayrollEmail(${r.id})">Email Payslip</button>
+              ${!isPaid ? `<button role="menuitem" onclick="markPayrollPaid(${r.id})" style="color:var(--green)">Mark as Paid</button>` : ''}
+              <button role="menuitem" onclick="openEditPayroll(${r.id})">Edit</button>
+              <button role="menuitem" onclick="handleDeletePayroll(${r.id})" style="color:var(--red)">Delete</button>
             </div>
           </div>
         </td>
