@@ -57,10 +57,10 @@ export function clearPayrollFilters() {
 function _payrollStatsHTML(runs: PayrollRun[], now: Date): string {
   const pending       = runs.filter(r => r.status === 'Pending');
   const paid          = runs.filter(r => r.status === 'Paid');
-  const paidThisMonth = paid.filter(r =>
-    r.period.includes(String(now.getFullYear())) &&
-    r.period.toLowerCase().includes(now.toLocaleString('en-PH', { month: 'short' }).toLowerCase())
-  );
+  const paidThisMonth = paid.filter(r => {
+    const d = new Date(r.created_at);
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  });
   const totalNet = runs.reduce((s, r) => s + (r.net || 0), 0);
   const sumOf    = (arr: PayrollRun[]) => arr.reduce((s, r) => s + (r.net || 0), 0);
   return `
@@ -185,8 +185,11 @@ export function autoFillDeductions(): void {
   const pagibig    = Math.round(basic * 0.02);
   const total      = sss + philhealth + pagibig;
   const dedInput   = document.getElementById('pp-ded') as HTMLInputElement | null;
-  if (dedInput) { dedInput.value = String(total); recalcPayroll(); }
-  toast(`Auto-deductions: SSS ${formatCurrency(sss)} + PhilHealth ${formatCurrency(philhealth)} + Pag-IBIG ${formatCurrency(pagibig)} = ${formatCurrency(total)}`, 'success');
+  if (dedInput) {
+    dedInput.value = String(total);
+    recalcPayroll();
+    toast(`Auto-deductions: SSS ${formatCurrency(sss)} + PhilHealth ${formatCurrency(philhealth)} + Pag-IBIG ${formatCurrency(pagibig)} = ${formatCurrency(total)}`, 'success');
+  }
 }
 
 export async function savePayroll() {
@@ -396,7 +399,7 @@ export function sendPayrollEmail(id: number) {
     const body    = gVal('pe-body').trim();
     if (!to) { toast('Recipient email is required', 'error'); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) { toast('Enter a valid email address', 'error'); return; }
-    window.open(`mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+    window.open(`mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
     toast('Email client opened', 'success');
     closeModal();
   }, 'Open Email Client');
