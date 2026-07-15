@@ -3,7 +3,7 @@ import {
   birMostRecentCompletedQuarter, birQuarterLabel,
   bir2551qDeadline, bir1701qDeadline, bir1604cDeadline,
   birFilingStatus, birDateInQuarter, birGrossReceipts, birExpenses,
-  bir2307Bills, birIsFiled, BIR_PERCENTAGE_TAX_RATE,
+  bir2307Bills, birIsFiled, BIR_PERCENTAGE_TAX_RATE, birCompWithholding,
 } from './birCalc.js';
 
 const JUL_10_2026 = new Date('2026-07-10T12:00:00');
@@ -78,6 +78,34 @@ describe('quarter membership and amounts', () => {
   it('birDateInQuarter excludes out-of-quarter dates', () => {
     expect(birDateInQuarter('2026-07-05', 1, 2026)).toBe(false);
     expect(birDateInQuarter('2026-05-10', 1, 2026)).toBe(true);
+  });
+});
+
+describe('birCompWithholding', () => {
+  const payroll = [
+    { status: 'Paid',    period: 'Jan 1–15, 2026', deductions: 2000 },
+    { status: 'Paid',    period: 'Jan 16–31, 2026', deductions: 1800 },
+    { status: 'Pending', period: 'Feb 1–15, 2026',  deductions: 2200 },
+    { status: 'Draft',   period: 'Feb 16–28, 2026', deductions: 1500 },
+    { status: 'Paid',    period: 'Mar 1–15, 2025',  deductions: 9000 },
+  ];
+
+  it('sums deductions for Paid runs in the given year', () => {
+    expect(birCompWithholding(payroll, 2026)).toBe(3800);
+  });
+  it('excludes Pending and Draft runs', () => {
+    const result = birCompWithholding(payroll, 2026);
+    expect(result).not.toContain(2200);
+    expect(result).toBe(3800);
+  });
+  it('excludes Paid runs from a different year', () => {
+    expect(birCompWithholding(payroll, 2025)).toBe(9000);
+  });
+  it('returns 0 when no Paid runs match the year', () => {
+    expect(birCompWithholding(payroll, 2024)).toBe(0);
+  });
+  it('returns 0 for an empty payroll array', () => {
+    expect(birCompWithholding([], 2026)).toBe(0);
   });
 });
 

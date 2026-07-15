@@ -4,6 +4,7 @@ export const APP_SETTINGS = {
     shortName: 'DestineVents',
     founder: 'Jennifer Castro, Founder',
     address: 'Baguio City, Philippines',
+    email: 'destinevents.biz@gmail.com',
     brand: 'DestineVents',
     brands: ['DestineVents', 'DDC', 'AYA'],
   },

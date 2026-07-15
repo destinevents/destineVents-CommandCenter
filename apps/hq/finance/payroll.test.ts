@@ -53,6 +53,10 @@ vi.mock('@hq/ui.ts', () => ({
   closeModal: vi.fn(),
 }));
 
+vi.mock('@shared/services/core/authService.ts', () => ({
+  getCurrentUser: vi.fn().mockResolvedValue({ name: 'Test User', email: 'test@example.com' }),
+}));
+
 // ── Subject ───────────────────────────────────────────────────────────────────
 
 import { _nextPayrollNumber, autoFillDeductions, recalcPayroll } from './payroll.ts';
@@ -254,7 +258,7 @@ describe('markPayrollPaid', () => {
 
     await markPayrollPaid(42);
 
-    expect(updatePayrollRun).toHaveBeenCalledWith(42, { status: 'Paid' });
+    expect(updatePayrollRun).toHaveBeenCalledWith(42, { status: 'Paid', released_by: 'Test User' });
   });
 
   it('does nothing when user cancels the confirm', async () => {

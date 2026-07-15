@@ -2,6 +2,7 @@ import { formatCurrency } from '@shared/utils/formatUtils.ts';
 import { escapeHtml } from '@shared/utils/helpers.ts';
 import { validateRequired, validateEmail } from '@shared/utils/validators.ts';
 import { APP_SETTINGS } from '@config/settings.js';
+import { getCurrentUser } from '@shared/services/core/authService.ts';
 import { payrollTableHTML, payrollFormHTML, PAYROLL_STATUSES, EMPLOYEE_TYPES } from './templates/payroll.ts';
 import {
   fetchPayrollRuns, createPayrollRun, updatePayrollRun, deletePayrollRun,
@@ -281,7 +282,9 @@ export async function savePayroll() {
 export async function markPayrollPaid(id: number) {
   if (!confirm('Mark this payroll as Paid?')) return;
   try {
-    const ok = await updatePayrollRun(id, { status: 'Paid' });
+    const user = await getCurrentUser();
+    const released_by = user?.name ?? user?.email ?? null;
+    const ok = await updatePayrollRun(id, { status: 'Paid', released_by });
     if (!ok) { toast('Could not mark as Paid', 'error'); return; }
     toast('Payroll marked as Paid', 'success');
     await loadPayroll();
@@ -346,7 +349,7 @@ function _payslipHeaderHTML(r: PayrollRun, company: { name: string; address: str
 </div>`;
 }
 
-function _payslipBodyHTML(r: PayrollRun, gross: number): string {
+function _payslipBodyHTML(r: PayrollRun, gross: number, company: { name: string; address: string; email?: string }): string {
   return `
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;padding-bottom:24px;border-bottom:1px solid #e8e3da">
   <div>
@@ -378,24 +381,24 @@ function _payslipBodyHTML(r: PayrollRun, gross: number): string {
 </div>
 ${r.notes ? `<div style="padding:12px 16px;background:#f9f6f0;border-radius:6px;font-size:12px;color:#555;margin-bottom:16px"><strong>Notes:</strong> ${escapeHtml(r.notes)}</div>` : ''}
 <div class="sig-grid">
-  <div><div class="label">Prepared By</div><div class="sig-line"></div><div style="font-size:11px;color:#888;margin-top:6px">HR / Finance Officer</div></div>
+  <div><div class="label">Prepared By</div><div class="sig-line"></div><div style="font-size:11px;color:#888;margin-top:6px">${r.released_by ? escapeHtml(r.released_by) : 'HR / Finance Officer'}</div></div>
   <div><div class="label">Received By</div><div class="sig-line"></div><div style="font-size:11px;color:#888;margin-top:6px">${escapeHtml(r.employee_name ?? 'Employee')}</div></div>
 </div>
 <div class="no-print" style="margin-top:28px">
   <button onclick="window.print()" style="padding:8px 20px;background:#1a1a1a;color:#fff;border:none;border-radius:4px;font-size:13px;cursor:pointer">Print / Save as PDF</button>
 </div>
 <div class="footer">
-  DestineVents Collective OPC · Baguio City, Philippines · destinevents.biz@gmail.com<br>
+  ${escapeHtml(company.name)} · ${escapeHtml(company.address)}${company.email ? ` · ${escapeHtml(company.email)}` : ''}<br>
   This payslip is confidential. For payroll-related concerns, contact HR.
 </div>`;
 }
 
-function _buildPayslipDoc(r: PayrollRun, gross: number, company: { name: string; address: string }, tin: string): string {
+function _buildPayslipDoc(r: PayrollRun, gross: number, company: { name: string; address: string; email?: string }, tin: string): string {
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
 <title>Payslip ${escapeHtml(r.payroll_number ?? String(r.id))}</title>
 <style>${_payslipCSS()}</style></head><body>
 ${_payslipHeaderHTML(r, company, tin)}
-${_payslipBodyHTML(r, gross)}
+${_payslipBodyHTML(r, gross, company)}
 </body></html>`;
 }
 

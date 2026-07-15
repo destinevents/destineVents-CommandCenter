@@ -83,7 +83,7 @@ export function birExpenses(bills, q, year) {
 // Total compensation withholding across payroll runs in the year (1604C base).
 export function birCompWithholding(payroll, year) {
   return payroll
-    .filter(r => String(r.period || '').includes(String(year)))
+    .filter(r => r.status === 'Paid' && String(r.period || '').includes(String(year)))
     .reduce((s, r) => s + (r.deductions || 0), 0);
 }
 

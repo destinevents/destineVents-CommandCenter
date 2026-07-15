@@ -309,8 +309,8 @@ export function renderFinanceOverview(invoices: Invoice[], bills: Bill[]) {
       dot: b.status === 'Paid' ? 'green' : 'blue',
       sub: formatCurrency(b.amount),
     })),
-    ..._payroll.filter(p => p.status === 'Released').map(p => ({
-      text: `Payroll released — ${escapeHtml(p.period)}`,
+    ..._payroll.filter(p => p.status === 'Paid').map(p => ({
+      text: `Payroll paid — ${escapeHtml(p.period)}`,
       time: p.created_at || '',
       dot: 'green',
       sub: formatCurrency(p.net),
