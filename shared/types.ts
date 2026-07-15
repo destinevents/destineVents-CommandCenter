@@ -11,6 +11,7 @@ export type TaskStatus =
   | 'assigned'
   | 'acknowledged'
   | 'in_progress'
+  | 'on_hold'
   | 'completed'
   | 'reviewed';
 
@@ -181,12 +182,21 @@ export interface Bill {
 
 export interface PayrollRun {
   id: number;
+  payroll_number: string | null;
   period: string;
+  employee_name: string | null;
+  employee_type: 'Employee' | 'Freelancer' | 'Intern' | 'Contractor' | null;
   employees: number;
+  hours_worked: number | null;
+  basic_pay: number;
+  overtime: number;
+  allowances: number;
   gross: number;
   deductions: number;
   net: number;
   status: string;
+  released_by: string | null;
+  notes: string | null;
   created_at: string;
 }
 

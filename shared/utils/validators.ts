@@ -68,6 +68,7 @@ export function validateTaskStatusTransition(current: TaskStatus, next: TaskStat
     assigned: ['acknowledged'],
     acknowledged: ['in_progress'],
     in_progress: ['completed'],
+    on_hold: [],
     completed: ['reviewed'],
     reviewed: [],
   };

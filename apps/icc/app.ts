@@ -19,6 +19,7 @@ import { renderDashboard } from './dashboard.ts';
 import {
   renderTasks, setTaskFilter, openTaskDetail, handleDeleteTask, taskAction,
   openCreateTask, openEditTask, populateAddTaskModal, handleCreateTask, taskPager,
+  handleMoveTaskStatus,
 } from './tasks.ts';
 import {
   renderTimesheets, openLogHours, setSheetFilter, exportTimesheetCSV,
@@ -272,6 +273,10 @@ document.addEventListener('click', async (e) => {
   }
   if (a === 'task-action') {
     taskAction(el.dataset.id, el.dataset.taskAction);
+    return;
+  }
+  if (a === 'task-move-status') {
+    handleMoveTaskStatus(el.dataset.id);
     return;
   }
   if (a === 'approve-sheet') {

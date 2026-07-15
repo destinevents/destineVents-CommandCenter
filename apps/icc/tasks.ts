@@ -44,7 +44,7 @@ attachFilterToolbar(['task-search', 'task-priority-filter', 'task-type-filter', 
 });
 
 export function isOverdue(t) {
-  return !!t.due_date && !['completed', 'reviewed'].includes(t.status) && t.due_date < todayISO();
+  return !!t.due_date && !['completed', 'reviewed', 'on_hold'].includes(t.status) && t.due_date < todayISO();
 }
 
 function dueLabel(t) {
@@ -130,22 +130,48 @@ export function openTaskDetail(id) {
   const isMyTask = t.assigned_to===currentUser.id;
   const isIntern = currentUser.role==='intern';
   const isSup = currentUser.role==='supervisor'||currentUser.role==='admin';
+  const canManage = currentUser.role==='admin'||currentUser.role==='supervisor';
 
   let actions = '';
-  if(currentUser.role==='admin' && t.status!=='reviewed'){
-    actions += `<button class="btn-action" style="background:#f3f4f6;color:#374151" data-action="edit-task" data-id="${id}">✎ Edit Task</button>`;
-    actions += `<button class="btn-action" style="background:#fef2f2;color:#ef4444" data-action="delete-task" data-id="${id}">🗑 Delete Task</button>`;
-  }
-  if(isIntern && isMyTask){
-    if(t.status==='assigned') actions += `<button class="btn-action" style="background:#fffbeb;color:#f59e0b" data-action="task-action" data-id="${id}" data-task-action="acknowledge">Acknowledge Task</button>`;
-    if(t.status==='acknowledged') actions += `<button class="btn-action" style="background:#eff6ff;color:#3b82f6" data-action="task-action" data-id="${id}" data-task-action="start">Start Task</button>`;
-    if(t.status==='in_progress') actions += `<button class="btn-action" style="background:#ecfdf5;color:#10b981" data-action="task-action" data-id="${id}" data-task-action="complete">Mark Complete</button>`;
-  }
-  if(isSup && t.status==='completed'){
-    actions += `<button class="btn-action" style="background:#f5f3ff;color:#8b5cf6;margin-left:8px" data-action="task-action" data-id="${id}" data-task-action="review">Mark Reviewed</button>`;
-  }
+  let moveSection = '';
+
   if(t.status === 'reviewed'){
     actions = '<div style="font-size:12px;color:var(--faint);padding:8px 0">✓ This task has been reviewed and is now locked.</div>';
+  } else if(isIntern && isMyTask && t.status === 'on_hold'){
+    actions = '<div style="font-size:12px;color:#c2410c;padding:10px 12px;background:#fff7ed;border-radius:8px;border:1px solid #fed7aa">⏸ This task is currently on hold. Your supervisor will resume it when ready.</div>';
+  } else {
+    if(currentUser.role==='admin'){
+      actions += `<button class="btn-action" style="background:#f3f4f6;color:#374151" data-action="edit-task" data-id="${id}">✎ Edit Task</button>`;
+      actions += `<button class="btn-action" style="background:#fef2f2;color:#ef4444" data-action="delete-task" data-id="${id}">🗑 Delete Task</button>`;
+    }
+    if(canManage){
+      if(t.status === 'on_hold'){
+        actions += `<button class="btn-action" style="background:#ecfdf5;color:#10b981" data-action="task-action" data-id="${id}" data-task-action="unhold">▶ Resume Task</button>`;
+      } else {
+        actions += `<button class="btn-action" style="background:#fff7ed;color:#f97316" data-action="task-action" data-id="${id}" data-task-action="hold">⏸ Put on Hold</button>`;
+      }
+    }
+    if(isIntern && isMyTask){
+      if(t.status==='assigned') actions += `<button class="btn-action" style="background:#fffbeb;color:#f59e0b" data-action="task-action" data-id="${id}" data-task-action="acknowledge">Acknowledge Task</button>`;
+      if(t.status==='acknowledged') actions += `<button class="btn-action" style="background:#eff6ff;color:#3b82f6" data-action="task-action" data-id="${id}" data-task-action="start">Start Task</button>`;
+      if(t.status==='in_progress') actions += `<button class="btn-action" style="background:#ecfdf5;color:#10b981" data-action="task-action" data-id="${id}" data-task-action="complete">Mark Complete</button>`;
+    }
+    if(isSup && t.status==='completed'){
+      actions += `<button class="btn-action" style="background:#f5f3ff;color:#8b5cf6" data-action="task-action" data-id="${id}" data-task-action="review">Mark Reviewed</button>`;
+    }
+  }
+
+  if(canManage && t.status !== 'reviewed'){
+    const movable = ['assigned','acknowledged','in_progress','on_hold','completed'].filter(s => s !== t.status);
+    const opts = movable.map(s => `<option value="${s}">${STATUS_LABELS[s]}</option>`).join('');
+    moveSection = `
+      <div style="margin-top:14px;padding:12px;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb">
+        <div style="font-size:11px;color:var(--faint);font-weight:600;margin-bottom:8px">MOVE TO STATUS</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select class="form-input" id="task-move-status" style="flex:1;padding:6px 10px;font-size:12px">${opts}</select>
+          <button class="btn-action" style="background:#1e293b;color:#fff;white-space:nowrap" data-action="task-move-status" data-id="${id}">Move</button>
+        </div>
+      </div>`;
   }
 
   document.getElementById('modal-task-body').innerHTML = `
@@ -163,9 +189,10 @@ export function openTaskDetail(id) {
       OUTPUT LINK ${['code','design','video','landing_page'].includes(t.output_type) ? '<span style="color:#ef4444">*required</span>' : '(optional)'}
     </div>
     <input class="form-input" id="task-output-link" placeholder="Paste Google Drive, GitHub, or Figma URL…" value="${t.output_link||''}" style="width:100%;padding:8px 10px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:12px;font-family:inherit"/>
-  </div>` : 
+  </div>` :
   t.output_link ? `<div style="margin-bottom:12px"><div style="font-size:11px;color:var(--faint);font-weight:600;margin-bottom:4px">OUTPUT LINK</div><a href="${t.output_link}" target="_blank" class="link-gold">${t.output_link}</a></div>` : ''}
     ${actions ? `<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">${actions}</div>` : ''}
+    ${moveSection}
   `;
   openModal('modal-view-task');
 }
@@ -202,6 +229,11 @@ export async function taskAction(id, action) {
     return;
   }
 
+  if (task?.status === 'on_hold' && ['acknowledge', 'start', 'complete'].includes(action)) {
+    toast('This task is on hold and cannot be progressed.');
+    return;
+  }
+
   if (action === 'complete') {
     const linkInput = document.getElementById('task-output-link');
     const outputLink = linkInput ? linkInput.value.trim() : (task?.output_link || '');
@@ -220,7 +252,7 @@ export async function taskAction(id, action) {
     }
   }
 
-  const statusMap = {acknowledge:'acknowledged', start:'in_progress', complete:'completed', review:'reviewed'};
+  const statusMap = {acknowledge:'acknowledged', start:'in_progress', complete:'completed', review:'reviewed', hold:'on_hold', unhold:'assigned'};
   const newStatus = statusMap[action];
   if (!newStatus) return;
 
@@ -232,6 +264,25 @@ export async function taskAction(id, action) {
 
   closeModal('modal-view-task');
   toast('Task updated!');
+  await loadLiveTasks();
+  await renderTasks();
+  await renderDashboard();
+}
+
+export async function handleMoveTaskStatus(id) {
+  const task = liveTasks.find(t => t.id === id);
+  if (!task || task.status === 'reviewed') return;
+
+  const select = document.getElementById('task-move-status') as HTMLSelectElement | null;
+  const newStatus = select?.value;
+  if (!newStatus) { toast('Please select a status.', 'error'); return; }
+
+  const result = await updateTask(id, { status: newStatus, updated_at: new Date().toISOString() });
+  if (!result) { toast('Could not move task. Please try again.', 'error'); return; }
+
+  logAudit('task_status_changed', 'task', id, { new_status: newStatus, action: 'move' }, currentUser.id);
+  closeModal('modal-view-task');
+  toast(`Task moved to ${STATUS_LABELS[newStatus]}.`);
   await loadLiveTasks();
   await renderTasks();
   await renderDashboard();

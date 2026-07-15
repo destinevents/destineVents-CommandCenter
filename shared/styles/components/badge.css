@@ -33,6 +33,7 @@
 .badge-assigned    { color:#6366f1; background:#eef2ff; }
 .badge-acknowledged{ color:#f59e0b; background:#fffbeb; }
 .badge-in_progress { color:#3b82f6; background:#eff6ff; }
+.badge-on_hold     { color:#f97316; background:#fff7ed; }
 .badge-reviewed    { color:#8b5cf6; background:#f5f3ff; }
 .badge-approved    { color:#10b981; background:#ecfdf5; }
 .badge-rejected    { color:#ef4444; background:#fef2f2; }

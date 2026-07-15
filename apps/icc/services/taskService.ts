@@ -50,6 +50,7 @@ const TASK_STATUS_TRANSITIONS: Record<
   assigned: { next: 'acknowledged', actionLabel: 'Acknowledge' },
   acknowledged: { next: 'in_progress', actionLabel: 'Start' },
   in_progress: { next: 'completed', actionLabel: 'Mark Complete' },
+  on_hold: { next: null, actionLabel: null },
   completed: { next: 'reviewed', actionLabel: 'Mark Reviewed' },
   reviewed: { next: null, actionLabel: null },
 };
@@ -84,7 +85,7 @@ export function calcTaskStats(tasks: Task[]): TaskStats {
     active: tasks.filter((t) => !['completed', 'reviewed'].includes(t.status)).length,
     completed: tasks.filter((t) => ['completed', 'reviewed'].includes(t.status)).length,
     byStatus: Object.fromEntries(
-      (['assigned', 'acknowledged', 'in_progress', 'completed', 'reviewed'] as TaskStatus[]).map(
+      (['assigned', 'acknowledged', 'in_progress', 'on_hold', 'completed', 'reviewed'] as TaskStatus[]).map(
         (s) => [s, tasks.filter((t) => t.status === s).length]
       )
     ) as Record<TaskStatus, number>,
