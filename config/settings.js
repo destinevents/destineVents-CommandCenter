@@ -32,7 +32,7 @@ export const APP_SETTINGS = {
       'Supplies',
       'Other',
     ],
-    payrollStatuses: ['Pending', 'Released'],
+    payrollStatuses: ['Draft', 'Pending', 'Paid'],
   },
   ai: {
     apiUrl: 'https://api.anthropic.com/v1/messages',

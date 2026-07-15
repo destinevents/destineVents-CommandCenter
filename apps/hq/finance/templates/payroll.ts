@@ -3,7 +3,7 @@ import { escapeHtml, statusClass } from '@shared/utils/helpers.ts';
 import { formatCurrency } from '@shared/utils/formatUtils.ts';
 
 const EMPLOYEE_TYPES = ['Employee', 'Freelancer', 'Intern', 'Contractor'] as const;
-const PAYROLL_STATUSES = ['Draft', 'Pending', 'Released'] as const;
+const PAYROLL_STATUSES = ['Draft', 'Pending', 'Paid'] as const;
 
 export { EMPLOYEE_TYPES, PAYROLL_STATUSES };
 
@@ -18,7 +18,7 @@ export function payrollTableHTML(runs: PayrollRun[]): string {
     const payrollNum = r.payroll_number
       ? `<div style="font-size:10px;color:var(--ink-3);font-family:monospace">${escapeHtml(r.payroll_number)}</div>`
       : '';
-    const isReleased = r.status === 'Released';
+    const isPaid = r.status === 'Paid';
     return `
       <tr>
         <td>
@@ -40,7 +40,7 @@ export function payrollTableHTML(runs: PayrollRun[]): string {
             <div class="action-menu-dropdown">
               <button onclick="printPayslip(${r.id})">Generate Payslip</button>
               <button onclick="sendPayrollEmail(${r.id})">Email Payslip</button>
-              ${!isReleased ? `<button onclick="markPayrollReleased(${r.id})" style="color:var(--green)">Mark as Released</button>` : ''}
+              ${!isPaid ? `<button onclick="markPayrollPaid(${r.id})" style="color:var(--green)">Mark as Paid</button>` : ''}
               <button onclick="openEditPayroll(${r.id})">Edit</button>
               <button onclick="handleDeletePayroll(${r.id})" style="color:var(--red)">Delete</button>
             </div>

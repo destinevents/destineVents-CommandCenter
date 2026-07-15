@@ -57,7 +57,7 @@ import type { UserRole } from '../../shared/types';
 import { loadUsers, approveUser, changeUserRole } from './users.ts';
 import {
   openAddPayroll, openEditPayroll, handleDeletePayroll,
-  recalcPayroll, autoFillDeductions, markPayrollReleased,
+  recalcPayroll, autoFillDeductions, markPayrollPaid,
   printPayslip, sendPayrollEmail,
   setPayrollFilter, clearPayrollFilters,
 } from './finance/payroll.ts';
@@ -444,7 +444,7 @@ declare global {
     openAddPayroll: typeof openAddPayroll; openEditPayroll: typeof openEditPayroll;
     handleDeletePayroll: typeof handleDeletePayroll;
     recalcPayroll: typeof recalcPayroll; autoFillDeductions: typeof autoFillDeductions;
-    markPayrollReleased: typeof markPayrollReleased;
+    markPayrollPaid: typeof markPayrollPaid;
     printPayslip: typeof printPayslip; sendPayrollEmail: typeof sendPayrollEmail;
     setPayrollFilter: typeof setPayrollFilter; clearPayrollFilters: typeof clearPayrollFilters;
     openFileBir: typeof openFileBir;
@@ -496,7 +496,7 @@ Object.assign(window, {
   markBillPaid, archiveBill, printExpenseVoucher,
   setApFilter, clearApFilters, setApBillPage,
   openAddPayroll, openEditPayroll, handleDeletePayroll,
-  recalcPayroll, autoFillDeductions, markPayrollReleased,
+  recalcPayroll, autoFillDeductions, markPayrollPaid,
   printPayslip, sendPayrollEmail,
   setPayrollFilter, clearPayrollFilters,
   openFileBir, showFinanceTab,

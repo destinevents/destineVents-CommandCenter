@@ -13,9 +13,11 @@ import type { PayrollRun } from '@shared/types.ts';
 const gVal = (id: string) => (document.getElementById(id) as HTMLInputElement).value;
 
 let _editingPayrollId: number | null = null;
-let _payrollSearch    = '';
+let _payrollSearch       = '';
 let _payrollFilterType   = '';
 let _payrollFilterStatus = '';
+let _payrollFilterDateFrom = '';
+let _payrollFilterDateTo   = '';
 
 export async function loadPayroll() {
   const runs = await fetchPayrollRuns();
@@ -35,23 +37,27 @@ export function _nextPayrollNumber(runs: PayrollRun[]): string {
 }
 
 export function setPayrollFilter() {
-  _payrollSearch       = (document.getElementById('pr-search')       as HTMLInputElement  | null)?.value.toLowerCase() ?? '';
-  _payrollFilterType   = (document.getElementById('pr-filter-type')  as HTMLSelectElement | null)?.value ?? '';
-  _payrollFilterStatus = (document.getElementById('pr-filter-status') as HTMLSelectElement | null)?.value ?? '';
+  _payrollSearch         = (document.getElementById('pr-search')       as HTMLInputElement  | null)?.value.toLowerCase() ?? '';
+  _payrollFilterType     = (document.getElementById('pr-filter-type')  as HTMLSelectElement | null)?.value ?? '';
+  _payrollFilterStatus   = (document.getElementById('pr-filter-status') as HTMLSelectElement | null)?.value ?? '';
+  _payrollFilterDateFrom = (document.getElementById('pr-date-from')    as HTMLInputElement  | null)?.value ?? '';
+  _payrollFilterDateTo   = (document.getElementById('pr-date-to')      as HTMLInputElement  | null)?.value ?? '';
   renderPayroll(_payroll);
 }
 
 export function clearPayrollFilters() {
-  _payrollSearch       = '';
-  _payrollFilterType   = '';
-  _payrollFilterStatus = '';
+  _payrollSearch         = '';
+  _payrollFilterType     = '';
+  _payrollFilterStatus   = '';
+  _payrollFilterDateFrom = '';
+  _payrollFilterDateTo   = '';
   renderPayroll(_payroll);
 }
 
 function _payrollStatsHTML(runs: PayrollRun[], now: Date): string {
-  const pending      = runs.filter(r => r.status === 'Pending');
-  const released     = runs.filter(r => r.status === 'Released');
-  const relThisMonth = released.filter(r =>
+  const pending       = runs.filter(r => r.status === 'Pending');
+  const paid          = runs.filter(r => r.status === 'Paid');
+  const paidThisMonth = paid.filter(r =>
     r.period.includes(String(now.getFullYear())) &&
     r.period.toLowerCase().includes(now.toLocaleString('en-PH', { month: 'short' }).toLowerCase())
   );
@@ -65,14 +71,14 @@ function _payrollStatsHTML(runs: PayrollRun[], now: Date): string {
         <div class="stat-change">${pending.length} record${pending.length !== 1 ? 's' : ''}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Released This Month</div>
-        <div class="stat-value" style="font-size:22px;color:var(--green)">${formatCurrency(sumOf(relThisMonth))}</div>
-        <div class="stat-change">${relThisMonth.length} payslip${relThisMonth.length !== 1 ? 's' : ''}</div>
+        <div class="stat-label">Paid This Month</div>
+        <div class="stat-value" style="font-size:22px;color:var(--green)">${formatCurrency(sumOf(paidThisMonth))}</div>
+        <div class="stat-change">${paidThisMonth.length} payslip${paidThisMonth.length !== 1 ? 's' : ''}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Total Released (All Time)</div>
-        <div class="stat-value" style="font-size:22px">${formatCurrency(sumOf(released))}</div>
-        <div class="stat-change">${released.length} released</div>
+        <div class="stat-label">Total Paid (All Time)</div>
+        <div class="stat-value" style="font-size:22px">${formatCurrency(sumOf(paid))}</div>
+        <div class="stat-change">${paid.length} paid</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Total Payroll (All)</div>
@@ -87,15 +93,19 @@ function _payrollToolbarHTML(typeOpts: string, statusOpts: string, hasFilters: b
     <div class="page-actions" style="margin-bottom:12px;flex-wrap:wrap;gap:8px">
       <div style="display:flex;gap:8px;flex:1;flex-wrap:wrap;align-items:center">
         <input class="form-input" id="pr-search" placeholder="Search name, payroll #, period…"
-          value="${escapeHtml(_payrollSearch)}" oninput="setPayrollFilter()" style="width:240px"/>
-        <select class="form-input" id="pr-filter-type" onchange="setPayrollFilter()" style="width:160px">
+          value="${escapeHtml(_payrollSearch)}" oninput="setPayrollFilter()" style="width:220px"/>
+        <select class="form-input" id="pr-filter-type" onchange="setPayrollFilter()" style="width:150px">
           <option value="">All Types</option>
           ${typeOpts}
         </select>
-        <select class="form-input" id="pr-filter-status" onchange="setPayrollFilter()" style="width:150px">
+        <select class="form-input" id="pr-filter-status" onchange="setPayrollFilter()" style="width:130px">
           <option value="">All Statuses</option>
           ${statusOpts}
         </select>
+        <input class="form-input" id="pr-date-from" type="date" value="${_payrollFilterDateFrom}"
+          onchange="setPayrollFilter()" title="Created from" style="width:145px"/>
+        <input class="form-input" id="pr-date-to" type="date" value="${_payrollFilterDateTo}"
+          onchange="setPayrollFilter()" title="Created to" style="width:145px"/>
         ${hasFilters ? `<button class="btn btn-ghost" onclick="clearPayrollFilters()" style="font-size:12px">Clear</button>` : ''}
       </div>
       <button class="btn btn-primary" onclick="openAddPayroll()">+ New Payroll Record</button>
@@ -112,10 +122,12 @@ export function renderPayroll(runs: PayrollRun[]) {
     (r.payroll_number ?? '').toLowerCase().includes(_payrollSearch) ||
     r.period.toLowerCase().includes(_payrollSearch)
   );
-  if (_payrollFilterType)   filtered = filtered.filter(r => r.employee_type === _payrollFilterType);
-  if (_payrollFilterStatus) filtered = filtered.filter(r => r.status === _payrollFilterStatus);
+  if (_payrollFilterType)     filtered = filtered.filter(r => r.employee_type === _payrollFilterType);
+  if (_payrollFilterStatus)   filtered = filtered.filter(r => r.status === _payrollFilterStatus);
+  if (_payrollFilterDateFrom) filtered = filtered.filter(r => r.created_at >= _payrollFilterDateFrom);
+  if (_payrollFilterDateTo)   filtered = filtered.filter(r => r.created_at <= _payrollFilterDateTo + 'T23:59:59');
 
-  const hasFilters = !!(_payrollSearch || _payrollFilterType || _payrollFilterStatus);
+  const hasFilters = !!(_payrollSearch || _payrollFilterType || _payrollFilterStatus || _payrollFilterDateFrom || _payrollFilterDateTo);
   const typeOpts   = EMPLOYEE_TYPES.map(t => `<option value="${t}"${_payrollFilterType === t ? ' selected' : ''}>${t}</option>`).join('');
   const statusOpts = PAYROLL_STATUSES.map(s => `<option value="${s}"${_payrollFilterStatus === s ? ' selected' : ''}>${s}</option>`).join('');
 
@@ -229,11 +241,11 @@ export async function savePayroll() {
   await loadPayroll();
 }
 
-export async function markPayrollReleased(id: number) {
-  if (!confirm('Mark this payroll as Released?')) return;
-  const ok = await updatePayrollRun(id, { status: 'Released' });
-  if (!ok) { toast('Could not mark as Released', 'error'); return; }
-  toast('Payroll marked as Released', 'success');
+export async function markPayrollPaid(id: number) {
+  if (!confirm('Mark this payroll as Paid?')) return;
+  const ok = await updatePayrollRun(id, { status: 'Paid' });
+  if (!ok) { toast('Could not mark as Paid', 'error'); return; }
+  toast('Payroll marked as Paid', 'success');
   await loadPayroll();
 }
 
@@ -268,18 +280,21 @@ function _payslipCSS(): string {
   @media print{body{padding:24px}.no-print{display:none}}`;
 }
 
-function _payslipHeaderHTML(r: PayrollRun, company: { name: string; address: string }): string {
+function _payslipHeaderHTML(r: PayrollRun, company: { name: string; address: string }, tin: string): string {
+  const issueDate = new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
   return `
 <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:36px">
   <div>
     <div class="brand">destine<span>vents</span></div>
     <div class="tagline">${escapeHtml(company.name)}</div>
     <div style="font-size:11px;color:#888;margin-top:8px;line-height:1.7">${escapeHtml(company.address)}</div>
+    ${tin ? `<div style="font-size:11px;color:#888">TIN: ${escapeHtml(tin)}</div>` : ''}
   </div>
   <div>
     <div class="doc-title">PAYSLIP</div>
     <div class="doc-num">${escapeHtml(r.payroll_number ?? `PAY-${r.id}`)}</div>
     <div style="text-align:right;margin-top:6px;font-size:12px;color:#888">${escapeHtml(r.status)}</div>
+    <div style="text-align:right;margin-top:4px;font-size:11px;color:#aaa">Issued: ${issueDate}</div>
   </div>
 </div>`;
 }
@@ -328,11 +343,11 @@ ${r.notes ? `<div style="padding:12px 16px;background:#f9f6f0;border-radius:6px;
 </div>`;
 }
 
-function _buildPayslipDoc(r: PayrollRun, gross: number, company: { name: string; address: string }): string {
+function _buildPayslipDoc(r: PayrollRun, gross: number, company: { name: string; address: string }, tin: string): string {
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
 <title>Payslip ${escapeHtml(r.payroll_number ?? String(r.id))}</title>
 <style>${_payslipCSS()}</style></head><body>
-${_payslipHeaderHTML(r, company)}
+${_payslipHeaderHTML(r, company, tin)}
 ${_payslipBodyHTML(r, gross)}
 </body></html>`;
 }
@@ -340,11 +355,11 @@ ${_payslipBodyHTML(r, gross)}
 export function printPayslip(id: number) {
   const r = _payroll.find(x => x.id === id);
   if (!r) return;
-  const { company } = APP_SETTINGS;
+  const { company, banking } = APP_SETTINGS;
   const gross = r.gross ?? ((r.basic_pay || 0) + (r.overtime || 0) + (r.allowances || 0));
   const w = window.open('', '_blank', 'width=860,height=700');
   if (!w) { toast('Pop-up blocked — please allow pop-ups and try again', 'error'); return; }
-  w.document.write(_buildPayslipDoc(r, gross, company));
+  w.document.write(_buildPayslipDoc(r, gross, company, banking.tin));
   w.document.close();
   w.focus();
 }

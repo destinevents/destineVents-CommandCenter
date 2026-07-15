@@ -27,7 +27,7 @@ vi.mock('@config/settings.js', () => ({
 vi.mock('./templates/payroll.ts', () => ({
   payrollTableHTML: () => '',
   payrollFormHTML:  () => '',
-  PAYROLL_STATUSES: ['Draft', 'Pending', 'Released'],
+  PAYROLL_STATUSES: ['Draft', 'Pending', 'Paid'],
   EMPLOYEE_TYPES:   ['Employee', 'Freelancer', 'Intern', 'Contractor'],
 }));
 
@@ -240,22 +240,22 @@ describe('loadPayroll', () => {
   });
 });
 
-describe('markPayrollReleased', () => {
-  it('calls updatePayrollRun with Released status', async () => {
-    const { markPayrollReleased } = await import('./payroll.ts');
+describe('markPayrollPaid', () => {
+  it('calls updatePayrollRun with Paid status', async () => {
+    const { markPayrollPaid } = await import('./payroll.ts');
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     document.body.innerHTML = '<div id="ftab-payroll"></div>';
 
-    await markPayrollReleased(42);
+    await markPayrollPaid(42);
 
-    expect(updatePayrollRun).toHaveBeenCalledWith(42, { status: 'Released' });
+    expect(updatePayrollRun).toHaveBeenCalledWith(42, { status: 'Paid' });
   });
 
   it('does nothing when user cancels the confirm', async () => {
-    const { markPayrollReleased } = await import('./payroll.ts');
+    const { markPayrollPaid } = await import('./payroll.ts');
     vi.spyOn(window, 'confirm').mockReturnValue(false);
 
-    await markPayrollReleased(42);
+    await markPayrollPaid(42);
 
     expect(updatePayrollRun).not.toHaveBeenCalled();
   });
