@@ -13,7 +13,7 @@ import { fetchInvoices, fetchBills } from '@shared/services/finance/financeServi
 import { fetchProjects } from '@shared/services/projects/projectService.ts';
 import {
   _clients, _proposals, _partners, _invoices, _projects,
-  setClients, setProposals, setPartners, setInvoices, setBills, setProjects,
+  setClients, setProposals, setPartners, setInvoices, setBills, setProjects, setUserRole,
 } from './state.ts';
 import { toast, closeModal, saveModal, toggleHqNav } from './ui.ts';
 import {
@@ -150,6 +150,7 @@ function enterApp(email: string | undefined, name: string, role: UserRole = 'adm
     if (sav) sav.textContent = initials;
     if (sem) sem.textContent = email;
   }
+  setUserRole(role);
   setupRealtime();
   applyHQRoleAccess(role);
   showPage('dashboard');

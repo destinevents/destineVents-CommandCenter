@@ -3,8 +3,11 @@
 // read-only views in the importer).
 import type {
   Client, Proposal, Partner, Document, Invoice, Bill,
-  PayrollRun, Project, ImpactEntry, BirFiling, Event, EventRegistration, SOB,
+  PayrollRun, Project, ImpactEntry, BirFiling, Event, EventRegistration, SOB, UserRole,
 } from '../../shared/types.ts';
+
+export let _userRole: UserRole = 'admin';
+export function setUserRole(v: UserRole): void { _userRole = v; }
 
 export let _clients: Client[] = [];
 export function setClients(v: Client[]): void { _clients = v; }

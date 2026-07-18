@@ -2,6 +2,9 @@ import type { Bill, Project } from '@shared/types.ts';
 import { escapeHtml } from '@shared/utils/helpers.ts';
 import { formatCurrency } from '@shared/utils/formatUtils.ts';
 import { formatDateShort } from '@shared/utils/dateUtils.ts';
+import { _userRole } from '../../state.ts';
+
+const isApprover = () => _userRole === 'admin' || _userRole === 'finance_officer';
 
 function toISODate(val: string | null | undefined): string {
   if (!val || val === '—') return '';
@@ -36,7 +39,13 @@ export function apRowHTML(b: Bill, projects: Project[]): string {
 
   let actions = '';
   if (b.status === 'Pending') {
-    actions = `
+    actions = isApprover()
+      ? `
+      <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="openEditBill(${b.id})">Edit</button>
+      <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--ink-2)" onclick="openUploadReceipt(${b.id})" title="Attach receipt file">📎 Receipt</button>
+      <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--green)" onclick="approveBill(${b.id})">Approve</button>
+      <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--red)" onclick="handleDeleteBill(${b.id})">Delete</button>`
+      : `
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="openEditBill(${b.id})">Edit</button>
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--ink-2)" onclick="openUploadReceipt(${b.id})" title="Attach receipt file">📎 Receipt</button>
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--blue)" onclick="submitBillForApproval(${b.id})">Submit</button>
