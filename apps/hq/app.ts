@@ -27,7 +27,7 @@ import {
   loadImpact, saveImpactEntry, openEditImpact, handleDeleteImpact,
 } from './operations/operations.ts';
 import {
-  loadFinance, showFinanceTab, openFileBir,
+  loadFinance, showFinanceTab, openFileBir, saveBirFiling,
   openAddInvoice, openEditInvoice, saveInvoice, handleDeleteInvoice,
   openDuplicateInvoice, printInvoice, archiveInvoice, restoreInvoice,
   toggleArchivedInvoices, openInvoiceFromSOB,
@@ -36,6 +36,7 @@ import {
   openRecordPayment, openRecordPaymentBpi, saveRecordPayment,
   addInvoiceRow, recalcInvoice, togglePaymentFields,
   openAddBill, openEditBill, handleDeleteBill, saveBill,
+  openUploadReceipt,
   submitBillForApproval, approveBill, saveApproveBill, rejectBill,
   markBillPaid, archiveBill, printExpenseVoucher,
   setApFilter, clearApFilters, setApBillPage,
@@ -44,6 +45,9 @@ import {
   toggleActionMenu,
   togglePaidInvoices, setInvoicePage, setORPage,
   showReceivablesTab,
+  showBIRTab, renderBIRReports,
+  setBIRReportPeriod, setBIRReportYear, setBIRReportMonth, setBIRReportQuarter,
+  printBIRReport, exportBIRReportCSV, exportBIRReportExcel,
 } from './finance/finance.ts';
 import { loadProjects, openAddProject, openEditProject, handleDeleteProject, convertProposalToProject, openProjectDetail, addClientFromProposal } from './projects/projects.ts';
 import { selectTemplate, copyAIOutput, simulateAI, saveAIOutput, initAIAutocomplete } from './ai/ai.ts';
@@ -435,6 +439,7 @@ declare global {
     showReceivablesTab: typeof showReceivablesTab;
     openAddBill: typeof openAddBill; saveBill: typeof saveBill;
     openEditBill: typeof openEditBill; handleDeleteBill: typeof handleDeleteBill;
+    openUploadReceipt: typeof openUploadReceipt;
     submitBillForApproval: typeof submitBillForApproval;
     approveBill: typeof approveBill; saveApproveBill: typeof saveApproveBill;
     rejectBill: typeof rejectBill; markBillPaid: typeof markBillPaid;
@@ -447,8 +452,12 @@ declare global {
     markPayrollPaid: typeof markPayrollPaid;
     printPayslip: typeof printPayslip; sendPayrollEmail: typeof sendPayrollEmail;
     setPayrollFilter: typeof setPayrollFilter; clearPayrollFilters: typeof clearPayrollFilters;
-    openFileBir: typeof openFileBir;
+    openFileBir: typeof openFileBir; saveBirFiling: typeof saveBirFiling;
     showFinanceTab: typeof showFinanceTab;
+    showBIRTab: typeof showBIRTab; renderBIRReports: typeof renderBIRReports;
+    setBIRReportPeriod: typeof setBIRReportPeriod; setBIRReportYear: typeof setBIRReportYear;
+    setBIRReportMonth: typeof setBIRReportMonth; setBIRReportQuarter: typeof setBIRReportQuarter;
+    printBIRReport: typeof printBIRReport; exportBIRReportCSV: typeof exportBIRReportCSV; exportBIRReportExcel: typeof exportBIRReportExcel;
     filterPartners: typeof filterPartners; handleFileSelect: typeof handleFileSelect;
     npGoStep1: typeof npGoStep1; npGoStep2: typeof npGoStep2; npFinish: typeof npFinish;
     downloadNDA: typeof downloadNDA; saveImpactEntry: typeof saveImpactEntry;
@@ -492,6 +501,7 @@ Object.assign(window, {
   togglePaidInvoices, setInvoicePage, setORPage,
   showReceivablesTab,
   openAddBill, openEditBill, handleDeleteBill, saveBill,
+  openUploadReceipt,
   submitBillForApproval, approveBill, saveApproveBill, rejectBill,
   markBillPaid, archiveBill, printExpenseVoucher,
   setApFilter, clearApFilters, setApBillPage,
@@ -499,7 +509,10 @@ Object.assign(window, {
   recalcPayroll, autoFillDeductions, markPayrollPaid,
   printPayslip, sendPayrollEmail,
   setPayrollFilter, clearPayrollFilters,
-  openFileBir, showFinanceTab,
+  openFileBir, saveBirFiling, showFinanceTab,
+  showBIRTab, renderBIRReports,
+  setBIRReportPeriod, setBIRReportYear, setBIRReportMonth, setBIRReportQuarter,
+  printBIRReport, exportBIRReportCSV, exportBIRReportExcel,
   // Operations
   filterPartners, handleFileSelect, npGoStep1, npGoStep2, npFinish, downloadNDA,
   saveImpactEntry, openEditImpact, handleDeleteImpact,

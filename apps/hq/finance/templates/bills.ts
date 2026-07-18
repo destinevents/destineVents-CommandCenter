@@ -38,6 +38,7 @@ export function apRowHTML(b: Bill, projects: Project[]): string {
   if (b.status === 'Pending') {
     actions = `
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="openEditBill(${b.id})">Edit</button>
+      <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--ink-2)" onclick="openUploadReceipt(${b.id})" title="Attach receipt file">📎 Receipt</button>
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--blue)" onclick="submitBillForApproval(${b.id})">Submit</button>
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--red)" onclick="handleDeleteBill(${b.id})">Delete</button>`;
   } else if (b.status === 'For Approval') {
@@ -59,7 +60,7 @@ export function apRowHTML(b: Bill, projects: Project[]): string {
 
   return `<tr>
     <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(b.expense_number ?? '—')}</td>
-    <td style="font-weight:500;color:var(--ink)">${vendor}${b.receipt_url ? ` <span title="Receipt attached" style="color:var(--green);font-size:10px">📎</span>` : ''}</td>
+    <td style="font-weight:500;color:var(--ink)">${vendor}${b.receipt_url ? ` <a href="${escapeHtml(b.receipt_url)}" target="_blank" rel="noopener noreferrer" title="View receipt" style="color:var(--green);font-size:10px;text-decoration:none">📎</a>` : ''}</td>
     <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(b.category ?? '—')}</td>
     <td style="font-size:11px;color:var(--ink-3)">${projName}</td>
     <td style="font-size:11px;color:var(--ink-3)">${displayDate(b.date)}</td>
@@ -95,7 +96,11 @@ export function billFormHTML(
     <div class="form-group"><div class="form-label">Due Date</div><input class="form-input" id="fb-due-date" type="date" value="${toISODate(b.due_date)}"/></div>
     <div class="form-group"><div class="form-label">Amount (₱) *</div><input class="form-input" id="fb-amount" type="number" min="0" step="0.01" value="${b.amount ?? 0}"/></div>
     <div class="form-group"><div class="form-label">EWT Rate</div><select class="form-input" id="fb-ewt">${ewtOpts}</select></div>
-    <div class="form-group full"><div class="form-label">Receipt URL (optional)</div><input class="form-input" id="fb-receipt" value="${escapeHtml(b.receipt_url ?? '')}" placeholder="https://… paste link to uploaded receipt"/></div>
+    <div class="form-group full">
+      <div class="form-label">Receipt Attachment</div>
+      <input class="form-input" id="fb-receipt-file" type="file" accept="image/*,.pdf" style="padding:6px"/>
+      ${b.receipt_url ? `<div style="margin-top:6px;font-size:11px;color:var(--ink-3)">Current: <a href="${escapeHtml(b.receipt_url)}" target="_blank" rel="noopener noreferrer" style="color:var(--blue)">View attached receipt</a> · Upload a new file to replace it.</div>` : '<div style="margin-top:4px;font-size:11px;color:var(--ink-3)">JPG, PNG or PDF — max 5 MB</div>'}
+    </div>
     <div class="form-group full"><div class="form-label">Remarks</div><textarea class="form-input" id="fb-remarks" rows="2" placeholder="Notes or additional details">${escapeHtml(b.remarks ?? '')}</textarea></div>
     ${isEdit ? `<div class="form-group"><div class="form-label">Status</div><select class="form-input" id="fb-status">${statusOpts}</select></div>` : ''}
   </div>`;

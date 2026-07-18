@@ -495,7 +495,16 @@
 
     <!-- BIR Reports -->
     <div class="ftab" id="ftab-bir">
-      <div class="bir-grid" id="bir-cards"></div>
+      <div class="sub-tabs" id="bir-subtabs" style="margin-bottom:16px">
+        <div class="sub-tab active" id="bir-subtab-tracker" onclick="showBIRTab('tracker',this)">Filing Tracker</div>
+        <div class="sub-tab" id="bir-subtab-reports" onclick="showBIRTab('reports',this)">Reports</div>
+      </div>
+      <div id="bir-panel-tracker">
+        <div class="bir-grid" id="bir-cards"></div>
+      </div>
+      <div id="bir-panel-reports" style="display:none">
+        <div id="bir-reports-content"></div>
+      </div>
     </div>
   </div>
 
