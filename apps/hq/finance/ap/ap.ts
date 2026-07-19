@@ -8,7 +8,7 @@ import { logDocActivity } from '@shared/services/documents/activityLogService.ts
 import { getCurrentUser } from '@shared/core/authService.ts';
 import { buildDocPDF, docPDFTotals } from '@shared/documents/pdfTemplate.ts';
 import {
-  AP_CATEGORIES, AP_STATUSES, AP_STATUS_CLASS, apRowHTML, billFormHTML, displayDate,
+  AP_CATEGORIES, AP_STATUSES, AP_STATUS_CLASS, apRowHTML, billFormHTML,
 } from '../templates/bills.ts';
 import { paginationBar } from '../templates/invoices.ts';
 import { createBill, updateBill, deleteBill } from '@hq/finance/financeService.ts';
