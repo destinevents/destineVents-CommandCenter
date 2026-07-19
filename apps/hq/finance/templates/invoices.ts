@@ -65,6 +65,7 @@ export function invoiceRowHTML(i: Invoice, sobs: SOB[], bpiEnabled: boolean): st
         `<button onclick="printInvoice(${i.id})">Print Invoice</button>`,
         `<button onclick="openDuplicateInvoice(${i.id})">Duplicate</button>`,
         `<button onclick="openEditInvoice(${i.id})">Edit</button>`,
+        `<button onclick="openDocActivityLog('invoice',${i.id},'${escapeHtml(i.or_num)}')">Activity Log</button>`,
         `<div class="action-menu-sep"></div>`,
         `<button onclick="archiveInvoice(${i.id})">Archive</button>`,
         `<button class="menu-danger" onclick="handleDeleteInvoice(${i.id})">Delete</button>`,

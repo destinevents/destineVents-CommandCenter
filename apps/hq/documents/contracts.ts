@@ -2,10 +2,12 @@ import { formatCurrency } from '@shared/utils/formatUtils.ts';
 import { escapeHtml } from '@shared/utils/helpers.ts';
 import { validateRequired } from '@shared/utils/validators.ts';
 import { APP_SETTINGS } from '@config/settings.ts';
+
 import { nextDocNumber } from '@shared/services/documents/docNumberService.ts';
 import { logDocActivity } from '@shared/services/documents/activityLogService.ts';
 import { getCurrentUser } from '@shared/core/authService.ts';
 import { buildDocPDF, docPDFSignatureBlock } from '@shared/documents/pdfTemplate.ts';
+import { openDocEmail } from '@shared/documents/docEmail.ts';
 import {
   fetchContracts, createContract, updateContract, deleteContract,
 } from '@shared/services/documents/contractService.ts';
@@ -125,29 +127,35 @@ function _contractRowHTML(c: Contract): string {
   const statusCls = CON_STATUS_CLASS[c.status] ?? 'draft';
 
   let actions = '';
+  const activityBtn = `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--ink-3)" onclick="openDocActivityLog('contract',${c.id},'${escapeHtml(c.con_number)}')">Activity</button>`;
   if (c.status === 'Draft') {
     actions = `
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="openEditContract(${c.id})">Edit</button>
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--blue)" onclick="sendContract(${c.id})">Send</button>
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="printContract(${c.id})">PDF</button>
+      ${activityBtn}
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--red)" onclick="handleDeleteContract(${c.id})">Delete</button>`;
   } else if (c.status === 'Sent') {
     actions = `
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--green)" onclick="markContractSigned(${c.id})">Mark Signed</button>
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="printContract(${c.id})">PDF</button>
+      ${activityBtn}
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--red)" onclick="terminateContract(${c.id})">Terminate</button>`;
   } else if (c.status === 'Signed') {
     actions = `
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--green)" onclick="activateContract(${c.id})">Activate</button>
-      <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="printContract(${c.id})">PDF</button>`;
+      <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="printContract(${c.id})">PDF</button>
+      ${activityBtn}`;
   } else if (c.status === 'Active') {
     actions = `
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--green)" onclick="completeContract(${c.id})">Complete</button>
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="printContract(${c.id})">PDF</button>
+      ${activityBtn}
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--red)" onclick="terminateContract(${c.id})">Terminate</button>`;
   } else if (c.status === 'Completed' || c.status === 'Terminated') {
     actions = `
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="printContract(${c.id})">PDF</button>
+      ${activityBtn}
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--ink-3)" onclick="archiveContract(${c.id})">Archive</button>`;
   }
 
@@ -284,10 +292,20 @@ async function _updateStatus(id: number, status: string, action: string) {
   loadContracts();
 }
 
-export async function sendContract(id: number) {
-  if (!confirm('Mark this contract as Sent to client?')) return;
-  toast('Contract marked as Sent', 'success');
-  await _updateStatus(id, 'Sent', 'sent');
+export function sendContract(id: number) {
+  const c = _contracts.find(x => x.id === id);
+  if (!c) return;
+  const { company } = APP_SETTINGS;
+  openDocEmail({
+    modalTitle:     'Send Contract',
+    docSummary:     `${c.con_number} · ${c.title} · ${escapeHtml(c.client)}`,
+    defaultSubject: `Contract from ${company.name}`,
+    defaultBody:    `Dear ${c.client},\n\nPlease find attached the contract for "${c.title}".\n\nKindly review and sign the document at your earliest convenience.\n\nThank you,\n${company.name}`,
+    pdfHint:        'Download the PDF first to attach it to your email.',
+    onSend: async () => {
+      await _updateStatus(id, 'Sent', 'sent');
+    },
+  });
 }
 
 export function markContractSigned(id: number) {

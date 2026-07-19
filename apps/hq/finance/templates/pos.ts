@@ -17,28 +17,34 @@ export function poRowHTML(po: PurchaseOrder, projects: Project[]): string {
   const projName = proj ? escapeHtml(proj.name) : '—';
   const statusCls = PO_STATUS_CLASS[po.status] ?? 'draft';
 
+  const activityBtn = `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--ink-3)" onclick="openDocActivityLog('po',${po.id},'${escapeHtml(po.po_number)}')">Activity</button>`;
   let actions = '';
   if (po.status === 'Draft') {
     actions = `
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="openEditPO(${po.id})">Edit</button>
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--blue)" onclick="sendPO(${po.id})">Send</button>
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="printPO(${po.id})">PDF</button>
+      ${activityBtn}
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--red)" onclick="handleDeletePO(${po.id})">Delete</button>`;
   } else if (po.status === 'Sent') {
     actions = `
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--green)" onclick="approvePO(${po.id})">Approve</button>
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="printPO(${po.id})">PDF</button>
+      ${activityBtn}
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--red)" onclick="cancelPO(${po.id})">Cancel</button>`;
   } else if (po.status === 'Approved') {
     actions = `
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--green)" onclick="markPOFulfilled(${po.id})">Mark Fulfilled</button>
-      <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="printPO(${po.id})">PDF</button>`;
+      <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="printPO(${po.id})">PDF</button>
+      ${activityBtn}`;
   } else if (po.status === 'Fulfilled') {
     actions = `
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="printPO(${po.id})">PDF</button>
+      ${activityBtn}
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--ink-3)" onclick="archivePO(${po.id})">Archive</button>`;
   } else if (po.status === 'Cancelled') {
     actions = `
+      ${activityBtn}
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--ink-3)" onclick="archivePO(${po.id})">Archive</button>`;
   }
 

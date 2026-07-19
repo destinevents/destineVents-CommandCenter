@@ -5,6 +5,7 @@ import { nextDocNumber } from '@shared/services/documents/docNumberService.ts';
 import { logDocActivity } from '@shared/services/documents/activityLogService.ts';
 import { getCurrentUser } from '@shared/core/authService.ts';
 import { buildDocPDF, docPDFLineItemsTable, docPDFTotals } from '@shared/documents/pdfTemplate.ts';
+import { openDocEmail } from '@shared/documents/docEmail.ts';
 import {
   fetchProposals, createProposal, updateProposal, deleteProposal, calcWinRate,
   fetchProposalLineItems, upsertProposalLineItems,
@@ -152,6 +153,24 @@ export function recalcQuo() {
   const sub = document.getElementById('fq-subtotal'); if (sub) sub.textContent = fmt(subtotal);
   const v   = document.getElementById('fq-vat');       if (v)   v.textContent   = fmt(vat);
   const tot = document.getElementById('fq-total');     if (tot) tot.textContent = fmt(total);
+}
+
+export function sendQuotationEmail(id: number) {
+  const p = _proposals.find(x => x.id === id);
+  if (!p) return;
+  const { company } = APP_SETTINGS;
+  const displayValue = p.total_amount ?? p.value;
+  openDocEmail({
+    modalTitle:     'Send Quotation',
+    docSummary:     `${p.quo_number ?? '—'} · ${p.client ?? p.name} · ₱${displayValue.toLocaleString('en-PH', { minimumFractionDigits: 2 })}`,
+    defaultSubject: `Quotation from ${company.name}`,
+    defaultBody:    `Dear ${p.client ?? p.name},\n\nThank you for your interest. Please find attached our quotation ${p.quo_number ?? ''} for ${p.name}.\n\nThis quotation is valid until ${p.valid_until ?? 'further notice'}. Should you have any questions, feel free to reach out.\n\nWarm regards,\n${company.name}`,
+    pdfHint:        'Download the PDF first to attach it to your email.',
+    onSend: async () => {
+      const user = await getCurrentUser();
+      await logDocActivity('quotation', id, p.quo_number ?? null, 'sent', user?.name ?? user?.email ?? null);
+    },
+  });
 }
 
 export async function handleDeleteProposal(id: number) {

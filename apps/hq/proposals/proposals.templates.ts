@@ -31,7 +31,9 @@ export function proposalRowHTML(p: Proposal): string {
         <div class="flex-gap" style="gap:4px;flex-wrap:wrap">
           ${p.status === 'Won' ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--green)" onclick="convertProposalToProject(${p.id})">→ Project</button>` : ''}
           <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="printQuotation(${p.id})">PDF</button>
+          <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--blue)" onclick="sendQuotationEmail(${p.id})">Email</button>
           <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="openEditProposal(${p.id})">Edit</button>
+          <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--ink-3)" onclick="openDocActivityLog('quotation',${p.id},'${escapeHtml(p.quo_number ?? String(p.id))}')">Activity</button>
           <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--red)" onclick="handleDeleteProposal(${p.id})">Delete</button>
         </div>
       </td>

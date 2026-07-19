@@ -6,6 +6,7 @@ import { nextDocNumber } from '@shared/services/documents/docNumberService.ts';
 import { logDocActivity } from '@shared/services/documents/activityLogService.ts';
 import { getCurrentUser } from '@shared/core/authService.ts';
 import { buildDocPDF, docPDFLineItemsTable, docPDFTotals } from '@shared/documents/pdfTemplate.ts';
+import { openDocEmail } from '@shared/documents/docEmail.ts';
 import {
   fetchPOLineItems, createPurchaseOrder, updatePurchaseOrder, deletePurchaseOrder,
 } from '@shared/services/documents/poService.ts';
@@ -253,15 +254,25 @@ export function recalcPO() {
 
 // ── Status transitions ────────────────────────────────────────────────────────
 
-export async function sendPO(id: number) {
-  if (!confirm('Mark this Purchase Order as Sent?')) return;
+export function sendPO(id: number) {
   const po = _pos.find(p => p.id === id);
-  const ok = await updatePurchaseOrder(id, { status: 'Sent' });
-  if (!ok) { toast('Could not update status', 'error'); return; }
-  toast('Purchase Order marked as Sent', 'success');
-  const user = await getCurrentUser();
-  await logDocActivity('po', id, po?.po_number ?? null, 'sent', user?.name ?? user?.email ?? null);
-  loadFinance();
+  if (!po) return;
+  const { company } = APP_SETTINGS;
+  openDocEmail({
+    modalTitle:     'Send Purchase Order',
+    docSummary:     `${po.po_number} · ${po.vendor} · ${formatCurrency(po.total_amount)}`,
+    defaultSubject: `Purchase Order from ${company.name}`,
+    defaultBody:    `Dear ${po.vendor},\n\nPlease find attached our Purchase Order ${po.po_number}.\n\nKindly confirm receipt and expected delivery date.\n\nThank you,\n${company.name}`,
+    pdfHint:        'Download the PDF first to attach it to your email.',
+    onSend: async () => {
+      const ok = await updatePurchaseOrder(id, { status: 'Sent' });
+      if (!ok) { toast('Could not update status', 'error'); return; }
+      toast('Purchase Order sent', 'success');
+      const user = await getCurrentUser();
+      await logDocActivity('po', id, po.po_number, 'sent', user?.name ?? user?.email ?? null);
+      loadFinance();
+    },
+  });
 }
 
 export async function approvePO(id: number) {

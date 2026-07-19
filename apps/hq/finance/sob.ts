@@ -185,6 +185,7 @@ export function renderSOB(sobs: SOB[]) {
           `<button onclick="printSOB(${s.id})">Download PDF</button>`,
           `<button onclick="openEditSOB(${s.id})">Edit</button>`,
           `<button onclick="openDuplicateSOB(${s.id})">Duplicate</button>`,
+          `<button onclick="openDocActivityLog('sob',${s.id},'${escapeHtml(s.sob_num)}')">Activity Log</button>`,
           `<div class="action-menu-sep"></div>`,
           `<button onclick="archiveSOB(${s.id})">Archive</button>`,
           `<button class="menu-danger" onclick="handleDeleteSOB(${s.id})">Delete</button>`,
