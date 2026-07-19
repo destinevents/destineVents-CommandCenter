@@ -1,13 +1,13 @@
 import { todayISO } from '@shared/utils/dateUtils.ts';
-import { createInvoice } from '@shared/services/finance/financeService.ts';
+import { createInvoice } from '@hq/finance/financeService.ts';
 import { validateRequired } from '@shared/utils/validators.ts';
-import { APP_SETTINGS } from '@config/settings.js';
+import { APP_SETTINGS } from '@config/settings.ts';
 import {
   fetchEvents, createEvent, updateEvent, deleteEvent,
   fetchAllRegistrations, fetchRegistrations, updateRegistrationStatus,
-} from '@shared/services/events/eventService.ts';
-import { _events, _eventRegs, _currentEvent, setEvents, setEventRegs, setCurrentEvent } from '@hq/state.ts';
-import { toast, openModal, closeModal } from '@hq/ui.ts';
+} from '@hq/events/eventService.ts';
+import { _events, _eventRegs, _currentEvent, setEvents, setEventRegs, setCurrentEvent } from '@hq/core/state.ts';
+import { toast, openModal, closeModal } from '@hq/core/ui.ts';
 import type { Event, EventRegistration } from '@shared/types.ts';
 import {
   eventsStatsHTML, eventTableHTML,

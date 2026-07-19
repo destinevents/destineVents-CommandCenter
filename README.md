@@ -106,19 +106,27 @@ VITE_SUPABASE_ANON_KEY=YOUR_ANON_KEY
 
 ### 3. Database Setup
 
-Run the schema scripts in the SQL Editor **in this exact order** — later
-scripts depend on tables, functions, and policies from earlier ones, and a
-database built from only the first two will silently lack the notification
-system and the spec's state-machine enforcement:
+Migration files live in `database/migrations/` and are numbered in run order.
+Run each one in the Supabase SQL Editor in numeric sequence. Later scripts
+depend on tables, functions, and policies created by earlier ones.
 
 1. Go to your [Supabase Dashboard](https://supabase.com/dashboard) and open the SQL Editor
-2. `database/schema/supabase-setup.sql` — HQ tables, RLS, indexes
-3. `database/schema/intern-schema.sql` — ICC tables, RLS, signup trigger
-4. `database/schema/fix-rls-recursion.sql` — security-definer role helpers + final policies (required: policies in the two files above reference `current_user_role()`)
-5. `database/schema/notifications.sql` — notification table, delivery triggers, realtime
-6. `database/schema/enforce-state-rules.sql` — task state machine + timesheet lock triggers
-7. Optional: `database/schema/auto-seed-trigger.sql` (backfill) and `database/schema/setup-users.sql` (seed/promote accounts — edit emails first)
-8. Enable the following Supabase features:
+2. Run each file in `database/migrations/` in order:
+   - `001_hq_tables.sql` — HQ tables, RLS, indexes
+   - `002_icc_tables.sql` — ICC tables, RLS, signup trigger
+   - `003_rls_helpers.sql` — security-definer role helpers + final policies
+   - `004_notifications.sql` — notification table, delivery triggers, realtime
+   - `005_state_machine.sql` — task state machine + timesheet lock triggers
+   - `006_hq_roles.sql` — HQ role additions
+   - `007_cross_module_links.sql` — cross-module foreign keys and views
+   - `008_storage_buckets.sql` — Supabase Storage bucket setup
+   - `009_icc_on_hold_status.sql` — adds on_hold task status
+   - `010_hq_payables_upgrade.sql` through `014_hq_receipts_bucket.sql` — incremental upgrades
+3. **Optional seeds** (run after migrations, only once):
+   - `database/seeds/seed_users.sql` — seed/promote accounts (edit emails first)
+   - `database/seeds/seed_auto_trigger.sql` — backfill trigger
+   - `database/seeds/seed_timesheet_history.sql` — historical timesheet data
+4. Enable the following Supabase features:
    - **Authentication**: Email/Password sign-in
    - **Realtime**: Enable for `clients`, `proposals`, `partners`, `invoices`, `bills`, `payroll_runs`, `documents`, `intern_tasks`, `intern_timesheets`, `intern_users` tables
    - **Storage**: Create a `documents` bucket for file uploads

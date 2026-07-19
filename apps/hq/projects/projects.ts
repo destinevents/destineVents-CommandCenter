@@ -2,12 +2,12 @@ import { formatCurrency } from '@shared/utils/formatUtils.ts';
 import { validateRequired } from '@shared/utils/validators.ts';
 import {
   fetchProjects, createProject, updateProject, deleteProject,
-} from '@shared/services/projects/projectService.ts';
-import { fetchClients, createClient, findClientByName } from '@shared/services/crm/clientService.ts';
-import { fetchProposals } from '@shared/services/crm/proposalService.ts';
-import { fetchInvoices } from '@shared/services/finance/financeService.ts';
-import { _clients, _proposals, _projects, setClients, setProjects } from '@hq/state.ts';
-import { toast, openModal, closeModal } from '@hq/ui.ts';
+} from '@hq/projects/projectService.ts';
+import { fetchClients, createClient, findClientByName } from '@hq/clients/clientService.ts';
+import { fetchProposals } from '@hq/proposals/proposalService.ts';
+import { fetchInvoices } from '@hq/finance/financeService.ts';
+import { _clients, _proposals, _projects, setClients, setProjects } from '@hq/core/state.ts';
+import { toast, openModal, closeModal } from '@hq/core/ui.ts';
 import type { Project, Proposal } from '@shared/types.ts';
 import {
   projectTableHTML, projectFormHTML, projectDetailHTML, newClientBannerHTML,

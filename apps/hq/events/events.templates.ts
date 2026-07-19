@@ -2,7 +2,7 @@ import type { Event, EventRegistration } from '@shared/types.ts';
 import { escapeHtml } from '@shared/utils/helpers.ts';
 import { formatCurrency } from '@shared/utils/formatUtils.ts';
 import { formatDateShort } from '@shared/utils/dateUtils.ts';
-import { APP_SETTINGS } from '@config/settings.js';
+import { APP_SETTINGS } from '@config/settings.ts';
 
 function statusBadgeClass(status: string): string {
   const map: Record<string, string> = { Upcoming: 'blue', Active: 'green', Completed: 'gray', Cancelled: 'red' };

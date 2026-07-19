@@ -2,7 +2,7 @@ import type { Bill, Project } from '@shared/types.ts';
 import { escapeHtml } from '@shared/utils/helpers.ts';
 import { formatCurrency } from '@shared/utils/formatUtils.ts';
 import { formatDateShort } from '@shared/utils/dateUtils.ts';
-import { _userRole } from '../../state.ts';
+import { _userRole } from '../../core/state.ts';
 
 const isApprover = () => _userRole === 'admin' || _userRole === 'finance_officer';
 

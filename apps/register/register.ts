@@ -1,5 +1,5 @@
-import { sb } from '@shared/services/core/supabase';
-import { createEventCheckout } from '@shared/services/finance/paymentService';
+import { sb } from '@shared/core/supabase';
+import { createEventCheckout } from '@hq/finance/paymentService';
 
 const params = new URLSearchParams(window.location.search);
 const eventId = params.get('event');

@@ -1,14 +1,14 @@
 import { formatCurrency } from '@shared/utils/formatUtils.ts';
 import { escapeHtml } from '@shared/utils/helpers.ts';
 import { validateRequired, validateEmail } from '@shared/utils/validators.ts';
-import { APP_SETTINGS } from '@config/settings.js';
-import { getCurrentUser } from '@shared/services/core/authService.ts';
+import { APP_SETTINGS } from '@config/settings.ts';
+import { getCurrentUser } from '@shared/core/authService.ts';
 import { payrollTableHTML, payrollFormHTML, PAYROLL_STATUSES, EMPLOYEE_TYPES } from './templates/payroll.ts';
 import {
   fetchPayrollRuns, createPayrollRun, updatePayrollRun, deletePayrollRun,
-} from '@shared/services/finance/financeService.ts';
-import { _payroll, setPayroll } from '@hq/state.ts';
-import { toast, openModal, closeModal } from '@hq/ui.ts';
+} from '@hq/finance/financeService.ts';
+import { _payroll, setPayroll } from '@hq/core/state.ts';
+import { toast, openModal, closeModal } from '@hq/core/ui.ts';
 import type { PayrollRun } from '@shared/types.ts';
 
 // H2: null-safe — consistent with setPayrollFilter which already uses optional chaining

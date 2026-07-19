@@ -8,6 +8,7 @@ export default mergeConfig(
   defineConfig({
     resolve: {
       alias: {
+        '@shared/core': resolve(__dirname, 'shared/core'),
         '@shared': resolve(__dirname, 'shared'),
         '@hq':     resolve(__dirname, 'apps/hq'),
         '@icc':    resolve(__dirname, 'apps/icc'),

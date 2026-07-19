@@ -2,7 +2,7 @@ import type { Client, Project, Proposal, Invoice } from '@shared/types.ts';
 import { escapeHtml, statusClass } from '@shared/utils/helpers.ts';
 import { formatCurrency } from '@shared/utils/formatUtils.ts';
 import { formatDateShort } from '@shared/utils/dateUtils.ts';
-import { APP_SETTINGS } from '@config/settings.js';
+import { APP_SETTINGS } from '@config/settings.ts';
 
 function activityDot(status: string): string {
   if (status === 'Won' || status === 'Active' || status === 'Paid') return 'green';

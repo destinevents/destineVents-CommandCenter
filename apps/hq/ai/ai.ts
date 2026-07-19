@@ -1,12 +1,12 @@
 import { escapeHtml } from '@shared/utils/helpers.ts';
 import { todayISO } from '@shared/utils/dateUtils.ts';
-import { fetchClients } from '@shared/services/crm/clientService.ts';
-import { fetchProjects } from '@shared/services/projects/projectService.ts';
-import { fetchProposals } from '@shared/services/crm/proposalService.ts';
-import { fetchInvoices } from '@shared/services/finance/financeService.ts';
-import { uploadDocument, saveDocumentMeta, getDocumentPublicUrl } from '@shared/services/projects/documentService.ts';
-import { _clients, _projects, _proposals, _invoices, setClients, setProjects, setProposals, setInvoices } from '@hq/state.ts';
-import { toast } from '@hq/ui.ts';
+import { fetchClients } from '@hq/clients/clientService.ts';
+import { fetchProjects } from '@hq/projects/projectService.ts';
+import { fetchProposals } from '@hq/proposals/proposalService.ts';
+import { fetchInvoices } from '@hq/finance/financeService.ts';
+import { uploadDocument, saveDocumentMeta, getDocumentPublicUrl } from '@hq/documents/documentService.ts';
+import { _clients, _projects, _proposals, _invoices, setClients, setProjects, setProposals, setInvoices } from '@hq/core/state.ts';
+import { toast } from '@hq/core/ui.ts';
 import type { Client, Project } from '@shared/types.ts';
 
 const gEl = (id: string) => document.getElementById(id)!;

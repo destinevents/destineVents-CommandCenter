@@ -2,12 +2,12 @@ import { formatCurrency } from '@shared/utils/formatUtils.ts';
 import { formatDateShort, todayISO } from '@shared/utils/dateUtils.ts';
 import { escapeHtml, statusClass } from '@shared/utils/helpers.ts';
 import { validateRequired } from '@shared/utils/validators.ts';
-import { APP_SETTINGS } from '@config/settings.js';
+import { APP_SETTINGS } from '@config/settings.ts';
 import {
   fetchSOBs, fetchSOBLineItems, createSOB, updateSOB, deleteSOB, upsertSOBLineItems,
-} from '@shared/services/finance/sobService.ts';
-import { _clients, _projects, _invoices, _sobs, setSOBs } from '@hq/state.ts';
-import { toast, openModal, closeModal } from '@hq/ui.ts';
+} from '@hq/finance/sobService.ts';
+import { _clients, _projects, _invoices, _sobs, setSOBs } from '@hq/core/state.ts';
+import { toast, openModal, closeModal } from '@hq/core/ui.ts';
 import type { SOB, SOBLineItem, InvoiceLineItem } from '@shared/types.ts';
 
 let _editingSOBId: number | null  = null;

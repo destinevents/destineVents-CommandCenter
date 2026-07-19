@@ -17,7 +17,7 @@ vi.mock('@shared/utils/validators.ts', () => ({
   validateEmail: (val: string) => (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val) ? null : 'Enter a valid email address'),
 }));
 
-vi.mock('@config/settings.js', () => ({
+vi.mock('@config/settings.ts', () => ({
   APP_SETTINGS: {
     company: { name: 'DestineVents', address: 'Baguio City, PH' },
     banking: { tin: '' },
@@ -32,14 +32,14 @@ vi.mock('./templates/payroll.ts', () => ({
   EMPLOYEE_TYPES:   ['Employee', 'Freelancer', 'Intern', 'Contractor'],
 }));
 
-vi.mock('@shared/services/finance/financeService.ts', () => ({
+vi.mock('@hq/finance/financeService.ts', () => ({
   fetchPayrollRuns:  vi.fn().mockResolvedValue([]),
   createPayrollRun:  vi.fn().mockResolvedValue({ id: 99 }),
   updatePayrollRun:  vi.fn().mockResolvedValue(true),
   deletePayrollRun:  vi.fn().mockResolvedValue(true),
 }));
 
-vi.mock('@hq/state.ts', () => {
+vi.mock('@hq/core/state.ts', () => {
   let store: unknown[] = [];
   return {
     get _payroll() { return store; },
@@ -47,13 +47,13 @@ vi.mock('@hq/state.ts', () => {
   };
 });
 
-vi.mock('@hq/ui.ts', () => ({
+vi.mock('@hq/core/ui.ts', () => ({
   toast:      vi.fn(),
   openModal:  vi.fn(),
   closeModal: vi.fn(),
 }));
 
-vi.mock('@shared/services/core/authService.ts', () => ({
+vi.mock('@shared/core/authService.ts', () => ({
   getCurrentUser: vi.fn().mockResolvedValue({ name: 'Test User', email: 'test@example.com' }),
 }));
 
@@ -61,11 +61,11 @@ vi.mock('@shared/services/core/authService.ts', () => ({
 
 import { _nextPayrollNumber, autoFillDeductions, recalcPayroll } from './payroll.ts';
 import { payrollTableHTML } from './templates/payroll.ts';
-import { toast, openModal } from '@hq/ui.ts';
-import { setPayroll } from '@hq/state.ts';
+import { toast, openModal } from '@hq/core/ui.ts';
+import { setPayroll } from '@hq/core/state.ts';
 import {
   fetchPayrollRuns, createPayrollRun, updatePayrollRun, deletePayrollRun,
-} from '@shared/services/finance/financeService.ts';
+} from '@hq/finance/financeService.ts';
 import type { PayrollRun } from '@shared/types.ts';
 
 const mockToast        = toast as ReturnType<typeof vi.fn>;
