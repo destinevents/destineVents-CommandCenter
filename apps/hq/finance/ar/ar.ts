@@ -7,19 +7,17 @@ import {
   paginationBar, invoiceRowHTML, lineItemRowHTML, invoiceFormHTML, orRowHTML, displayDate,
 } from '../templates/invoices.ts';
 import {
-  fetchInvoices, createInvoice, updateInvoice, deleteInvoice,
+  createInvoice, updateInvoice, deleteInvoice,
   calcFinanceSummary, fetchLineItems, upsertLineItems,
 } from '@hq/finance/financeService.ts';
 import { updateSOB, createSOB } from '@hq/finance/sobService.ts';
 import { createInvoicePaymentLink } from '@hq/finance/paymentService.ts';
-import { fetchProjects, updateProject } from '@hq/projects/projectService.ts';
+import { updateProject } from '@hq/projects/projectService.ts';
 import {
   _invoices, _bills, _payroll, _sobs, _clients, _projects,
-  setInvoices,
 } from '@hq/core/state.ts';
 import { toast, openModal, closeModal } from '@hq/core/ui.ts';
 import type { Invoice, InvoiceLineItem, SOB } from '@shared/types.ts';
-// eslint-disable-next-line import/no-cycle
 import { loadFinance } from '../finance.ts';
 
 const gEl = (id: string) => document.getElementById(id)!;

@@ -1,5 +1,4 @@
 import { formatCurrency } from '@shared/utils/formatUtils.ts';
-import { formatDateShort } from '@shared/utils/dateUtils.ts';
 import { escapeHtml } from '@shared/utils/helpers.ts';
 import { validateRequired } from '@shared/utils/validators.ts';
 import { APP_SETTINGS } from '@config/settings.ts';
@@ -7,22 +6,12 @@ import {
   AP_CATEGORIES, AP_STATUSES, AP_STATUS_CLASS, apRowHTML, billFormHTML, displayDate,
 } from '../templates/bills.ts';
 import { paginationBar } from '../templates/invoices.ts';
-import {
-  fetchBills, createBill, updateBill, deleteBill,
-} from '@hq/finance/financeService.ts';
-import { fetchPartners } from '@hq/partners/partnerService.ts';
+import { createBill, updateBill, deleteBill } from '@hq/finance/financeService.ts';
 import { sb } from '@shared/core/supabase';
-import {
-  _bills, _clients, _partners, _projects,
-  setBills, setPartners,
-} from '@hq/core/state.ts';
+import { _bills, _projects } from '@hq/core/state.ts';
 import { toast, openModal, closeModal } from '@hq/core/ui.ts';
 import type { Bill } from '@shared/types.ts';
-// eslint-disable-next-line import/no-cycle
 import { loadFinance } from '../finance.ts';
-
-const gEl = (id: string) => document.getElementById(id)!;
-const gVal = (id: string) => (document.getElementById(id) as HTMLInputElement).value;
 
 // ── AP module-level state ─────────────────────────────────────────────────────
 let _editingBillId: number | null   = null;

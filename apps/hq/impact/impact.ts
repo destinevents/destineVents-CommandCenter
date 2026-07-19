@@ -3,7 +3,6 @@ import { fetchImpactEntries, createImpactEntry, updateImpactEntry, deleteImpactE
 import { fetchProjects } from '@hq/projects/projectService.ts';
 import { _projects, _impactEntries, setImpactEntries, setProjects } from '@hq/core/state.ts';
 import { toast, openModal, closeModal } from '@hq/core/ui.ts';
-import type { ImpactEntry } from '@shared/types.ts';
 import { impactEntriesHTML, impactFormHTML } from './impact.templates.ts';
 
 const gEl = (id: string) => document.getElementById(id)!;

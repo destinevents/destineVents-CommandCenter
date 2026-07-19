@@ -20,6 +20,7 @@ export default [
     rules: {
       ...tsPlugin.configs.recommended.rules,
       '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unused-vars': ['error', { varsIgnorePattern: '^_', argsIgnorePattern: '^_', ignoreRestSiblings: true }],
     },
   },
   {
@@ -33,9 +34,15 @@ export default [
     },
   },
   {
-    // Node context for build config
-    files: ['vite.config.ts'],
+    // Node context for build config and Vercel serverless functions
+    files: ['vite.config.ts', 'api/**/*.ts', 'api/**/*.js'],
     languageOptions: { globals: { ...globals.node } },
+    rules: { '@typescript-eslint/no-require-imports': 'off' },
+  },
+  {
+    // ICC files use @ts-nocheck pending full type migration
+    files: ['apps/icc/**/*.ts'],
+    rules: { '@typescript-eslint/ban-ts-comment': 'off' },
   },
   {
     ignores: ['node_modules/**', 'dist/**', 'coverage/**'],

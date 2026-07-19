@@ -8,7 +8,7 @@ import { fetchProposals } from '@hq/proposals/proposalService.ts';
 import { fetchInvoices } from '@hq/finance/financeService.ts';
 import { _clients, _proposals, _projects, setClients, setProjects } from '@hq/core/state.ts';
 import { toast, openModal, closeModal } from '@hq/core/ui.ts';
-import type { Project, Proposal } from '@shared/types.ts';
+import type { Project } from '@shared/types.ts';
 import {
   projectTableHTML, projectFormHTML, projectDetailHTML, newClientBannerHTML,
 } from './projects.templates.ts';

@@ -10,14 +10,10 @@ import {
   birFilingStatus, birGrossReceipts, birExpenses, birCompWithholding,
   bir2307Bills, birIsFiled, birFilingsFor,
 } from '@hq/finance/birCalc.ts';
-import { fetchBirFilings, createBirFiling } from '@hq/finance/birService.ts';
-import {
-  _invoices, _bills, _payroll, _birFilings,
-  setBirFilings,
-} from '@hq/core/state.ts';
+import { createBirFiling } from '@hq/finance/birService.ts';
+import { _invoices, _bills, _payroll, _birFilings } from '@hq/core/state.ts';
 import { toast, openModal, closeModal } from '@hq/core/ui.ts';
 import type { BirFiling, Bill } from '@shared/types.ts';
-// eslint-disable-next-line import/no-cycle
 import { loadFinance } from '../finance.ts';
 
 const gEl  = (id: string) => document.getElementById(id)!;

@@ -21,7 +21,6 @@ import { renderPayroll } from './payroll.ts';
 import type { Invoice, Bill } from '@shared/types.ts';
 
 // ── Sub-module imports (circular refs are safe — used only in function bodies)
-// eslint-disable-next-line import/no-cycle
 import {
   renderAR, renderARPipeline, renderReceivablesDashboard, renderOfficialReceipts,
   togglePaidInvoices, setInvoicePage, setORPage,
@@ -34,7 +33,6 @@ import {
   openARProjectSOB, advanceARProjectStage,
   sendInvoiceEmail, printOfficialReceipt, openInvoiceFromSOB,
 } from './ar/ar.ts';
-// eslint-disable-next-line import/no-cycle
 import {
   renderAP,
   setApFilter, clearApFilters, setApBillPage,
@@ -43,7 +41,6 @@ import {
   approveBill, saveApproveBill, rejectBill,
   markBillPaid, archiveBill, printExpenseVoucher,
 } from './ap/ap.ts';
-// eslint-disable-next-line import/no-cycle
 import {
   renderBIR, showBIRTab, renderBIRReports,
   setBIRReportPeriod, setBIRReportYear, setBIRReportMonth, setBIRReportQuarter,
