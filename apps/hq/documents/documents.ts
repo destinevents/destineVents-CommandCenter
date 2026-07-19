@@ -10,7 +10,14 @@ import { toast, openModal, closeModal } from '@hq/core/ui.ts';
 import type { Document as HQDocument } from '@shared/types.ts';
 import { documentListHTML, docPreviewHTML, docTagFormHTML } from './documents.templates.ts';
 
-const gEl = (id: string) => document.getElementById(id)!;
+const gEl = (id: string) => document.getElementById(id)!
+
+export function showDocumentsTab(name: string, el: HTMLElement) {
+  document.querySelectorAll('#page-documents .vdtab').forEach(t => t.classList.remove('active'));
+  gEl('vdtab-' + name).classList.add('active');
+  document.querySelectorAll('#documents-subtabs .sub-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+};
 
 let _previewDoc: HQDocument | null = null;
 

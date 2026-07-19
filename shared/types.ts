@@ -249,6 +249,25 @@ export interface POLineItem {
   created_at?: string;
 }
 
+export interface Contract {
+  id: number;
+  con_number: string;
+  client: string;
+  project_id: number | null;
+  title: string;
+  contract_date: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  value: number;
+  status: string;              // Draft | Sent | Signed | Active | Completed | Terminated
+  terms: string | null;
+  prepared_by: string | null;
+  signed_by: string | null;
+  signed_at: string | null;
+  archived_at: string | null;
+  created_at: string;
+}
+
 export interface Document {
   id: number;
   name: string;

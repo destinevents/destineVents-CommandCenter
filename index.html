@@ -552,18 +552,27 @@
 
   <!-- DOCUMENT VAULT -->
   <div class="page" id="page-documents">
-    <div class="page-eyebrow">vault</div>
-    <div class="page-title" style="margin-bottom:16px">Document Vault</div>
-    <input type="file" id="file-input" style="display:none" accept=".pdf,.doc,.docx,.png,.jpg" onchange="handleFileSelect(this.files)"/>
-    <div class="drop-zone" id="drop-zone"
-         onclick="document.getElementById('file-input').click()"
-         ondragover="event.preventDefault();this.classList.add('dragover')"
-         ondragleave="this.classList.remove('dragover')"
-         ondrop="event.preventDefault();this.classList.remove('dragover');handleFileSelect(event.dataTransfer.files)">
-      <div class="drop-zone-icon">⤒</div>
-      <div class="drop-zone-text">Drop files here or click to upload<br><span style="font-size:10px;opacity:0.6">PDF, DOC, DOCX, PNG accepted</span></div>
+    <div class="page-eyebrow">documents</div>
+    <div class="page-title" style="margin-bottom:16px">Documents</div>
+    <div class="sub-tabs" id="documents-subtabs">
+      <div class="sub-tab active" onclick="showDocumentsTab('vault',this)">Vault</div>
+      <div class="sub-tab" onclick="showDocumentsTab('contracts',this)">Contracts</div>
     </div>
-    <div id="doc-list" class="doc-list"></div>
+    <!-- Vault tab -->
+    <div class="vdtab active" id="vdtab-vault">
+      <input type="file" id="file-input" style="display:none" accept=".pdf,.doc,.docx,.png,.jpg" onchange="handleFileSelect(this.files)"/>
+      <div class="drop-zone" id="drop-zone"
+           onclick="document.getElementById('file-input').click()"
+           ondragover="event.preventDefault();this.classList.add('dragover')"
+           ondragleave="this.classList.remove('dragover')"
+           ondrop="event.preventDefault();this.classList.remove('dragover');handleFileSelect(event.dataTransfer.files)">
+        <div class="drop-zone-icon">⤒</div>
+        <div class="drop-zone-text">Drop files here or click to upload<br><span style="font-size:10px;opacity:0.6">PDF, DOC, DOCX, PNG accepted</span></div>
+      </div>
+      <div id="doc-list" class="doc-list"></div>
+    </div>
+    <!-- Contracts tab -->
+    <div class="vdtab" id="vdtab-contracts"></div>
   </div>
 
   <!-- IMPACT -->

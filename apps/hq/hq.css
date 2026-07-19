@@ -202,6 +202,8 @@
 .mtab.active { display:block; }
 .ptab { display:none; }
 .ptab.active { display:block; }
+.vdtab { display:none; }
+.vdtab.active { display:block; }
 
 /* ─── FINANCE ─── */
 .finance-stat-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--ink-4); border:1px solid var(--ink-4); margin-bottom:20px; }

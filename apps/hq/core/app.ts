@@ -30,7 +30,15 @@ import {
 } from '../partners/partners.ts';
 import {
   loadDocuments, handleFileSelect, openDocPreview, closeDocPreview, handleDeleteDocument,
+  showDocumentsTab,
 } from '../documents/documents.ts';
+import {
+  loadContracts,
+  openAddContract, openEditContract, saveContract, handleDeleteContract,
+  sendContract, markContractSigned, activateContract, completeContract,
+  terminateContract, archiveContract, printContract,
+  setContractFilter, clearContractFilters,
+} from '../documents/contracts.ts';
 import {
   loadImpact, saveImpactEntry, openEditImpact, handleDeleteImpact,
 } from '../impact/impact.ts';
@@ -183,6 +191,7 @@ function setupRealtime() {
     payroll_runs: { page: 'finance', reload: () => loadFinance() },
     bir_filings: { page: 'finance', reload: () => loadFinance() },
     documents: { page: 'documents', reload: () => loadDocuments() },
+    contracts: { page: 'documents', reload: () => loadContracts() },
     projects: { page: 'projects', reload: () => loadProjects() },
     impact_entries:       { page: 'impact',  reload: () => loadImpact() },
     events:               { page: 'events',    reload: () => loadEvents() },
@@ -290,6 +299,7 @@ function loadPage(name: string) {
       break;
     case 'documents':
       loadDocuments();
+      loadContracts();
       break;
     case 'finance':
       loadFinance();
@@ -493,7 +503,14 @@ declare global {
     downloadNDA: typeof downloadNDA; saveImpactEntry: typeof saveImpactEntry;
     openEditImpact: typeof openEditImpact; handleDeleteImpact: typeof handleDeleteImpact;
     openDocPreview: typeof openDocPreview; closeDocPreview: typeof closeDocPreview;
-    handleDeleteDocument: typeof handleDeleteDocument;
+    handleDeleteDocument: typeof handleDeleteDocument; showDocumentsTab: typeof showDocumentsTab;
+    openAddContract: typeof openAddContract; openEditContract: typeof openEditContract;
+    saveContract: typeof saveContract; handleDeleteContract: typeof handleDeleteContract;
+    sendContract: typeof sendContract; markContractSigned: typeof markContractSigned;
+    activateContract: typeof activateContract; completeContract: typeof completeContract;
+    terminateContract: typeof terminateContract; archiveContract: typeof archiveContract;
+    printContract: typeof printContract;
+    setContractFilter: typeof setContractFilter; clearContractFilters: typeof clearContractFilters;
     openAddEvent: typeof openAddEvent; openEditEvent: typeof openEditEvent;
     handleDeleteEvent: typeof handleDeleteEvent; loadEvents: typeof loadEvents;
     filterEvents: typeof filterEvents; viewEventRegistrations: typeof viewEventRegistrations;
@@ -557,7 +574,12 @@ Object.assign(window, {
   // Operations
   filterPartners, handleFileSelect, npGoStep1, npGoStep2, npFinish, downloadNDA,
   saveImpactEntry, openEditImpact, handleDeleteImpact,
-  openDocPreview, closeDocPreview, handleDeleteDocument,
+  openDocPreview, closeDocPreview, handleDeleteDocument, showDocumentsTab,
+  // Contracts
+  openAddContract, openEditContract, saveContract, handleDeleteContract,
+  sendContract, markContractSigned, activateContract, completeContract,
+  terminateContract, archiveContract, printContract,
+  setContractFilter, clearContractFilters,
   // Events
   loadEvents, openAddEvent, openEditEvent, handleDeleteEvent,
   filterEvents, viewEventRegistrations, backToEvents, copyRegisterUrl,

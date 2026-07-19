@@ -28,6 +28,9 @@
 .badge-cancelled    { color:var(--ink-3); opacity:0.6; }
 .badge-for-approval { color:var(--amber); }
 .badge-ap-approved  { color:var(--blue); }
+.badge-signed       { color:var(--green); }
+.badge-terminated   { color:var(--ink-3); opacity:0.6; }
+.badge-fulfilled    { color:var(--green); }
 
 /* Intern status badges */
 .badge-assigned    { color:#6366f1; background:#eef2ff; }
