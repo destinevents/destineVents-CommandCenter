@@ -17,11 +17,20 @@ export function displayDate(val: string | null | undefined): string {
   return escapeHtml(String(val));
 }
 
-export function clientRowHTML(c: Client): string {
+function crmStageBadge(stage: string): string {
+  const cls = stage === 'Kickoff Completed' ? 'completed'
+    : stage.includes('Scheduled') ? 'active'
+    : stage.includes('Completed') ? 'sent'
+    : 'pending';
+  return `<span class="badge badge-${cls}" style="font-size:9px;white-space:nowrap">${escapeHtml(stage)}</span>`;
+}
+
+export function clientRowHTML(c: Client, crmStage?: string): string {
   return `
     <tr>
       <td><div class="project-name">${escapeHtml(c.name)}</div><div class="project-client">${escapeHtml(c.type)}</div></td>
       <td><span class="badge badge-${statusClass(c.status ?? '')}">${escapeHtml(c.status)}</span></td>
+      <td>${crmStage ? crmStageBadge(crmStage) : '<span style="color:var(--ink-3);font-size:11px">—</span>'}</td>
       <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(c.brand) || '—'}</td>
       <td style="font-size:12px">${escapeHtml(c.contact) || '—'}</td>
       <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(c.email) || '—'}</td>
@@ -36,10 +45,10 @@ export function clientRowHTML(c: Client): string {
     </tr>`;
 }
 
-export function clientTableHTML(clients: Client[]): string {
+export function clientTableHTML(clients: Client[], crmStages?: Record<number, string>): string {
   return clients.length
-    ? clients.map(clientRowHTML).join('')
-    : `<tr><td colspan="7"><div class="empty-state">No clients yet — add your first one</div></td></tr>`;
+    ? clients.map(c => clientRowHTML(c, crmStages?.[c.id])).join('')
+    : `<tr><td colspan="8"><div class="empty-state">No clients yet — add your first one</div></td></tr>`;
 }
 
 export function clientFormHTML(c: Partial<Client> = {}): string {

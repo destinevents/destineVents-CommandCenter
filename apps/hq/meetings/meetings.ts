@@ -11,10 +11,10 @@ import {
 import {
   MEETING_STAGES, MEETING_STATUSES,
   meetingTableHTML, meetingFormHTML, meetingOverviewHTML,
-  clientMeetingTimelineHTML,
+  clientMeetingTimelineHTML, getCrmStageLabel,
 } from './templates/meetings.ts';
 
-export { fetchMeetingsByClient, clientMeetingTimelineHTML };
+export { fetchMeetingsByClient, clientMeetingTimelineHTML, getCrmStageLabel };
 
 // ── Module state ──────────────────────────────────────────────────────────────
 

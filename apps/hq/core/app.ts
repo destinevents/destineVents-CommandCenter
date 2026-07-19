@@ -17,7 +17,8 @@ import {
 } from './state.ts';
 import { toast, closeModal, saveModal, toggleHqNav } from './ui.ts';
 import {
-  loadClients, openAddClient, openEditClient, handleDeleteClient, openClientDetail,
+  loadClients, openAddClient, openEditClient, handleDeleteClient,
+  openClientDetail, setClientStageFilter,
 } from '../clients/clients.ts';
 import {
   loadProposals, openAddProposal, openEditProposal, handleDeleteProposal,
@@ -425,6 +426,7 @@ declare global {
     closeModal: typeof closeModal; saveModal: typeof saveModal; toast: typeof toast;
     openAddClient: typeof openAddClient; openEditClient: typeof openEditClient;
     handleDeleteClient: typeof handleDeleteClient; openClientDetail: typeof openClientDetail;
+    setClientStageFilter: typeof setClientStageFilter;
     openAddProposal: typeof openAddProposal; openEditProposal: typeof openEditProposal;
     handleDeleteProposal: typeof handleDeleteProposal;
     openAddProject: typeof openAddProject; openEditProject: typeof openEditProject;
@@ -501,7 +503,7 @@ Object.assign(window, {
   showPage, handleSignIn, handleSignOut, toggleHqNav, filterTable,
   closeModal, saveModal, toast,
   // Clients
-  openAddClient, openEditClient, handleDeleteClient, openClientDetail,
+  openAddClient, openEditClient, handleDeleteClient, openClientDetail, setClientStageFilter,
   // Proposals
   openAddProposal, openEditProposal, handleDeleteProposal,
   // Partners

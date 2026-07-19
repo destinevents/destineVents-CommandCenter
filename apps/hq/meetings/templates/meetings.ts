@@ -237,45 +237,78 @@ export function meetingOverviewHTML(meetings: Meeting[], now: Date): string {
     </div>`;
 }
 
-// ── Client detail timeline ────────────────────────────────────────────────────
+// ── CRM stage label (used in clients table) ───────────────────────────────────
+
+export function getCrmStageLabel(meetings: Meeting[]): string {
+  const has = (stage: string, status: string) =>
+    meetings.some(m => m.stage === stage && m.status === status);
+  if (has('Kickoff', 'Completed'))           return 'Kickoff Completed';
+  if (has('Kickoff', 'Scheduled'))           return 'Kickoff Scheduled';
+  if (has('Strategy & Proposal', 'Completed')) return 'S&P Completed';
+  if (has('Strategy & Proposal', 'Scheduled')) return 'S&P Scheduled';
+  if (has('Discovery', 'Completed'))         return 'Discovery Completed';
+  if (has('Discovery', 'Scheduled'))         return 'Discovery Scheduled';
+  return 'Waiting for Discovery';
+}
+
+// ── Client detail: Next Meeting + Meeting History ─────────────────────────────
 
 export function clientMeetingTimelineHTML(meetings: Meeting[]): string {
-  if (!meetings.length) {
-    return `<div style="color:var(--ink-3);font-size:12px;padding:8px 0">No meetings recorded.</div>`;
-  }
+  const now = new Date();
 
-  const byStage = MEETING_STAGES.map(stage => {
-    const stageMeetings = meetings
-      .filter(m => m.stage === stage)
-      .sort((a, b) => {
-        if (!a.start_datetime) return 1;
-        if (!b.start_datetime) return -1;
-        return new Date(b.start_datetime).getTime() - new Date(a.start_datetime).getTime();
-      });
-    return { stage, meetings: stageMeetings };
-  });
+  const next = meetings
+    .filter(m => m.status === 'Scheduled' && m.start_datetime && new Date(m.start_datetime) > now)
+    .sort((a, b) => new Date(a.start_datetime!).getTime() - new Date(b.start_datetime!).getTime())[0] ?? null;
 
-  return byStage.map(({ stage, meetings: sm }) => {
-    const latest = sm[0];
-    const stageStatus = sm.some(m => m.status === 'Completed') ? 'Completed'
-      : sm.some(m => m.status === 'Scheduled') ? 'Scheduled'
-      : 'Not Scheduled';
-    const cls = MEETING_STATUS_CLASS[stageStatus] ?? 'pending';
+  const history = meetings
+    .filter(m => ['Completed', 'No Show', 'Cancelled'].includes(m.status))
+    .sort((a, b) => {
+      if (!a.start_datetime) return 1;
+      if (!b.start_datetime) return -1;
+      return new Date(b.start_datetime).getTime() - new Date(a.start_datetime).getTime();
+    });
 
-    return `
-    <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--ink-5)">
-      <div style="min-width:90px">
-        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3)">${escapeHtml(stage)}</div>
-        <span class="badge badge-${cls}" style="margin-top:4px;display:inline-block">${escapeHtml(stageStatus)}</span>
-      </div>
-      <div style="flex:1">
-        ${latest ? `
-          <div style="font-size:12px;font-weight:600">${escapeHtml(latest.title ?? stage + ' Meeting')}</div>
-          <div style="font-size:11px;color:var(--ink-3)">${fmtDate(latest.start_datetime)} ${fmtTime(latest.start_datetime)}</div>
-          ${latest.meeting_notes ? `<div style="font-size:11px;color:var(--ink-2);margin-top:4px">${escapeHtml(latest.meeting_notes.slice(0, 100))}${latest.meeting_notes.length > 100 ? '…' : ''}</div>` : ''}
-        ` : `<div style="font-size:12px;color:var(--ink-3)">Not yet scheduled</div>`}
-      </div>
-      ${sm.length > 1 ? `<div style="font-size:10px;color:var(--ink-3)">${sm.length} meetings</div>` : ''}
-    </div>`;
-  }).join('');
+  const nextHTML = next
+    ? `<div style="background:var(--linen);border:1px solid var(--ink-4);border-radius:8px;padding:12px 16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <div>
+            <div style="font-size:13px;font-weight:600">${escapeHtml(next.title ?? next.stage + ' Meeting')}</div>
+            <div style="font-size:11px;color:var(--ink-3);margin-top:3px">
+              <span class="badge badge-active" style="font-size:9px">${escapeHtml(next.stage)}</span>
+              &nbsp;${fmtDate(next.start_datetime)} · ${fmtTime(next.start_datetime)}
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            ${next.google_meet_link ? `<a href="${escapeHtml(next.google_meet_link)}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm">Join Meet</a>` : ''}
+            ${next.calendar_event_link ? `<a href="${escapeHtml(next.calendar_event_link)}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm">View Calendar</a>` : ''}
+          </div>
+        </div>
+      </div>`
+    : `<div style="font-size:12px;color:var(--ink-3);padding:6px 0">No upcoming meetings scheduled.</div>`;
+
+  const historyHTML = history.length === 0
+    ? `<div style="font-size:12px;color:var(--ink-3);padding:6px 0">No completed meetings yet.</div>`
+    : `<div style="overflow-x:auto">
+        <table class="ledger-table" style="margin-top:4px">
+          <thead><tr><th>Stage</th><th>Date</th><th>Duration</th><th>Status</th><th>Notes</th><th>Recording</th></tr></thead>
+          <tbody>${history.map(m => {
+            const cls = MEETING_STATUS_CLASS[m.status] ?? 'pending';
+            const stageCls = m.stage === 'Kickoff' ? 'completed' : m.stage === 'Strategy & Proposal' ? 'sent' : 'pending';
+            return `<tr>
+              <td><span class="badge badge-${stageCls}" style="font-size:9px">${escapeHtml(m.stage)}</span></td>
+              <td style="white-space:nowrap;font-size:11px">${fmtDate(m.start_datetime)}</td>
+              <td style="font-size:11px">${calcDuration(m.start_datetime, m.end_datetime)}</td>
+              <td><span class="badge badge-${cls}" style="font-size:9px">${escapeHtml(m.status)}</span></td>
+              <td style="font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.meeting_notes ? escapeHtml(m.meeting_notes.slice(0, 80)) : '—'}</td>
+              <td>${m.recording_link ? `<a href="${escapeHtml(m.recording_link)}" target="_blank" rel="noopener" style="font-size:11px;color:var(--blue)">Watch</a>` : '—'}</td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table>
+      </div>`;
+
+  return `
+    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);margin-bottom:6px">Next Meeting</div>
+    ${nextHTML}
+    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);margin:14px 0 6px">Meeting History</div>
+    ${historyHTML}`;
 }

@@ -4,16 +4,39 @@ import { fetchClients, createClient, updateClient, deleteClient } from './client
 import { fetchProposals } from '@hq/proposals/proposalService.ts';
 import { fetchProjects } from '@hq/projects/projectService.ts';
 import { fetchInvoices } from '@hq/finance/financeService.ts';
-import { _clients, _proposals, _projects, _invoices, _sobs, setClients } from '@hq/core/state.ts';
+import { _clients, _proposals, _projects, _invoices, _sobs, _meetings, setClients } from '@hq/core/state.ts';
 import { toast, openModal, closeModal } from '@hq/core/ui.ts';
 import type { Client } from '@shared/types.ts';
 import { clientTableHTML, clientFormHTML, clientDetailHTML } from './clients.templates.ts';
-import { fetchMeetingsByClient, clientMeetingTimelineHTML } from '@hq/meetings/meetings.ts';
+import { fetchMeetingsByClient, clientMeetingTimelineHTML, getCrmStageLabel } from '@hq/meetings/meetings.ts';
 
 const gEl  = (id: string) => document.getElementById(id)!;
 const gVal = (id: string) => (document.getElementById(id) as HTMLInputElement).value;
 
 let _editingClientId: number | null = null;
+let _clientStageFilter = '';
+
+const STAGE_FILTERS = [
+  'Waiting for Discovery',
+  'Waiting for Strategy',
+  'Waiting for Kickoff',
+  'Active Clients',
+  'Completed Clients',
+] as const;
+
+function stageFilterMatch(label: string, filter: string): boolean {
+  if (filter === 'Completed Clients')   return label === 'Kickoff Completed';
+  if (filter === 'Waiting for Kickoff') return label === 'S&P Completed';
+  if (filter === 'Waiting for Strategy') return label === 'Discovery Completed';
+  if (filter === 'Active Clients')      return label.includes('Scheduled');
+  if (filter === 'Waiting for Discovery') return label === 'Waiting for Discovery';
+  return true;
+}
+
+export function setClientStageFilter(filter: string): void {
+  _clientStageFilter = _clientStageFilter === filter ? '' : filter;
+  renderClients(_clients);
+}
 
 export async function loadClients() {
   setClients(await fetchClients());
@@ -21,10 +44,33 @@ export async function loadClients() {
 }
 
 export function renderClients(clients: Client[]) {
-  const total = clients.reduce((s, c) => s + (c.total_value || 0), 0);
+  const crmStages: Record<number, string> = {};
+  for (const c of clients) {
+    const clientMeetings = _meetings.filter(m => m.client_id === c.id);
+    crmStages[c.id] = getCrmStageLabel(clientMeetings);
+  }
+
+  const filtered = _clientStageFilter
+    ? clients.filter(c => stageFilterMatch(crmStages[c.id] ?? 'Waiting for Discovery', _clientStageFilter))
+    : clients;
+
+  const total = filtered.reduce((s, c) => s + (c.total_value || 0), 0);
   gEl('clients-summary').textContent =
-    `${clients.length} clients · ${formatCurrency(total)} total value`;
-  gEl('clients-tbody').innerHTML = clientTableHTML(clients);
+    `${filtered.length} clients · ${formatCurrency(total)} total value`;
+
+  const filterEl = document.getElementById('clients-stage-filter');
+  if (filterEl) {
+    filterEl.innerHTML = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+      ${STAGE_FILTERS.map(f => {
+        const active = _clientStageFilter === f;
+        return `<button class="btn btn-ghost btn-sm" onclick="setClientStageFilter('${f}')"
+          style="${active ? 'background:var(--gold);color:var(--espresso);border-color:var(--gold)' : ''}">${f}</button>`;
+      }).join('')}
+      ${_clientStageFilter ? `<button class="btn btn-ghost btn-sm" onclick="setClientStageFilter('')">Clear</button>` : ''}
+    </div>`;
+  }
+
+  gEl('clients-tbody').innerHTML = clientTableHTML(filtered, crmStages);
 }
 
 export function openAddClient() {
