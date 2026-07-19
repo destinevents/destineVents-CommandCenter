@@ -4,11 +4,12 @@ import { fetchClients, createClient, updateClient, deleteClient } from './client
 import { fetchProposals } from '@hq/proposals/proposalService.ts';
 import { fetchProjects } from '@hq/projects/projectService.ts';
 import { fetchInvoices } from '@hq/finance/financeService.ts';
-import { _clients, _proposals, _projects, _invoices, _sobs, _meetings, setClients } from '@hq/core/state.ts';
+import { _clients, _proposals, _projects, _invoices, _sobs, _meetings, setClients, setMeetings } from '@hq/core/state.ts';
 import { toast, openModal, closeModal } from '@hq/core/ui.ts';
 import type { Client } from '@shared/types.ts';
 import { clientTableHTML, clientFormHTML, clientDetailHTML } from './clients.templates.ts';
 import { fetchMeetingsByClient, clientMeetingTimelineHTML, getCrmStageLabel } from '@hq/meetings/meetings.ts';
+import { fetchMeetings } from '@hq/meetings/meetingService.ts';
 
 const gEl  = (id: string) => document.getElementById(id)!;
 const gVal = (id: string) => (document.getElementById(id) as HTMLInputElement).value;
@@ -39,7 +40,12 @@ export function setClientStageFilter(filter: string): void {
 }
 
 export async function loadClients() {
-  setClients(await fetchClients());
+  const [clients, meetings] = await Promise.all([
+    fetchClients(),
+    _meetings.length ? Promise.resolve(_meetings) : fetchMeetings(),
+  ]);
+  setClients(clients);
+  if (!_meetings.length && meetings) setMeetings(meetings);
   renderClients(_clients);
 }
 
