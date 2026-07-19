@@ -107,6 +107,27 @@ export interface Proposal {
   followup: string | null;
   status: string;
   created_at: string;
+  // Document Engine fields
+  quo_number: string | null;
+  client_tin: string | null;
+  business_address: string | null;
+  subtotal: number | null;
+  vat_amount: number | null;
+  total_amount: number | null;
+  valid_until: string | null;
+  prepared_by: string | null;
+  notes: string | null;
+  archived_at: string | null;
+}
+
+export interface ProposalLineItem {
+  id?: number;
+  proposal_id?: number;
+  description: string;
+  quantity: number;
+  unit_price: number;
+  vat_rate: number;
+  created_at?: string;
 }
 
 export interface Partner {

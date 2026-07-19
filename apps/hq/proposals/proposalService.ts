@@ -1,6 +1,6 @@
 import { sb } from '@shared/core/supabase';
 import { handleServiceError } from '@shared/core/serviceError.ts';
-import type { Proposal, ProposalStats } from '@shared/types';
+import type { Proposal, ProposalStats, ProposalLineItem } from '@shared/types';
 
 export async function fetchProposals(): Promise<Proposal[]> {
   const { data, error } = await sb.from('proposals').select('*').order('sent', { ascending: false });
@@ -23,6 +23,28 @@ export async function updateProposal(id: number, data: Partial<Proposal>): Promi
 export async function deleteProposal(id: number): Promise<boolean> {
   const { error } = await sb.from('proposals').delete().eq('id', id);
   if (error) { handleServiceError('deleteProposal', error); return false; }
+  return true;
+}
+
+export async function fetchProposalLineItems(proposalId: number): Promise<ProposalLineItem[]> {
+  const { data, error } = await sb
+    .from('proposal_line_items')
+    .select('*')
+    .eq('proposal_id', proposalId)
+    .order('id');
+  if (error) { handleServiceError('fetchProposalLineItems', error); return []; }
+  return (data ?? []) as ProposalLineItem[];
+}
+
+export async function upsertProposalLineItems(proposalId: number, items: ProposalLineItem[]): Promise<boolean> {
+  const { error: delErr } = await sb.from('proposal_line_items').delete().eq('proposal_id', proposalId);
+  if (delErr) { handleServiceError('upsertProposalLineItems:delete', delErr); return false; }
+  if (!items.length) return true;
+  const rows = items.map(({ description, quantity, unit_price, vat_rate }) => ({
+    proposal_id: proposalId, description, quantity, unit_price, vat_rate,
+  }));
+  const { error: insErr } = await sb.from('proposal_line_items').insert(rows);
+  if (insErr) { handleServiceError('upsertProposalLineItems:insert', insErr); return false; }
   return true;
 }
 

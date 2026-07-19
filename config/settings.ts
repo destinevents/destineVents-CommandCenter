@@ -21,7 +21,7 @@ export const APP_SETTINGS = {
     ewtRates: ['0%', '2%', '5%', '10%', '15%'],
     clientTypes: ['Government', 'Corporate', 'Education', 'NGO', 'Community', 'Startup'],
     clientStatuses: ['Lead', 'Active', 'NDA Signed', 'Completed'],
-    proposalStatuses: ['Sent', 'Won', 'Lost', 'Expired'],
+    proposalStatuses: ['Draft', 'Sent', 'Won', 'Lost', 'Expired'],
     invoiceStatuses: ['Unpaid', 'Paid', 'Overdue'],
     billStatuses: ['Unpaid', 'Paid'],
     billCategories: [

@@ -22,6 +22,7 @@ import {
 } from '../clients/clients.ts';
 import {
   loadProposals, openAddProposal, openEditProposal, handleDeleteProposal,
+  printQuotation, addQuoRow, recalcQuo,
 } from '../proposals/proposals.ts';
 import {
   loadPartners, filterPartners, openAddPartner, openEditPartner, handleDeletePartner,
@@ -432,6 +433,7 @@ declare global {
     setClientStageFilter: typeof setClientStageFilter;
     openAddProposal: typeof openAddProposal; openEditProposal: typeof openEditProposal;
     handleDeleteProposal: typeof handleDeleteProposal;
+    printQuotation: typeof printQuotation; addQuoRow: typeof addQuoRow; recalcQuo: typeof recalcQuo;
     openAddProject: typeof openAddProject; openEditProject: typeof openEditProject;
     handleDeleteProject: typeof handleDeleteProject; convertProposalToProject: typeof convertProposalToProject;
     openProjectDetail: typeof openProjectDetail; addClientFromProposal: typeof addClientFromProposal;
@@ -517,6 +519,7 @@ Object.assign(window, {
   openAddClient, openEditClient, handleDeleteClient, openClientDetail, setClientStageFilter,
   // Proposals
   openAddProposal, openEditProposal, handleDeleteProposal,
+  printQuotation, addQuoRow, recalcQuo,
   // Partners
   openAddPartner, openEditPartner, handleDeletePartner,
   // Projects
