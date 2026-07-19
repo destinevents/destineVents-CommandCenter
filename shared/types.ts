@@ -358,3 +358,20 @@ export interface FinanceSummary {
 export type ProjectCreateResult =
   | { ok: true; data: Project }
   | { ok: false; message: string };
+
+export interface Meeting {
+  id: number;
+  client_id: number | null;
+  stage: string;
+  status: string;
+  title: string | null;
+  start_datetime: string | null;
+  end_datetime: string | null;
+  meeting_notes: string | null;
+  google_meet_link: string | null;
+  calendar_event_link: string | null;
+  google_event_id: string | null;
+  recording_link: string | null;
+  created_at: string;
+  updated_at: string;
+}

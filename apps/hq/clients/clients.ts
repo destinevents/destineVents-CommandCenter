@@ -8,6 +8,7 @@ import { _clients, _proposals, _projects, _invoices, _sobs, setClients } from '@
 import { toast, openModal, closeModal } from '@hq/core/ui.ts';
 import type { Client } from '@shared/types.ts';
 import { clientTableHTML, clientFormHTML, clientDetailHTML } from './clients.templates.ts';
+import { fetchMeetingsByClient, clientMeetingTimelineHTML } from '@hq/meetings/meetings.ts';
 
 const gEl  = (id: string) => document.getElementById(id)!;
 const gVal = (id: string) => (document.getElementById(id) as HTMLInputElement).value;
@@ -94,14 +95,19 @@ export async function openClientDetail(id: number) {
   const c = _clients.find(x => x.id === id);
   if (!c) return;
   openModal(c.name, '<div style="padding:16px;text-align:center;color:var(--ink-3);font-size:12px">Loading…</div>', closeModal, 'Close');
-  let proposals, projects, invoices;
+  let proposals, projects, invoices, meetings;
   try {
-    [proposals, projects, invoices] = await Promise.all([
-      fetchProposals(), fetchProjects(), fetchInvoices(),
+    [proposals, projects, invoices, meetings] = await Promise.all([
+      fetchProposals(), fetchProjects(), fetchInvoices(), fetchMeetingsByClient(id),
     ]);
   } catch {
     gEl('modal-body').innerHTML = '<div style="padding:16px;color:var(--red);font-size:12px">Failed to load client data. Please try again.</div>';
     return;
   }
-  gEl('modal-body').innerHTML = clientDetailHTML(c, proposals, projects, invoices);
+  const meetingsHTML = clientMeetingTimelineHTML(meetings ?? []);
+  gEl('modal-body').innerHTML = clientDetailHTML(c, proposals, projects, invoices) + `
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--ink-5)">
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);margin-bottom:10px">Meeting Pipeline</div>
+      ${meetingsHTML}
+    </div>`;
 }

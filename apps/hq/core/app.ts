@@ -66,6 +66,11 @@ import { HQ_ALLOWED_PAGES, isHQRole, isICCRole } from '@config/roles.ts';
 import type { UserRole } from '@shared/types';
 import { loadUsers, approveUser, changeUserRole } from './users.ts';
 import {
+  loadMeetings, showMeetingTab, setMeetingFilter, clearMeetingFilters,
+  openAddMeeting, openEditMeeting, saveMeeting, handleDeleteMeeting,
+  markMeetingCompleted, markMeetingNoShow, cancelMeeting,
+} from '../meetings/meetings.ts';
+import {
   openAddPayroll, openEditPayroll, handleDeletePayroll,
   recalcPayroll, autoFillDeductions, markPayrollPaid,
   printPayslip, sendPayrollEmail,
@@ -287,6 +292,9 @@ function loadPage(name: string) {
     case 'impact':
       loadImpact();
       break;
+    case 'meetings':
+      loadMeetings();
+      break;
     case 'events':
       loadEvents();
       break;
@@ -480,6 +488,12 @@ declare global {
     selectTemplate: typeof selectTemplate; copyAIOutput: typeof copyAIOutput;
     simulateAI: typeof simulateAI; saveAIOutput: typeof saveAIOutput;
     approveUser: typeof approveUser; changeUserRole: typeof changeUserRole;
+    loadMeetings: typeof loadMeetings; showMeetingTab: typeof showMeetingTab;
+    setMeetingFilter: typeof setMeetingFilter; clearMeetingFilters: typeof clearMeetingFilters;
+    openAddMeeting: typeof openAddMeeting; openEditMeeting: typeof openEditMeeting;
+    saveMeeting: typeof saveMeeting; handleDeleteMeeting: typeof handleDeleteMeeting;
+    markMeetingCompleted: typeof markMeetingCompleted; markMeetingNoShow: typeof markMeetingNoShow;
+    cancelMeeting: typeof cancelMeeting;
   }
 }
 
@@ -538,6 +552,10 @@ Object.assign(window, {
   setSOBPage,
   // Users (admin)
   approveUser, changeUserRole,
+  // Meetings
+  loadMeetings, showMeetingTab, setMeetingFilter, clearMeetingFilters,
+  openAddMeeting, openEditMeeting, saveMeeting, handleDeleteMeeting,
+  markMeetingCompleted, markMeetingNoShow, cancelMeeting,
 });
 
 export { showPage };

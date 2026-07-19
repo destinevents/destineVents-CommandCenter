@@ -3,7 +3,7 @@
 // read-only views in the importer).
 import type {
   Client, Proposal, Partner, Document, Invoice, Bill,
-  PayrollRun, Project, ImpactEntry, BirFiling, Event, EventRegistration, SOB, UserRole,
+  PayrollRun, Project, ImpactEntry, BirFiling, Event, EventRegistration, SOB, UserRole, Meeting,
 } from '@shared/types.ts';
 
 export let _userRole: UserRole = 'admin';
@@ -50,3 +50,6 @@ export function setCurrentEvent(v: Event | null): void { _currentEvent = v; }
 
 export let _sobs: SOB[] = [];
 export function setSOBs(v: SOB[]): void { _sobs = v; }
+
+export let _meetings: Meeting[] = [];
+export function setMeetings(v: Meeting[]): void { _meetings = v; }
