@@ -9,7 +9,7 @@ import {
   createMeeting, updateMeeting, deleteMeeting,
 } from './meetingService.ts';
 import {
-  MEETING_STAGES, MEETING_STATUSES, MEETING_STATUS_CLASS,
+  MEETING_STAGES, MEETING_STATUSES,
   meetingTableHTML, meetingFormHTML, meetingOverviewHTML,
   clientMeetingTimelineHTML,
 } from './templates/meetings.ts';
