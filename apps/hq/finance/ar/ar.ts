@@ -3,6 +3,10 @@ import { formatDateShort, todayISO } from '@shared/utils/dateUtils.ts';
 import { escapeHtml, statusClass } from '@shared/utils/helpers.ts';
 import { validateRequired } from '@shared/utils/validators.ts';
 import { APP_SETTINGS } from '@config/settings.ts';
+import { nextDocNumber } from '@shared/services/documents/docNumberService.ts';
+import { logDocActivity } from '@shared/services/documents/activityLogService.ts';
+import { getCurrentUser } from '@shared/core/authService.ts';
+import { buildDocPDF, docPDFLineItemsTable, docPDFTotals } from '@shared/documents/pdfTemplate.ts';
 import {
   paginationBar, invoiceRowHTML, lineItemRowHTML, invoiceFormHTML, orRowHTML, displayDate,
 } from '../templates/invoices.ts';
@@ -284,6 +288,7 @@ export function toggleArchivedInvoices() {
 export function openAddInvoice() {
   _editingInvoiceId    = null;
   _pendingSOBConvertId = null;
+  const autoNum = nextDocNumber('OR', _invoices.map(i => i.or_num));
   const unlinkedSOBs = _sobs.filter(s => !s.linked_invoice_id && !s.archived_at && !['Paid','Cancelled'].includes(s.status));
   const sobTip = unlinkedSOBs.length > 0
     ? `<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#1e40af">
@@ -292,7 +297,7 @@ export function openAddInvoice() {
     : `<div style="background:var(--linen-3);border:1px solid var(--ink-4);border-radius:4px;padding:8px 14px;margin-bottom:16px;font-size:12px;color:var(--ink-3)">
         Creating a standalone invoice — not linked to a Statement of Billing.
       </div>`;
-  openModal('New Invoice (AR)', sobTip + invoiceFormHTML({}, [], _clients, _projects), saveInvoice);
+  openModal('New Invoice (AR)', sobTip + invoiceFormHTML({ or_num: autoNum }, [], _clients, _projects), saveInvoice);
 }
 
 export function openInvoiceFromSOB(draft: Partial<Invoice>, items: InvoiceLineItem[], sobId: number) {
@@ -359,16 +364,20 @@ export async function saveInvoice() {
   if (payDate)           payload.payment_date      = payDate;
   if (receivedBy)        payload.received_by       = receivedBy;
 
+  const user = await getCurrentUser();
+  const actor = user?.name ?? user?.email ?? null;
   let invoiceId = _editingInvoiceId;
   if (invoiceId) {
     const ok = await updateInvoice(invoiceId, payload);
     if (!ok) { toast('Could not update invoice', 'error'); return; }
     toast('Invoice updated', 'success');
+    await logDocActivity('invoice', invoiceId, or_num, 'updated', actor);
   } else {
     const result = await createInvoice(payload);
     if (!result) { toast('Could not add invoice. Please try again.', 'error'); return; }
     invoiceId = result.id;
     toast('Invoice added', 'success');
+    await logDocActivity('invoice', invoiceId, or_num, 'created', actor);
   }
 
   if (invoiceId && lineItems.length) {
@@ -414,80 +423,24 @@ export async function openDuplicateInvoice(id: number) {
     vat_amount: original.vat_amount,
     discount:   original.discount,
   };
-  openModal('Duplicate Invoice', invoiceFormHTML(draft, items, _clients, _projects), saveInvoice);
-  toast('Duplicated — enter a new OR number and save', '');
+  const autoNum = nextDocNumber('OR', _invoices.map(i => i.or_num));
+  openModal('Duplicate Invoice', invoiceFormHTML({ ...draft, or_num: autoNum }, items, _clients, _projects), saveInvoice);
+  toast('Duplicated — OR number auto-filled, save to confirm', '');
 }
 
 export async function printInvoice(id: number) {
   const inv = _invoices.find(x => x.id === id);
   if (!inv) return;
-  const items  = await fetchLineItems(id);
-  const subtotal  = inv.subtotal ?? items.reduce((s, li) => s + li.quantity * li.unit_price, 0);
+  const items     = await fetchLineItems(id);
+  const subtotal  = inv.subtotal  ?? items.reduce((s, li) => s + li.quantity * li.unit_price, 0);
   const vatAmount = inv.vat_amount ?? items.reduce((s, li) => s + li.quantity * li.unit_price * li.vat_rate / 100, 0);
-  const { banking } = APP_SETTINGS;
+  const { company, banking } = APP_SETTINGS;
   const proj = _projects.find(p => p.id === inv.project_id);
-  const lineRowsHTML = items.length
-    ? items.map(li => {
-        const lineAmt = li.quantity * li.unit_price * (1 + li.vat_rate / 100);
-        return `<tr>
-          <td style="padding:8px 10px;border-bottom:1px solid #e8e3da">${escapeHtml(li.description)}</td>
-          <td style="padding:8px 10px;border-bottom:1px solid #e8e3da;text-align:right">${li.quantity}</td>
-          <td style="padding:8px 10px;border-bottom:1px solid #e8e3da;text-align:right">${formatCurrency(li.unit_price)}</td>
-          <td style="padding:8px 10px;border-bottom:1px solid #e8e3da;text-align:right">${li.vat_rate}%</td>
-          <td style="padding:8px 10px;border-bottom:1px solid #e8e3da;text-align:right;font-weight:600">${formatCurrency(lineAmt)}</td>
-        </tr>`;
-      }).join('')
-    : `<tr><td colspan="5" style="padding:8px 10px;color:#888">—</td></tr>`;
-  const w = window.open('', '_blank', 'width=860,height=700');
-  if (!w) { toast('Pop-up blocked — please allow pop-ups and try again', 'error'); return; }
-  w.document.write(`<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8"/>
-<title>Invoice ${escapeHtml(inv.or_num)}</title>
-<style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Helvetica Neue',Arial,sans-serif;color:#1a1a1a;background:#fff;padding:48px}
-  .brand{font-size:28px;font-weight:700;letter-spacing:-0.5px}
-  .brand span{font-weight:300;color:#666}
-  .tagline{font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#888;margin-top:3px}
-  .inv-title{font-size:22px;font-weight:600;color:#999;text-align:right}
-  .inv-or{font-size:30px;font-weight:700;text-align:right;letter-spacing:-0.5px}
-  table.items{width:100%;border-collapse:collapse;margin:20px 0}
-  table.items thead th{background:#f5f0e8;padding:8px 10px;text-align:left;font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#666}
-  table.items thead th:not(:first-child){text-align:right}
-  .label{font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:#888;margin-bottom:3px}
-  .value{font-size:13px;color:#1a1a1a}
-  .total-row{display:flex;justify-content:space-between;font-size:13px;padding:4px 0}
-  .total-final{font-size:20px;font-weight:700;border-top:2px solid #1a1a1a;padding-top:10px;margin-top:8px;display:flex;justify-content:space-between}
-  .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase}
-  .badge-paid{background:#d4f5e2;color:#1a7a45}
-  .badge-unpaid{background:#fef3c7;color:#92400e}
-  .badge-overdue{background:#fee2e2;color:#991b1b}
-  .footer{margin-top:48px;padding-top:18px;border-top:1px solid #e8e3da;font-size:10px;color:#aaa;text-align:center;line-height:1.8}
-  @media print{body{padding:24px}.no-print{display:none}}
-</style>
-</head>
-<body>
-<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:40px">
-  <div>
-    <div class="brand">destine<span>vents</span></div>
-    <div class="tagline">DestineVents Collective OPC</div>
-    <div style="font-size:11px;color:#888;margin-top:8px;line-height:1.7">
-      Baguio City, Philippines<br>
-      ${escapeHtml(banking.bpiAccountName)}<br>
-      BPI Account: ${escapeHtml(banking.bpiAccountNumber)}
-    </div>
-  </div>
-  <div style="text-align:right">
-    <div class="inv-title">${inv.status === 'Paid' ? 'OFFICIAL RECEIPT' : 'INVOICE'}</div>
-    <div class="inv-or">${escapeHtml(inv.or_num)}</div>
-    <div style="margin-top:8px">
-      <span class="badge badge-${inv.status === 'Paid' ? 'paid' : inv.status === 'Overdue' ? 'overdue' : 'unpaid'}">${escapeHtml(inv.status)}</span>
-    </div>
-  </div>
-</div>
+  const isOR = inv.status === 'Paid';
+  const title = isOR ? 'OFFICIAL RECEIPT' : 'INVOICE';
+  const statusCls = isOR ? 'paid' : inv.status === 'Overdue' ? 'overdue' : 'unpaid';
 
+  const body = `
 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;margin-bottom:32px;padding-bottom:24px;border-bottom:1px solid #e8e3da">
   <div>
     <div class="label">Billed To</div>
@@ -503,7 +456,7 @@ export async function printInvoice(id: number) {
     <div class="value">${inv.due ? formatDateShort(inv.due) : '—'}</div>
   </div>
   <div>
-    ${inv.status === 'Paid' ? `
+    ${isOR ? `
     <div class="label">Payment Date</div>
     <div class="value">${inv.payment_date ? formatDateShort(inv.payment_date) : '—'}</div>
     <div class="label" style="margin-top:10px">Payment Method</div>
@@ -512,51 +465,51 @@ export async function printInvoice(id: number) {
     ` : ''}
   </div>
 </div>
+${items.length > 0
+  ? docPDFLineItemsTable(items) + docPDFTotals({ subtotal, vat: vatAmount, total: inv.amount })
+  : `<div style="display:flex;justify-content:flex-end;margin:32px 0"><div style="width:280px"><div class="total-final"><span>Total Due</span><span>${formatCurrency(inv.amount)}</span></div></div></div>`}
+${inv.notes ? `<div style="margin-top:24px;padding:14px;background:#f9f6f0;border-radius:6px;font-size:12px;color:#555;line-height:1.7"><strong>Notes:</strong> ${escapeHtml(inv.notes)}</div>` : ''}`
 
-${items.length > 0 ? `
-<table class="items">
-  <thead><tr>
-    <th style="width:45%">Description</th>
-    <th style="width:10%">Qty</th>
-    <th style="width:15%">Unit Price</th>
-    <th style="width:10%">VAT</th>
-    <th style="width:20%">Amount</th>
-  </tr></thead>
-  <tbody>${lineRowsHTML}</tbody>
-</table>
-<div style="display:flex;justify-content:flex-end">
-  <div style="width:280px">
-    <div class="total-row"><span style="color:#888">Subtotal</span><span>${formatCurrency(subtotal)}</span></div>
-    ${vatAmount > 0 ? `<div class="total-row"><span style="color:#888">VAT</span><span>${formatCurrency(vatAmount)}</span></div>` : ''}
-    <div class="total-final"><span>Total Due</span><span>${formatCurrency(inv.amount)}</span></div>
-  </div>
-</div>` : `
-<div style="display:flex;justify-content:flex-end;margin:32px 0">
-  <div style="width:280px">
-    <div class="total-final"><span>Total Due</span><span>${formatCurrency(inv.amount)}</span></div>
-  </div>
-</div>`}
+  const html = buildDocPDF({
+    title,
+    number: inv.or_num,
+    status: inv.status,
+    statusClass: statusCls,
+    company: {
+      name: company.name,
+      address: company.address,
+      email: company.email,
+      bankAccountName: banking.bpiAccountName,
+      bankAccountNumber: banking.bpiAccountNumber,
+    },
+    showBanking: true,
+    body,
+    sigLeft:  isOR && inv.received_by ? { label: 'Received By', name: inv.received_by } : { label: 'Prepared By' },
+    sigRight: { label: 'Client Signature' },
+  });
 
-${inv.notes ? `<div style="margin-top:24px;padding:14px;background:#f9f6f0;border-radius:6px;font-size:12px;color:#555;line-height:1.7"><strong>Notes:</strong> ${escapeHtml(inv.notes)}</div>` : ''}
-
-<div style="margin-top:20px;no-print" class="no-print">
-  <button onclick="window.print()" style="padding:8px 20px;background:#1a1a1a;color:#fff;border:none;border-radius:4px;font-size:13px;cursor:pointer">Print / Save as PDF</button>
-</div>
-
-<div class="footer">
-  DestineVents Collective OPC · Baguio City, Philippines · destinevents.biz@gmail.com<br>
-  Thank you for your trust and partnership.
-</div>
-</body>
-</html>`);
-  w.document.close();
-  w.focus();
+  const w = window.open('', '_blank', 'width=860,height=700');
+  if (!w) { toast('Pop-up blocked — please allow pop-ups and try again', 'error'); return; }
+  try {
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    const user = await getCurrentUser();
+    await logDocActivity('invoice', id, inv.or_num, 'downloaded', user?.name ?? user?.email ?? null);
+  } catch (error) {
+    console.error('printInvoice failed:', error);
+    w.close();
+    toast('Could not generate PDF. Please try again.', 'error');
+  }
 }
 
 export async function archiveInvoice(id: number) {
+  const inv = _invoices.find(x => x.id === id);
   const ok = await updateInvoice(id, { archived_at: new Date().toISOString() } as Partial<Invoice>);
   if (!ok) { toast('Could not archive invoice', 'error'); return; }
   toast('Invoice archived', '');
+  const user = await getCurrentUser();
+  await logDocActivity('invoice', id, inv?.or_num ?? null, 'archived', user?.name ?? user?.email ?? null);
   loadFinance();
 }
 
@@ -828,52 +781,14 @@ export async function printOfficialReceipt(id: number) {
   const inv = _invoices.find(x => x.id === id);
   if (!inv) return;
   if (inv.status !== 'Paid') { toast('OR can only be printed for paid invoices', 'error'); return; }
-  const linkedSOB  = _sobs.find(s => s.linked_invoice_id === id);
-  const proj       = _projects.find(p => p.id === inv.project_id);
-  const { banking } = APP_SETTINGS;
-  const w = window.open('', '_blank', 'width=860,height=700');
-  if (!w) { toast('Pop-up blocked — please allow pop-ups and try again', 'error'); return; }
-  w.document.write(`<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8"/>
-<title>Official Receipt ${escapeHtml(inv.or_num)}</title>
-<style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Helvetica Neue',Arial,sans-serif;color:#1a1a1a;background:#fff;padding:48px}
-  .brand{font-size:28px;font-weight:700;letter-spacing:-0.5px}
-  .brand span{font-weight:300;color:#666}
-  .tagline{font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#888;margin-top:3px}
-  .doc-title{font-size:22px;font-weight:600;color:#999;text-align:right}
-  .doc-num{font-size:30px;font-weight:700;text-align:right;letter-spacing:-0.5px}
-  .label{font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:#888;margin-bottom:3px}
-  .value{font-size:13px;color:#1a1a1a}
-  .pay-box{background:#f5f9f2;border:1px solid #c8e6c9;border-radius:8px;padding:20px 24px;margin:32px 0}
-  .pay-amount{font-size:36px;font-weight:700;color:#1a7a45;margin:8px 0 4px}
-  .footer{margin-top:48px;padding-top:18px;border-top:1px solid #e8e3da;font-size:10px;color:#aaa;text-align:center;line-height:1.8}
-  @media print{body{padding:24px}.no-print{display:none}}
-</style>
-</head>
-<body>
-<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:40px">
-  <div>
-    <div class="brand">destine<span>vents</span></div>
-    <div class="tagline">DestineVents Collective OPC</div>
-    <div style="font-size:11px;color:#888;margin-top:8px;line-height:1.7">
-      Baguio City, Philippines<br>
-      ${escapeHtml(banking.bpiAccountName)}<br>
-      BPI Account: ${escapeHtml(banking.bpiAccountNumber)}
-    </div>
-  </div>
-  <div style="text-align:right">
-    <div class="doc-title">OFFICIAL RECEIPT</div>
-    <div class="doc-num">${escapeHtml(inv.or_num)}</div>
-    <div style="margin-top:8px;font-size:11px;color:#888">
-      Linked Invoice: ${escapeHtml(inv.or_num)}${linkedSOB ? ` · SOB: ${escapeHtml(linkedSOB.sob_num)}` : ''}
-    </div>
-  </div>
-</div>
+  const linkedSOB = _sobs.find(s => s.linked_invoice_id === id);
+  const proj      = _projects.find(p => p.id === inv.project_id);
+  const { company, banking } = APP_SETTINGS;
 
+  const body = `
+<div style="margin-top:-8px;margin-bottom:32px;font-size:11px;color:#888;text-align:right">
+  ${linkedSOB ? `Linked SOB: ${escapeHtml(linkedSOB.sob_num)} · ` : ''}Invoice: ${escapeHtml(inv.or_num)}
+</div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;padding-bottom:24px;border-bottom:1px solid #e8e3da">
   <div>
     <div class="label">Received From</div>
@@ -888,44 +803,47 @@ export async function printOfficialReceipt(id: number) {
     ${inv.received_by ? `<div class="label" style="margin-top:10px">Received By</div><div class="value">${escapeHtml(inv.received_by)}</div>` : ''}
   </div>
 </div>
-
-<div class="pay-box">
+<div class="net-box">
   <div class="label">Amount Paid</div>
-  <div class="pay-amount">₱${(inv.amount || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</div>
+  <div class="net-amount">${formatCurrency(inv.amount)}</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
-    <div>
-      <div class="label">Payment Method</div>
-      <div class="value" style="font-weight:600">${escapeHtml(inv.payment_method ?? '—')}</div>
-    </div>
+    <div><div class="label">Payment Method</div><div class="value" style="font-weight:600">${escapeHtml(inv.payment_method ?? '—')}</div></div>
     ${inv.payment_reference ? `<div><div class="label">Reference Number</div><div class="value" style="font-weight:600">${escapeHtml(inv.payment_reference)}</div></div>` : ''}
   </div>
 </div>
+${inv.notes ? `<div style="margin-top:16px;padding:14px;background:#f9f6f0;border-radius:6px;font-size:12px;color:#555;line-height:1.7"><strong>Notes:</strong> ${escapeHtml(inv.notes)}</div>` : ''}`
 
-${inv.notes ? `<div style="margin-top:16px;padding:14px;background:#f9f6f0;border-radius:6px;font-size:12px;color:#555;line-height:1.7"><strong>Notes:</strong> ${escapeHtml(inv.notes)}</div>` : ''}
+  const html = buildDocPDF({
+    title: 'OFFICIAL RECEIPT',
+    number: inv.or_num,
+    status: 'Paid',
+    statusClass: 'paid',
+    company: {
+      name: company.name,
+      address: company.address,
+      email: company.email,
+      bankAccountName: banking.bpiAccountName,
+      bankAccountNumber: banking.bpiAccountNumber,
+    },
+    showBanking: true,
+    body,
+    sigLeft:  inv.received_by ? { label: 'Issued By', name: inv.received_by } : { label: 'Issued By' },
+    sigRight: { label: 'Client Acknowledgement' },
+  });
 
-<div style="margin-top:40px;display:grid;grid-template-columns:1fr 1fr;gap:32px">
-  <div style="border-top:1px solid #1a1a1a;padding-top:8px;text-align:center">
-    <div style="font-size:11px;color:#888">Issued By</div>
-    <div style="font-size:12px;margin-top:24px">${inv.received_by ? escapeHtml(inv.received_by) : '___________________________'}</div>
-  </div>
-  <div style="border-top:1px solid #1a1a1a;padding-top:8px;text-align:center">
-    <div style="font-size:11px;color:#888">Client Acknowledgement</div>
-    <div style="font-size:12px;margin-top:24px">___________________________</div>
-  </div>
-</div>
-
-<div style="margin-top:20px" class="no-print">
-  <button onclick="window.print()" style="padding:8px 20px;background:#1a1a1a;color:#fff;border:none;border-radius:4px;font-size:13px;cursor:pointer">Print / Save as PDF</button>
-</div>
-
-<div class="footer">
-  DestineVents Collective OPC · Baguio City, Philippines · destinevents.biz@gmail.com<br>
-  This is an official receipt of payment. Thank you for your partnership.
-</div>
-</body>
-</html>`);
-  w.document.close();
-  w.focus();
+  const w = window.open('', '_blank', 'width=860,height=700');
+  if (!w) { toast('Pop-up blocked — please allow pop-ups and try again', 'error'); return; }
+  try {
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    const user = await getCurrentUser();
+    await logDocActivity('invoice', id, inv.or_num, 'downloaded', user?.name ?? user?.email ?? null);
+  } catch (error) {
+    console.error('printOfficialReceipt failed:', error);
+    w.close();
+    toast('Could not generate PDF. Please try again.', 'error');
+  }
 }
 
 export function sendInvoiceEmail(id: number) {

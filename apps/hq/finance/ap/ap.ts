@@ -1,7 +1,12 @@
 import { formatCurrency } from '@shared/utils/formatUtils.ts';
+import { formatDateShort } from '@shared/utils/dateUtils.ts';
 import { escapeHtml } from '@shared/utils/helpers.ts';
 import { validateRequired } from '@shared/utils/validators.ts';
 import { APP_SETTINGS } from '@config/settings.ts';
+import { nextDocNumber } from '@shared/services/documents/docNumberService.ts';
+import { logDocActivity } from '@shared/services/documents/activityLogService.ts';
+import { getCurrentUser } from '@shared/core/authService.ts';
+import { buildDocPDF, docPDFTotals } from '@shared/documents/pdfTemplate.ts';
 import {
   AP_CATEGORIES, AP_STATUSES, AP_STATUS_CLASS, apRowHTML, billFormHTML, displayDate,
 } from '../templates/bills.ts';
@@ -52,7 +57,7 @@ export function setApBillPage(p: number) {
 }
 
 export function renderAP(bills: Bill[]) {
-  const container = document.getElementById('ftab-payables');
+  const container = document.getElementById('ptab-expenses');
   if (!container) return;
 
   const active    = bills.filter(b => !b.archived_at);
@@ -199,7 +204,7 @@ export async function saveBill() {
   const expenseNumber = expInput
     || (_editingBillId
       ? (_bills.find(b => b.id === _editingBillId)?.expense_number ?? null)
-      : `EXP-${new Date().getFullYear()}-${String(_bills.filter(b => !b.archived_at).length + 1).padStart(3, '0')}`);
+      : nextDocNumber('EXP', _bills.map(b => b.expense_number ?? '')));
 
   // ── Receipt file upload ────────────────────────────────────────────────────
   const existingBill  = _editingBillId ? _bills.find(b => b.id === _editingBillId) : null;
@@ -230,17 +235,21 @@ export async function saveBill() {
     remarks:        (document.getElementById('fb-remarks')     as HTMLTextAreaElement).value.trim() || null,
   };
 
+  const user = await getCurrentUser();
+  const actor = user?.name ?? user?.email ?? null;
   if (_editingBillId) {
     const statusEl = document.getElementById('fb-status') as HTMLSelectElement | null;
     if (statusEl) payload.status = statusEl.value;
     const ok = await updateBill(_editingBillId, payload);
     if (!ok) { toast('Could not update expense', 'error'); return; }
     toast('Expense updated', 'success');
+    await logDocActivity('bill', _editingBillId, expenseNumber, 'updated', actor);
   } else {
     payload.status = 'Pending';
     const result = await createBill(payload);
     if (!result) { toast('Could not add expense. Please try again.', 'error'); return; }
     toast('Expense added', 'success');
+    await logDocActivity('bill', result.id, expenseNumber, 'created', actor);
   }
   closeModal();
   loadFinance();
@@ -306,9 +315,11 @@ export async function saveApproveBill() {
   if (!_approvingBillId) return;
   const approver = (document.getElementById('ap-approver') as HTMLInputElement).value.trim();
   if (!approver) { toast('Approver name is required', 'error'); return; }
+  const bill = _bills.find(b => b.id === _approvingBillId);
   const ok = await updateBill(_approvingBillId, { status: 'Approved', approved_by: approver });
   if (!ok) { toast('Could not approve expense', 'error'); return; }
   toast('Expense approved', 'success');
+  await logDocActivity('bill', _approvingBillId, bill?.expense_number ?? null, 'approved', approver);
   _approvingBillId = null;
   closeModal();
   loadFinance();
@@ -316,25 +327,34 @@ export async function saveApproveBill() {
 
 export async function rejectBill(id: number) {
   if (!confirm('Reject this expense and return it to Pending?')) return;
+  const bill = _bills.find(b => b.id === id);
   const ok = await updateBill(id, { status: 'Pending' });
   if (!ok) { toast('Could not reject expense', 'error'); return; }
   toast('Expense returned to Pending', '');
+  const user = await getCurrentUser();
+  await logDocActivity('bill', id, bill?.expense_number ?? null, 'rejected', user?.name ?? user?.email ?? null);
   loadFinance();
 }
 
 export async function markBillPaid(id: number) {
   if (!confirm('Mark this expense as Paid?')) return;
+  const bill = _bills.find(b => b.id === id);
   const ok = await updateBill(id, { status: 'Paid' });
   if (!ok) { toast('Could not mark as paid', 'error'); return; }
   toast('Expense marked as Paid', 'success');
+  const user = await getCurrentUser();
+  await logDocActivity('bill', id, bill?.expense_number ?? null, 'paid', user?.name ?? user?.email ?? null);
   loadFinance();
 }
 
 export async function archiveBill(id: number) {
   if (!confirm('Archive this expense? It will be hidden from the main view.')) return;
+  const bill = _bills.find(b => b.id === id);
   const ok = await updateBill(id, { archived_at: new Date().toISOString() } as Partial<Bill>);
   if (!ok) { toast('Could not archive expense', 'error'); return; }
   toast('Expense archived', '');
+  const user = await getCurrentUser();
+  await logDocActivity('bill', id, bill?.expense_number ?? null, 'archived', user?.name ?? user?.email ?? null);
   loadFinance();
 }
 
@@ -346,7 +366,7 @@ export async function handleDeleteBill(id: number) {
   loadFinance();
 }
 
-export function printExpenseVoucher(id: number) {
+export async function printExpenseVoucher(id: number) {
   const b = _bills.find(x => x.id === id);
   if (!b) return;
   const { company } = APP_SETTINGS;
@@ -354,46 +374,9 @@ export function printExpenseVoucher(id: number) {
   const ewtAmt  = b.amount * ewtRate;
   const netPay  = b.amount - ewtAmt;
   const proj    = _projects.find(p => p.id === b.project_id);
-  const w       = window.open('', '_blank', 'width=900,height=700');
-  if (!w) return;
-  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/>
-<title>Expense Voucher ${escapeHtml(b.expense_number ?? String(b.id))}</title>
-<style>
-  body{font-family:'Helvetica Neue',Arial,sans-serif;color:#1a1a1a;background:#fff;padding:48px}
-  .brand{font-size:26px;font-weight:700;letter-spacing:-0.5px}
-  .brand span{font-weight:300;color:#666}
-  .tagline{font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:#888;margin-top:3px}
-  .ev-title{font-size:22px;font-weight:600;color:#999;text-align:right}
-  .ev-num{font-size:28px;font-weight:700;text-align:right;letter-spacing:-0.5px}
-  .label{font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:#888;margin-bottom:3px}
-  .value{font-size:13px;color:#1a1a1a;margin-bottom:12px}
-  .divider{border:none;border-top:1px solid #e8e3da;margin:20px 0}
-  .total-row{display:flex;justify-content:space-between;font-size:13px;padding:4px 0}
-  .total-final{font-size:20px;font-weight:700;border-top:2px solid #1a1a1a;padding-top:10px;margin-top:8px;display:flex;justify-content:space-between}
-  .sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;margin-top:48px}
-  .sig-line{border-top:1px solid #1a1a1a;padding-top:8px;font-size:11px;color:#888;margin-top:48px}
-  .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase}
-  .badge-paid{background:#d4f5e2;color:#1a7a45}
-  .badge-approved{background:#dbeafe;color:#1d4ed8}
-  .badge-for-approval{background:#fef3c7;color:#92400e}
-  .badge-pending{background:#f3f4f6;color:#6b7280}
-  .badge-cancelled{background:#f3f4f6;color:#9ca3af}
-  .footer{margin-top:48px;padding-top:18px;border-top:1px solid #e8e3da;font-size:10px;color:#aaa;text-align:center;line-height:1.8}
-  @media print{body{padding:24px}.no-print{display:none}}
-</style></head><body>
-<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:40px">
-  <div>
-    <div class="brand">destine<span>vents</span></div>
-    <div class="tagline">${escapeHtml(company.name)}</div>
-    <div style="font-size:11px;color:#888;margin-top:8px;line-height:1.7">${escapeHtml(company.address)}</div>
-  </div>
-  <div>
-    <div class="ev-title">Expense Voucher</div>
-    <div class="ev-num">${escapeHtml(b.expense_number ?? `EXP-${b.id}`)}</div>
-    <div style="text-align:right;margin-top:6px"><span class="badge badge-${AP_STATUS_CLASS[b.status] ?? 'pending'}">${escapeHtml(b.status)}</span></div>
-  </div>
-</div>
+  const statusCls = AP_STATUS_CLASS[b.status] ?? 'pending';
 
+  const body = `
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:28px">
   <div>
     <div class="label">Vendor</div>
@@ -405,41 +388,38 @@ export function printExpenseVoucher(id: number) {
     <div class="label">Category</div>
     <div class="value">${escapeHtml(b.category ?? '—')}</div>
     <div class="label">Date</div>
-    <div class="value">${displayDate(b.date)}</div>
-    ${b.due_date ? `<div class="label">Due Date</div><div class="value">${displayDate(b.due_date)}</div>` : ''}
+    <div class="value">${b.date ? formatDateShort(b.date) : '—'}</div>
+    ${b.due_date ? `<div class="label">Due Date</div><div class="value">${formatDateShort(b.due_date)}</div>` : ''}
     ${proj ? `<div class="label">Project</div><div class="value">${escapeHtml(proj.name)}</div>` : ''}
   </div>
 </div>
-
 <hr class="divider"/>
-<div style="max-width:400px;margin-left:auto">
-  <div class="total-row"><span>Amount</span><span>${formatCurrency(b.amount)}</span></div>
-  ${ewtAmt > 0 ? `<div class="total-row"><span>EWT Deduction (${escapeHtml(b.ewt)})</span><span style="color:#c0392b">− ${formatCurrency(ewtAmt)}</span></div>` : ''}
-  <div class="total-final"><span>Net Payable</span><span>${formatCurrency(netPay)}</span></div>
-</div>
+${docPDFTotals({ subtotal: b.amount, ewtRate: b.ewt, ewtAmount: ewtAmt, total: netPay, totalLabel: 'Net Payable' })}
+${b.remarks ? `<hr class="divider"/><div class="label">Remarks</div><div class="value">${escapeHtml(b.remarks)}</div>` : ''}`
 
-${b.remarks ? `<hr class="divider"/><div class="label">Remarks</div><div class="value">${escapeHtml(b.remarks)}</div>` : ''}
+  const html = buildDocPDF({
+    title: 'EXPENSE VOUCHER',
+    number: b.expense_number ?? `EXP-${b.id}`,
+    status: b.status,
+    statusClass: statusCls,
+    company: { name: company.name, address: company.address, email: company.email },
+    body,
+    sigLeft:  { label: 'Prepared By' },
+    sigRight: b.approved_by ? { label: 'Approved By', name: b.approved_by } : { label: 'Approved By' },
+  });
 
-<div class="sig-grid">
-  <div>
-    <div class="label">Prepared By</div>
-    <div class="sig-line"></div>
-    <div style="font-size:11px;color:#888;margin-top:6px">Signature / Name</div>
-  </div>
-  <div>
-    <div class="label">Approved By</div>
-    <div style="margin-top:${b.approved_by ? '12px' : '40px'};padding-top:8px;border-top:1px solid #1a1a1a;font-size:${b.approved_by ? '13px' : '11px'};color:${b.approved_by ? '#1a1a1a' : '#888'}">${b.approved_by ? escapeHtml(b.approved_by) : 'Signature / Name'}</div>
-  </div>
-</div>
-
-<div class="footer no-print" style="margin-top:32px">
-  <button onclick="window.print()" style="background:#252f27;color:#fff;border:none;padding:8px 22px;font-size:12px;cursor:pointer;font-family:inherit;letter-spacing:0.05em">Print / Save as PDF</button>
-</div>
-<div class="footer">
-  Generated by DestineVents HQ · ${new Date().toLocaleDateString('en-PH', { year:'numeric', month:'long', day:'numeric' })}
-</div>
-</body></html>`);
-  w.document.close();
+  const w = window.open('', '_blank', 'width=900,height=700');
+  if (!w) { toast('Pop-up blocked — please allow pop-ups and try again', 'error'); return; }
+  try {
+    w.document.write(html);
+    w.document.close();
+    const user = await getCurrentUser();
+    await logDocActivity('bill', id, b.expense_number ?? null, 'downloaded', user?.name ?? user?.email ?? null);
+  } catch (error) {
+    console.error('printExpenseVoucher failed:', error);
+    w.close();
+    toast('Could not generate PDF. Please try again.', 'error');
+  }
 }
 
 // ── BIR ───────────────────────────────────────────────────────────────────────

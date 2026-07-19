@@ -47,11 +47,14 @@ import {
   submitBillForApproval, approveBill, saveApproveBill, rejectBill,
   markBillPaid, archiveBill, printExpenseVoucher,
   setApFilter, clearApFilters, setApBillPage,
+  openAddPO, openEditPO, savePO, handleDeletePO,
+  sendPO, approvePO, markPOFulfilled, cancelPO, archivePO, printPO,
+  addPORow, recalcPO, setPOFilter, clearPOFilters, setPOPage,
   openARProjectSOB, advanceARProjectStage,
   sendInvoiceEmail, printOfficialReceipt, openPaymentHistory,
   toggleActionMenu,
   togglePaidInvoices, setInvoicePage, setORPage,
-  showReceivablesTab,
+  showReceivablesTab, showPayablesTab,
   showBIRTab, renderBIRReports,
   setBIRReportPeriod, setBIRReportYear, setBIRReportMonth, setBIRReportQuarter,
   printBIRReport, exportBIRReportCSV, exportBIRReportExcel,
@@ -463,6 +466,14 @@ declare global {
     archiveBill: typeof archiveBill; printExpenseVoucher: typeof printExpenseVoucher;
     setApFilter: typeof setApFilter; clearApFilters: typeof clearApFilters;
     setApBillPage: typeof setApBillPage;
+    openAddPO: typeof openAddPO; openEditPO: typeof openEditPO;
+    savePO: typeof savePO; handleDeletePO: typeof handleDeletePO;
+    sendPO: typeof sendPO; approvePO: typeof approvePO;
+    markPOFulfilled: typeof markPOFulfilled; cancelPO: typeof cancelPO;
+    archivePO: typeof archivePO; printPO: typeof printPO;
+    addPORow: typeof addPORow; recalcPO: typeof recalcPO;
+    setPOFilter: typeof setPOFilter; clearPOFilters: typeof clearPOFilters;
+    setPOPage: typeof setPOPage; showPayablesTab: typeof showPayablesTab;
     openAddPayroll: typeof openAddPayroll; openEditPayroll: typeof openEditPayroll;
     handleDeletePayroll: typeof handleDeletePayroll;
     recalcPayroll: typeof recalcPayroll; autoFillDeductions: typeof autoFillDeductions;
@@ -528,6 +539,10 @@ Object.assign(window, {
   submitBillForApproval, approveBill, saveApproveBill, rejectBill,
   markBillPaid, archiveBill, printExpenseVoucher,
   setApFilter, clearApFilters, setApBillPage,
+  // Purchase Orders
+  openAddPO, openEditPO, savePO, handleDeletePO,
+  sendPO, approvePO, markPOFulfilled, cancelPO, archivePO, printPO,
+  addPORow, recalcPO, setPOFilter, clearPOFilters, setPOPage, showPayablesTab,
   openAddPayroll, openEditPayroll, handleDeletePayroll,
   recalcPayroll, autoFillDeductions, markPayrollPaid,
   printPayslip, sendPayrollEmail,

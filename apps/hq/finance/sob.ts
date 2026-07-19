@@ -9,6 +9,12 @@ import {
 import { _clients, _projects, _invoices, _sobs, setSOBs } from '@hq/core/state.ts';
 import { toast, openModal, closeModal } from '@hq/core/ui.ts';
 import type { SOB, SOBLineItem, InvoiceLineItem } from '@shared/types.ts';
+import { nextDocNumber } from '@shared/services/documents/docNumberService.ts';
+import { logDocActivity } from '@shared/services/documents/activityLogService.ts';
+import { getCurrentUser } from '@shared/core/authService.ts';
+import {
+  buildDocPDF, docPDFLineItemsTable, docPDFTotals,
+} from '@shared/documents/pdfTemplate.ts';
 
 let _editingSOBId: number | null  = null;
 let _showArchivedSOBs             = false;
@@ -221,7 +227,8 @@ export function toggleArchivedSOBs() {
 
 export function openAddSOB() {
   _editingSOBId = null;
-  openModal('New Statement of Billing', sobFormHTML(), saveSOB);
+  const autoNum = nextDocNumber('SOB', _sobs.map(s => s.sob_num));
+  openModal('New Statement of Billing', sobFormHTML({ sob_num: autoNum }), saveSOB);
 }
 
 export async function openEditSOB(id: number) {
@@ -237,7 +244,9 @@ export async function openDuplicateSOB(id: number) {
   if (!original) return;
   const items = await fetchSOBLineItems(id);
   _editingSOBId = null;
+  const autoNum = nextDocNumber('SOB', _sobs.map(s => s.sob_num));
   const draft: Partial<SOB> = {
+    sob_num:              autoNum,
     client:               original.client,
     project_id:           original.project_id,
     description:          original.description,
@@ -252,7 +261,7 @@ export async function openDuplicateSOB(id: number) {
     status:               'Draft',
   };
   openModal('Duplicate Statement of Billing', sobFormHTML(draft, items), saveSOB);
-  toast('Duplicated — enter a new SOB number and save', '');
+  toast('Duplicated — SOB number auto-filled, save to confirm', '');
 }
 
 export async function saveSOB() {
@@ -301,16 +310,20 @@ export async function saveSOB() {
   if (preparedBy)  payload.prepared_by           = preparedBy;
   if (approvedBy)  payload.approved_by           = approvedBy;
 
+  const user = await getCurrentUser();
+  const actor = user?.name ?? user?.email ?? null;
   let sobId = _editingSOBId;
   if (sobId) {
     const ok = await updateSOB(sobId, payload);
     if (!ok) { toast('Could not update billing statement', 'error'); return; }
     toast('Billing statement updated', 'success');
+    await logDocActivity('sob', sobId, sob_num, 'updated', actor);
   } else {
     const result = await createSOB(payload);
     if (!result) { toast('Could not create billing statement. Please try again.', 'error'); return; }
     sobId = result.id;
     toast('Billing statement created', 'success');
+    await logDocActivity('sob', sobId, sob_num, 'created', actor);
   }
 
   if (sobId && lineItems.length) {
@@ -334,9 +347,12 @@ export async function handleDeleteSOB(id: number) {
 }
 
 export async function archiveSOB(id: number) {
+  const sob = _sobs.find(x => x.id === id);
   const ok = await updateSOB(id, { archived_at: new Date().toISOString() } as Partial<SOB>);
   if (!ok) { toast('Could not archive billing statement', 'error'); return; }
   toast('Billing statement archived', '');
+  const user = await getCurrentUser();
+  await logDocActivity('sob', id, sob?.sob_num ?? null, 'archived', user?.name ?? user?.email ?? null);
   const fresh = await fetchSOBs();
   setSOBs(fresh);
   renderSOB(fresh);
@@ -412,74 +428,15 @@ export function recalcSOB() {
 export async function printSOB(id: number) {
   const sob = _sobs.find(x => x.id === id);
   if (!sob) return;
-  const items  = await fetchSOBLineItems(id);
-  const subtotal  = sob.subtotal ?? items.reduce((s, li) => s + li.quantity * li.unit_price, 0);
+  const items     = await fetchSOBLineItems(id);
+  const subtotal  = sob.subtotal  ?? items.reduce((s, li) => s + li.quantity * li.unit_price, 0);
   const vatAmount = sob.vat_amount ?? items.reduce((s, li) => s + li.quantity * li.unit_price * li.vat_rate / 100, 0);
   const discount  = sob.discount ?? 0;
-  const { banking } = APP_SETTINGS;
+  const { company, banking } = APP_SETTINGS;
   const proj = _projects.find(p => p.id === sob.project_id);
-  const lineRowsHTML = items.length
-    ? items.map(li => {
-        const lineAmt = li.quantity * li.unit_price * (1 + li.vat_rate / 100);
-        return `<tr>
-          <td style="padding:8px 10px;border-bottom:1px solid #e8e3da">${escapeHtml(li.description)}</td>
-          <td style="padding:8px 10px;border-bottom:1px solid #e8e3da;text-align:right">${li.quantity}</td>
-          <td style="padding:8px 10px;border-bottom:1px solid #e8e3da;text-align:right">${formatCurrency(li.unit_price)}</td>
-          <td style="padding:8px 10px;border-bottom:1px solid #e8e3da;text-align:right">${li.vat_rate}%</td>
-          <td style="padding:8px 10px;border-bottom:1px solid #e8e3da;text-align:right;font-weight:600">${formatCurrency(lineAmt)}</td>
-        </tr>`;
-      }).join('')
-    : `<tr><td colspan="5" style="padding:8px 10px;color:#888">—</td></tr>`;
-  const w = window.open('', '_blank', 'width=860,height=700');
-  if (!w) { toast('Pop-up blocked — please allow pop-ups and try again', 'error'); return; }
-  w.document.write(`<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8"/>
-<title>Statement of Billing ${escapeHtml(sob.sob_num)}</title>
-<style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Helvetica Neue',Arial,sans-serif;color:#1a1a1a;background:#fff;padding:48px}
-  .brand{font-size:28px;font-weight:700;letter-spacing:-0.5px}
-  .brand span{font-weight:300;color:#666}
-  .tagline{font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#888;margin-top:3px}
-  .doc-title{font-size:22px;font-weight:600;color:#999;text-align:right}
-  .doc-num{font-size:30px;font-weight:700;text-align:right;letter-spacing:-0.5px}
-  table.items{width:100%;border-collapse:collapse;margin:20px 0}
-  table.items thead th{background:#f5f0e8;padding:8px 10px;text-align:left;font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#666}
-  table.items thead th:not(:first-child){text-align:right}
-  .label{font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:#888;margin-bottom:3px}
-  .value{font-size:13px;color:#1a1a1a}
-  .total-row{display:flex;justify-content:space-between;font-size:13px;padding:4px 0}
-  .total-final{font-size:20px;font-weight:700;border-top:2px solid #1a1a1a;padding-top:10px;margin-top:8px;display:flex;justify-content:space-between}
-  .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase}
-  .badge-draft{background:#f5f0e8;color:#666}
-  .badge-sent{background:#dbeafe;color:#1e40af}
-  .badge-paid{background:#d4f5e2;color:#1a7a45}
-  .footer{margin-top:48px;padding-top:18px;border-top:1px solid #e8e3da;font-size:10px;color:#aaa;text-align:center;line-height:1.8}
-  @media print{body{padding:24px}.no-print{display:none}}
-</style>
-</head>
-<body>
-<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:40px">
-  <div>
-    <div class="brand">destine<span>vents</span></div>
-    <div class="tagline">DestineVents Collective OPC</div>
-    <div style="font-size:11px;color:#888;margin-top:8px;line-height:1.7">
-      Baguio City, Philippines<br>
-      ${escapeHtml(banking.bpiAccountName)}<br>
-      BPI Account: ${escapeHtml(banking.bpiAccountNumber)}
-    </div>
-  </div>
-  <div style="text-align:right">
-    <div class="doc-title">STATEMENT OF BILLING</div>
-    <div class="doc-num">${escapeHtml(sob.sob_num)}</div>
-    <div style="margin-top:8px">
-      <span class="badge badge-${sob.status === 'Paid' ? 'paid' : sob.status === 'Sent' ? 'sent' : 'draft'}">${escapeHtml(sob.status)}</span>
-    </div>
-  </div>
-</div>
 
+  const statusClass = sob.status === 'Paid' ? 'paid' : sob.status === 'Sent' ? 'sent' : 'draft';
+  const body = `
 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;margin-bottom:32px;padding-bottom:24px;border-bottom:1px solid #e8e3da">
   <div>
     <div class="label">Billed To</div>
@@ -497,43 +454,43 @@ export async function printSOB(id: number) {
     ${sob.approved_by ? `<div class="label" style="margin-top:10px">Approved By</div><div class="value">${escapeHtml(sob.approved_by)}</div>` : ''}
   </div>
 </div>
-
 ${sob.description ? `<div style="margin-bottom:24px;font-size:13px;color:#555;line-height:1.6">${escapeHtml(sob.description)}</div>` : ''}
-
-<table class="items">
-  <thead><tr>
-    <th style="width:45%">Description</th>
-    <th style="width:10%">Qty</th>
-    <th style="width:15%">Unit Price</th>
-    <th style="width:10%">VAT</th>
-    <th style="width:20%">Amount</th>
-  </tr></thead>
-  <tbody>${lineRowsHTML}</tbody>
-</table>
-<div style="display:flex;justify-content:flex-end">
-  <div style="width:280px">
-    <div class="total-row"><span style="color:#888">Subtotal</span><span>${formatCurrency(subtotal)}</span></div>
-    ${vatAmount > 0 ? `<div class="total-row"><span style="color:#888">VAT</span><span>${formatCurrency(vatAmount)}</span></div>` : ''}
-    ${discount > 0 ? `<div class="total-row"><span style="color:#888">Discount</span><span>-${formatCurrency(discount)}</span></div>` : ''}
-    <div class="total-final"><span>Total Due</span><span>${formatCurrency(sob.total_amount)}</span></div>
-  </div>
-</div>
-
+${docPDFLineItemsTable(items)}
+${docPDFTotals({ subtotal, vat: vatAmount, discount, total: sob.total_amount })}
 ${sob.payment_instructions ? `<div style="margin-top:24px;padding:14px;background:#f9f6f0;border-radius:6px;font-size:12px;color:#555;line-height:1.7"><strong>Payment Instructions:</strong> ${escapeHtml(sob.payment_instructions)}</div>` : ''}
-${sob.notes ? `<div style="margin-top:12px;padding:14px;background:#f9f6f0;border-radius:6px;font-size:12px;color:#555;line-height:1.7"><strong>Notes:</strong> ${escapeHtml(sob.notes)}</div>` : ''}
+${sob.notes ? `<div style="margin-top:12px;padding:14px;background:#f9f6f0;border-radius:6px;font-size:12px;color:#555;line-height:1.7"><strong>Notes:</strong> ${escapeHtml(sob.notes)}</div>` : ''}`
 
-<div style="margin-top:20px" class="no-print">
-  <button onclick="window.print()" style="padding:8px 20px;background:#1a1a1a;color:#fff;border:none;border-radius:4px;font-size:13px;cursor:pointer">Print / Save as PDF</button>
-</div>
+  const html = buildDocPDF({
+    title: 'STATEMENT OF BILLING',
+    number: sob.sob_num,
+    status: sob.status,
+    statusClass,
+    company: {
+      name: company.name,
+      address: company.address,
+      email: company.email,
+      bankAccountName: banking.bpiAccountName,
+      bankAccountNumber: banking.bpiAccountNumber,
+    },
+    showBanking: true,
+    body,
+    sigLeft:  sob.prepared_by ? { label: 'Prepared By', name: sob.prepared_by } : { label: 'Prepared By' },
+    sigRight: sob.approved_by ? { label: 'Approved By', name: sob.approved_by } : { label: 'Approved By' },
+  });
 
-<div class="footer">
-  DestineVents Collective OPC · Baguio City, Philippines · destinevents.biz@gmail.com<br>
-  Thank you for your trust and partnership.
-</div>
-</body>
-</html>`);
-  w.document.close();
-  w.focus();
+  const w = window.open('', '_blank', 'width=860,height=700');
+  if (!w) { toast('Pop-up blocked — please allow pop-ups and try again', 'error'); return; }
+  try {
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    const user = await getCurrentUser();
+    await logDocActivity('sob', id, sob.sob_num, 'downloaded', user?.name ?? user?.email ?? null);
+  } catch (error) {
+    console.error('printSOB failed:', error);
+    w.close();
+    toast('Could not generate PDF. Please try again.', 'error');
+  }
 }
 
 export function openSOBSendEmail(id: number) {
@@ -573,6 +530,8 @@ export function openSOBSendEmail(id: number) {
     const ccPart = cc ? `&cc=${encodeURIComponent(cc)}` : '';
     window.open(`mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}${ccPart}&body=${encodeURIComponent(body)}`);
     await updateSOB(id, { status: 'Sent' } as Partial<SOB>);
+    const emailUser = await getCurrentUser();
+    await logDocActivity('sob', id, s.sob_num, 'sent', emailUser?.name ?? emailUser?.email ?? null);
     toast('Email client opened — SOB marked as Sent', 'success');
     closeModal();
     const fresh = await fetchSOBs();
@@ -612,6 +571,8 @@ export function openSOBRecordPayment(id: number) {
     const updatedNotes = s.notes ? `${s.notes}\n${paymentLog}` : paymentLog;
     const ok = await updateSOB(id, { status: newStatus, notes: updatedNotes } as Partial<SOB>);
     if (!ok) { toast('Could not record payment', 'error'); return; }
+    const payUser = await getCurrentUser();
+    await logDocActivity('sob', id, s.sob_num, 'paid', payUser?.name ?? payUser?.email ?? null, `${formatCurrency(amountPaid)} via ${method}`);
     toast(`Payment recorded — SOB marked as ${newStatus}`, 'success');
     closeModal();
     const fresh = await fetchSOBs();

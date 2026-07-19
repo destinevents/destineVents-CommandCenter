@@ -504,8 +504,15 @@
 
     </div>
 
-    <!-- Payables (AP) — fully rendered by renderAP() in finance.ts -->
-    <div class="ftab" id="ftab-payables"></div>
+    <!-- Payables — sub-tabs for Expenses and Purchase Orders -->
+    <div class="ftab" id="ftab-payables">
+      <div class="sub-tabs" id="payables-subtabs">
+        <div class="sub-tab active" onclick="showPayablesTab('expenses',this)">Expenses</div>
+        <div class="sub-tab" onclick="showPayablesTab('po',this)">Purchase Orders</div>
+      </div>
+      <div class="ptab active" id="ptab-expenses"></div>
+      <div class="ptab" id="ptab-po"></div>
+    </div>
 
     <!-- Payroll — fully rendered by renderPayroll() in finance.ts -->
     <div class="ftab" id="ftab-payroll"></div>

@@ -200,6 +200,34 @@ export interface PayrollRun {
   created_at: string;
 }
 
+export interface PurchaseOrder {
+  id: number;
+  po_number: string;
+  vendor: string;
+  project_id: number | null;
+  issue_date: string | null;
+  delivery_date: string | null;
+  subtotal: number;
+  vat_amount: number;
+  total_amount: number;
+  status: string;                // Draft | Sent | Approved | Fulfilled | Cancelled
+  notes: string | null;
+  prepared_by: string | null;
+  approved_by: string | null;
+  archived_at: string | null;
+  created_at: string;
+}
+
+export interface POLineItem {
+  id?: number;
+  po_id?: number;
+  description: string;
+  quantity: number;
+  unit_price: number;
+  vat_rate: number;
+  created_at?: string;
+}
+
 export interface Document {
   id: number;
   name: string;

@@ -4,6 +4,7 @@
 import type {
   Client, Proposal, Partner, Document, Invoice, Bill,
   PayrollRun, Project, ImpactEntry, BirFiling, Event, EventRegistration, SOB, UserRole, Meeting,
+  PurchaseOrder,
 } from '@shared/types.ts';
 
 export let _userRole: UserRole = 'admin';
@@ -53,3 +54,6 @@ export function setSOBs(v: SOB[]): void { _sobs = v; }
 
 export let _meetings: Meeting[] = [];
 export function setMeetings(v: Meeting[]): void { _meetings = v; }
+
+export let _pos: PurchaseOrder[] = [];
+export function setPOs(v: PurchaseOrder[]): void { _pos = v; }

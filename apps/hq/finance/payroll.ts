@@ -3,6 +3,9 @@ import { escapeHtml } from '@shared/utils/helpers.ts';
 import { validateRequired, validateEmail } from '@shared/utils/validators.ts';
 import { APP_SETTINGS } from '@config/settings.ts';
 import { getCurrentUser } from '@shared/core/authService.ts';
+import { nextDocNumber } from '@shared/services/documents/docNumberService.ts';
+import { logDocActivity } from '@shared/services/documents/activityLogService.ts';
+import { buildDocPDF, docPDFSignatureBlock } from '@shared/documents/pdfTemplate.ts';
 import { payrollTableHTML, payrollFormHTML, PAYROLL_STATUSES, EMPLOYEE_TYPES } from './templates/payroll.ts';
 import {
   fetchPayrollRuns, createPayrollRun, updatePayrollRun, deletePayrollRun,
@@ -38,14 +41,7 @@ export async function loadPayroll() {
 }
 
 export function _nextPayrollNumber(runs: PayrollRun[]): string {
-  const year = new Date().getFullYear();
-  const existing = runs
-    .map(r => r.payroll_number ?? '')
-    .filter(n => n.startsWith(`PAY-${year}-`))
-    .map(n => parseInt(n.split('-')[2] ?? '0', 10))
-    .filter(n => !isNaN(n));
-  const next = existing.length ? Math.max(...existing) + 1 : 1;
-  return `PAY-${year}-${String(next).padStart(3, '0')}`;
+  return nextDocNumber('PAY', runs.map(r => r.payroll_number ?? ''));
 }
 
 export function setPayrollFilter() {
@@ -261,15 +257,20 @@ export async function savePayroll() {
   const payload = _readPayrollForm();
   if (!payload) return;
   try {
+    const user = await getCurrentUser();
+    const actor = user?.name ?? user?.email ?? null;
     if (_editingPayrollId !== null) {
+      const existing = _payroll.find(r => r.id === _editingPayrollId);
       const ok = await updatePayrollRun(_editingPayrollId, payload);
       if (!ok) { toast('Could not update payroll record', 'error'); return; }
       toast('Payroll record updated', 'success');
+      await logDocActivity('payroll', _editingPayrollId, existing?.payroll_number ?? null, 'updated', actor);
     } else {
       payload.payroll_number = _nextPayrollNumber(_payroll);
       const result = await createPayrollRun(payload);
       if (!result) { toast('Could not save payroll record. Please try again.', 'error'); return; }
       toast('Payroll record saved', 'success');
+      await logDocActivity('payroll', result.id, payload.payroll_number, 'created', actor);
     }
     closeModal();
     await loadPayroll();
@@ -287,6 +288,8 @@ export async function markPayrollPaid(id: number) {
     const ok = await updatePayrollRun(id, { status: 'Paid', released_by });
     if (!ok) { toast('Could not mark as Paid', 'error'); return; }
     toast('Payroll marked as Paid', 'success');
+    const run = _payroll.find(r => r.id === id);
+    await logDocActivity('payroll', id, run?.payroll_number ?? null, 'paid', released_by);
     await loadPayroll();
   } catch (error) {
     console.error('markPayrollPaid failed:', error);
@@ -393,26 +396,41 @@ ${r.notes ? `<div style="padding:12px 16px;background:#f9f6f0;border-radius:6px;
 </div>`;
 }
 
-function _buildPayslipDoc(r: PayrollRun, gross: number, company: { name: string; address: string; email?: string }, tin: string): string {
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
-<title>Payslip ${escapeHtml(r.payroll_number ?? String(r.id))}</title>
-<style>${_payslipCSS()}</style></head><body>
-${_payslipHeaderHTML(r, company, tin)}
-${_payslipBodyHTML(r, gross, company)}
-</body></html>`;
-}
-
-export function printPayslip(id: number) {
+export async function printPayslip(id: number) {
   const r = _payroll.find(x => x.id === id);
   if (!r) return;
   const { company, banking } = APP_SETTINGS;
   const gross = r.gross ?? ((r.basic_pay || 0) + (r.overtime || 0) + (r.allowances || 0));
+
+  const body = _payslipBodyHTML(r, gross, company);
+  const sigs  = docPDFSignatureBlock(
+    { label: 'Prepared By', name: r.released_by ?? undefined },
+    { label: 'Received By', name: r.employee_name ?? undefined }
+  );
+
+  const html = buildDocPDF({
+    title: 'PAYSLIP',
+    number: r.payroll_number ?? `PAY-${r.id}`,
+    status: r.status,
+    statusClass: r.status === 'Paid' ? 'paid' : 'pending',
+    company: {
+      name: company.name,
+      address: company.address,
+      email: company.email,
+      tin: banking.tin || undefined,
+    },
+    showTin: !!banking.tin,
+    body: body + sigs,
+  });
+
   const w = window.open('', '_blank', 'width=860,height=700');
   if (!w) { toast('Pop-up blocked — please allow pop-ups and try again', 'error'); return; }
   try {
-    w.document.write(_buildPayslipDoc(r, gross, company, banking.tin));
+    w.document.write(html);
     w.document.close();
     w.focus();
+    const user = await getCurrentUser();
+    await logDocActivity('payroll', id, r.payroll_number ?? null, 'downloaded', user?.name ?? user?.email ?? null);
   } catch (error) {
     console.error('printPayslip failed:', error);
     w.close();

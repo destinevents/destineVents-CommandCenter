@@ -11,10 +11,11 @@ import { fetchClients } from '@hq/clients/clientService.ts';
 import { fetchProjects } from '@hq/projects/projectService.ts';
 import { fetchPartners } from '@hq/partners/partnerService.ts';
 import { fetchBirFilings } from '@hq/finance/birService.ts';
+import { fetchPurchaseOrders } from '@shared/services/documents/poService.ts';
 import {
-  _projects, _invoices, _bills, _payroll, _birFilings, _sobs,
+  _projects, _invoices, _bills, _payroll, _birFilings, _sobs, _pos,
   setClients, setProjects, setPartners, setInvoices, setBills,
-  setPayroll, setBirFilings, setSOBs,
+  setPayroll, setBirFilings, setSOBs, setPOs,
 } from '@hq/core/state.ts';
 import { renderSOB } from './sob.ts';
 import { renderPayroll } from './payroll.ts';
@@ -42,6 +43,12 @@ import {
   markBillPaid, archiveBill, printExpenseVoucher,
 } from './ap/ap.ts';
 import {
+  renderPO,
+  openAddPO, openEditPO, savePO, handleDeletePO,
+  sendPO, approvePO, markPOFulfilled, cancelPO, archivePO, printPO,
+  addPORow, recalcPO, setPOFilter, clearPOFilters, setPOPage,
+} from './ap/po.ts';
+import {
   renderBIR, showBIRTab, renderBIRReports,
   setBIRReportPeriod, setBIRReportYear, setBIRReportMonth, setBIRReportQuarter,
   printBIRReport, exportBIRReportCSV, exportBIRReportExcel,
@@ -66,6 +73,10 @@ export {
   openUploadReceipt, submitBillForApproval,
   approveBill, saveApproveBill, rejectBill,
   markBillPaid, archiveBill, printExpenseVoucher,
+  renderPO,
+  openAddPO, openEditPO, savePO, handleDeletePO,
+  sendPO, approvePO, markPOFulfilled, cancelPO, archivePO, printPO,
+  addPORow, recalcPO, setPOFilter, clearPOFilters, setPOPage,
   renderBIR, showBIRTab, renderBIRReports,
   setBIRReportPeriod, setBIRReportYear, setBIRReportMonth, setBIRReportQuarter,
   printBIRReport, exportBIRReportCSV, exportBIRReportExcel,
@@ -87,7 +98,7 @@ export function toggleActionMenu(btn: HTMLElement) {
 
 
 export async function loadFinance() {
-  const [inv, bil, pay, bir, clients, projs, parts, sobs] = await Promise.all([
+  const [inv, bil, pay, bir, clients, projs, parts, sobs, pos] = await Promise.all([
     fetchInvoices(),
     fetchBills(),
     fetchPayrollRuns(),
@@ -96,6 +107,7 @@ export async function loadFinance() {
     fetchProjects(),
     fetchPartners(),
     fetchSOBs(),
+    fetchPurchaseOrders(),
   ]);
   setClients(clients || []);
   setProjects(projs || []);
@@ -105,6 +117,7 @@ export async function loadFinance() {
   setPayroll(pay || []);
   setBirFilings(bir || []);
   setSOBs(sobs || []);
+  setPOs(pos || []);
   if (!_menuListenersSetup) {
     _menuListenersSetup = true;
     document.addEventListener('click', e => {
@@ -121,6 +134,7 @@ export async function loadFinance() {
   renderAR(_invoices);
   renderOfficialReceipts();
   renderAP(_bills);
+  renderPO(_pos);
   renderPayroll(_payroll);
   renderBIR();
   renderSOB(_sobs);
@@ -137,6 +151,13 @@ export function showReceivablesTab(name: string, el: HTMLElement) {
   document.querySelectorAll('#ftab-receivables .rtab').forEach(t => t.classList.remove('active'));
   gEl('rtab-' + name).classList.add('active');
   document.querySelectorAll('#receivables-subtabs .sub-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+}
+
+export function showPayablesTab(name: string, el: HTMLElement) {
+  document.querySelectorAll('#ftab-payables .ptab').forEach(t => t.classList.remove('active'));
+  gEl('ptab-' + name).classList.add('active');
+  document.querySelectorAll('#payables-subtabs .sub-tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
 }
 
