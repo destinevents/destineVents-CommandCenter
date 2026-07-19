@@ -37,6 +37,7 @@ export function apRowHTML(b: Bill, projects: Project[]): string {
   const projName  = proj ? escapeHtml(proj.name) : '—';
   const statusCls = AP_STATUS_CLASS[b.status] ?? 'pending';
 
+  const activityBtn = `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--ink-3)" onclick="openDocActivityLog('bill',${b.id},'${escapeHtml(b.expense_number ?? String(b.id))}')">Activity</button>`;
   let actions = '';
   if (b.status === 'Pending') {
     actions = isApprover()
@@ -44,26 +45,32 @@ export function apRowHTML(b: Bill, projects: Project[]): string {
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="openEditBill(${b.id})">Edit</button>
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--ink-2)" onclick="openUploadReceipt(${b.id})" title="Attach receipt file">📎 Receipt</button>
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--green)" onclick="approveBill(${b.id})">Approve</button>
+      ${activityBtn}
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--red)" onclick="handleDeleteBill(${b.id})">Delete</button>`
       : `
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="openEditBill(${b.id})">Edit</button>
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--ink-2)" onclick="openUploadReceipt(${b.id})" title="Attach receipt file">📎 Receipt</button>
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--blue)" onclick="submitBillForApproval(${b.id})">Submit</button>
+      ${activityBtn}
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--red)" onclick="handleDeleteBill(${b.id})">Delete</button>`;
   } else if (b.status === 'For Approval') {
     actions = `
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--green)" onclick="approveBill(${b.id})">Approve</button>
+      ${activityBtn}
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--red)" onclick="rejectBill(${b.id})">Reject</button>`;
   } else if (b.status === 'Approved') {
     actions = `
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--green)" onclick="markBillPaid(${b.id})">Mark Paid</button>
-      <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="printExpenseVoucher(${b.id})">PDF</button>`;
+      <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="printExpenseVoucher(${b.id})">PDF</button>
+      ${activityBtn}`;
   } else if (b.status === 'Paid') {
     actions = `
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="printExpenseVoucher(${b.id})">PDF</button>
+      ${activityBtn}
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--ink-3)" onclick="archiveBill(${b.id})">Archive</button>`;
   } else if (b.status === 'Cancelled') {
     actions = `
+      ${activityBtn}
       <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--ink-3)" onclick="archiveBill(${b.id})">Archive</button>`;
   }
 

@@ -7,6 +7,7 @@ import { nextDocNumber } from '@shared/services/documents/docNumberService.ts';
 import { logDocActivity } from '@shared/services/documents/activityLogService.ts';
 import { getCurrentUser } from '@shared/core/authService.ts';
 import { buildDocPDF, docPDFLineItemsTable, docPDFTotals } from '@shared/documents/pdfTemplate.ts';
+import { openDocEmail } from '@shared/documents/docEmail.ts';
 import {
   paginationBar, invoiceRowHTML, lineItemRowHTML, invoiceFormHTML, orRowHTML, displayDate,
 } from '../templates/invoices.ts';
@@ -849,10 +850,9 @@ ${inv.notes ? `<div style="margin-top:16px;padding:14px;background:#f9f6f0;borde
 export function sendInvoiceEmail(id: number) {
   const inv = _invoices.find(x => x.id === id);
   if (!inv) return;
-  const isOR       = inv.status === 'Paid';
-  const docLabel   = isOR ? 'Official Receipt' : 'Invoice';
-  const defaultSubject = `${docLabel} ${escapeHtml(inv.or_num)} — ${escapeHtml(inv.client ?? 'Client')}`;
-  const defaultBody = [
+  const isOR     = inv.status === 'Paid';
+  const docLabel = isOR ? 'Official Receipt' : 'Invoice';
+  const bodyLines = [
     `Dear ${inv.client ?? 'Client'},`,
     '',
     isOR
@@ -865,32 +865,19 @@ export function sendInvoiceEmail(id: number) {
     'Thank you for your continued partnership.',
   ].filter(Boolean).join('\n');
 
-  openModal(`Send ${docLabel} via Email`, `
-    <div style="font-size:11px;color:var(--ink-3);margin-bottom:12px">
-      ${docLabel} <strong>${escapeHtml(inv.or_num)}</strong> · ${formatCurrency(inv.amount)}${!isOR && inv.due ? ' · Due ' + formatDateShort(inv.due) : ''}
-    </div>
-    <div class="form-grid">
-      <div class="form-group full"><div class="form-label">To (Recipient Email)</div><input class="form-input" id="iem-to" type="email" placeholder="client@example.com"/></div>
-      <div class="form-group full"><div class="form-label">CC (optional)</div><input class="form-input" id="iem-cc" type="email" placeholder="colleague@example.com"/></div>
-      <div class="form-group full"><div class="form-label">Subject</div><input class="form-input" id="iem-subject" value="${escapeHtml(defaultSubject)}"/></div>
-      <div class="form-group full"><div class="form-label">Message</div><textarea class="form-input" id="iem-body" rows="8" style="font-size:11.5px;line-height:1.6">${escapeHtml(defaultBody)}</textarea></div>
-    </div>
-    <div style="font-size:10.5px;color:var(--ink-3);margin-top:8px">
-      This will open your email client. Attach the PDF (click <strong>${isOR ? 'Print OR' : 'Print'}</strong> first to save it).
-    </div>`, async () => {
-    const to      = (document.getElementById('iem-to')      as HTMLInputElement).value.trim();
-    const cc      = (document.getElementById('iem-cc')      as HTMLInputElement).value.trim();
-    const subject = (document.getElementById('iem-subject') as HTMLInputElement).value.trim();
-    const body    = (document.getElementById('iem-body')    as HTMLTextAreaElement).value.trim();
-    if (!to) { toast('Recipient email is required', 'error'); return; }
-    const ccPart = cc ? `&cc=${encodeURIComponent(cc)}` : '';
-    window.open(`mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}${ccPart}&body=${encodeURIComponent(body)}`);
-    if (!isOR && inv.status === 'Draft') {
-      await updateInvoice(id, { status: 'Issued' } as Partial<Invoice>);
-    }
-    toast('Email client opened', 'success');
-    closeModal();
-    loadFinance();
-  }, 'Open Email Client');
+  openDocEmail({
+    modalTitle:     `Send ${docLabel} via Email`,
+    docSummary:     `${docLabel} ${inv.or_num} · ${formatCurrency(inv.amount)}${!isOR && inv.due ? ' · Due ' + formatDateShort(inv.due) : ''}`,
+    defaultSubject: `${docLabel} ${inv.or_num} — ${inv.client ?? 'Client'}`,
+    defaultBody:    bodyLines,
+    pdfHint:        `Download the PDF first (click "${isOR ? 'Print OR' : 'Print'}") to attach it to your email.`,
+    onSend: async () => {
+      if (!isOR && inv.status === 'Draft') {
+        await updateInvoice(id, { status: 'Issued' } as Partial<Invoice>);
+      }
+      toast('Email client opened', 'success');
+      loadFinance();
+    },
+  });
 }
 
