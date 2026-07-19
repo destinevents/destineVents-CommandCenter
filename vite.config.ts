@@ -33,6 +33,7 @@ export default mergeConfig(
     test: {
       globals: true,
       environment: 'node',
+      setupFiles: ['./vitest.setup.ts'],
       exclude: ['node_modules/**', 'dist/**'],
       coverage: {
         provider: 'v8',
