@@ -2,15 +2,28 @@
 // (Print / Save as PDF). Used by the Finance Reports engine (§7).
 import { escapeHtml } from '@shared/utils/helpers.ts';
 
-// Quote a cell for CSV, escaping embedded quotes.
-function csvCell(value: unknown): string {
-  return `"${String(value ?? '').replace(/"/g, '""')}"`;
+// Guard against CSV/Excel formula injection: a text value that begins with a
+// formula trigger (= + - @) or a control character is prefixed with an
+// apostrophe so spreadsheets treat it as text, not a live formula. Only applied
+// to strings — numeric cells stay numeric.
+export function neutralizeCell(value: string): string {
+  return /^[=+\-@\t\r\n]/.test(value) ? `'${value}` : value;
+}
+
+// Quote a cell for CSV, escaping embedded quotes and neutralizing formulas.
+function csvCell(value: string | number): string {
+  const raw = typeof value === 'string' ? neutralizeCell(value) : String(value ?? '');
+  return `"${raw.replace(/"/g, '""')}"`;
+}
+
+// Pure: serialize a 2D row model to CSV text.
+export function rowsToCSV(rows: (string | number)[][]): string {
+  return rows.map(r => r.map(csvCell).join(',')).join('\n');
 }
 
 // Trigger a browser download of a CSV built from a 2D array of rows.
 export function downloadCSV(filename: string, rows: (string | number)[][]): void {
-  const csv = rows.map(r => r.map(csvCell).join(',')).join('\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const blob = new Blob([rowsToCSV(rows)], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -21,28 +34,29 @@ export function downloadCSV(filename: string, rows: (string | number)[][]): void
   URL.revokeObjectURL(url);
 }
 
-// Download a native Excel file from the same 2D row model used for CSV. Uses
-// the dependency-free "Office HTML" format (Excel-namespaced HTML) that Excel
-// opens directly with formatting and numeric cells — matching the BIR export.
+// Pure: serialize a 2D row model to Excel-namespaced "Office HTML". String
+// cells are HTML-escaped and formula-neutralized; numeric cells stay numeric.
 // Rows: length 0 = blank spacer; length 1 = a full-width section heading;
 // length >=2 = a data row (numbers are right-aligned, formatted cells).
-export function downloadExcel(filename: string, sheetName: string, rows: (string | number)[][]): void {
+export function rowsToExcelHTML(sheetName: string, rows: (string | number)[][]): string {
   const maxCols = rows.reduce((m, r) => Math.max(m, r.length), 1);
   const dataCell = (v: string | number) => {
-    const isNum = typeof v === 'number';
-    const style = isNum ? 'mso-number-format:"#,##0.00";text-align:right;' : '';
-    return `<td style="${style}">${escapeHtml(String(v ?? ''))}</td>`;
+    // Numeric cells keep Excel's number format (matches the BIR export exactly).
+    if (typeof v === 'number') {
+      return `<td style="mso-number-format:"#,##0.00";text-align:right;">${v}</td>`;
+    }
+    return `<td>${escapeHtml(neutralizeCell(v ?? ''))}</td>`;
   };
   const body = rows.map(r => {
     if (r.length === 0) return `<tr><td colspan="${maxCols}"></td></tr>`;
     if (r.length === 1) {
-      return `<tr><td colspan="${maxCols}" style="font-weight:700;background:#252f27;color:#fff;padding:4px 8px">${escapeHtml(String(r[0]))}</td></tr>`;
+      return `<tr><td colspan="${maxCols}" style="font-weight:700;background:#252f27;color:#fff;padding:4px 8px">${escapeHtml(neutralizeCell(String(r[0] ?? '')))}</td></tr>`;
     }
     const cells = r.map(dataCell).join('') + '<td></td>'.repeat(maxCols - r.length);
     return `<tr>${cells}</tr>`;
   }).join('');
 
-  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office"
+  return `<html xmlns:o="urn:schemas-microsoft-com:office:office"
       xmlns:x="urn:schemas-microsoft-com:office:excel"
       xmlns="http://www.w3.org/TR/REC-html40">
 <head><meta charset="UTF-8"/>
@@ -52,8 +66,11 @@ export function downloadExcel(filename: string, sheetName: string, rows: (string
 </head><body>
 <table border="1" cellspacing="0" cellpadding="4" style="border-collapse:collapse;font-family:Arial;font-size:12px">${body}</table>
 </body></html>`;
+}
 
-  const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+// Download a native Excel file from the same 2D row model used for CSV.
+export function downloadExcel(filename: string, sheetName: string, rows: (string | number)[][]): void {
+  const blob = new Blob([rowsToExcelHTML(sheetName, rows)], { type: 'application/vnd.ms-excel;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
