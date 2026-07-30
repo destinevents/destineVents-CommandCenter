@@ -267,8 +267,8 @@ export function projectProfitability(
       return {
         projectId,
         name: proj?.name ?? 'Unassigned',
-        // Projects have no explicit code column yet — derive a stable display code.
-        code: proj ? `P-${proj.id}` : '',
+        // Use the project's real code; fall back for legacy projects without one.
+        code: proj ? (proj.code || `P-${proj.id}`) : '',
         revenue: v.revenue,
         expenses: v.expenses,
         net: v.revenue - v.expenses,

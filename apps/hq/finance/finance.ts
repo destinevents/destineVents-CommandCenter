@@ -80,7 +80,7 @@ import {
 } from './budget.ts';
 import {
   renderReports, setReportType, setReportFilter,
-  exportFinanceReportCSV, printFinanceReport,
+  exportFinanceReportCSV, exportFinanceReportExcel, printFinanceReport,
 } from './reports.ts';
 
 // ── Re-export everything app.ts expects from a single finance entry point ─────
@@ -126,7 +126,7 @@ export {
   handleDeleteBudget, setBudgetFilter,
   // Reports
   renderReports, setReportType, setReportFilter,
-  exportFinanceReportCSV, printFinanceReport,
+  exportFinanceReportCSV, exportFinanceReportExcel, printFinanceReport,
 };
 
 const gEl = (id: string) => document.getElementById(id)!;

@@ -73,7 +73,7 @@ import {
   openAddAccount, openEditAccount, handleDeleteAccount, setDefaultAccount,
   openAddFounderEntry, openEditFounderEntry, handleDeleteFounderEntry,
   setMonthlySummaryFilter,
-  setReportType, setReportFilter, exportFinanceReportCSV, printFinanceReport,
+  setReportType, setReportFilter, exportFinanceReportCSV, exportFinanceReportExcel, printFinanceReport,
   openAddBudget, openEditBudget, saveBudget, handleDeleteBudget, setBudgetFilter,
 } from '../finance/finance.ts';
 import { loadProjects, openAddProject, openEditProject, handleDeleteProject, convertProposalToProject, openProjectDetail, addClientFromProposal } from '../projects/projects.ts';
@@ -522,6 +522,7 @@ declare global {
     setMonthlySummaryFilter: typeof setMonthlySummaryFilter;
     setReportType: typeof setReportType; setReportFilter: typeof setReportFilter;
     exportFinanceReportCSV: typeof exportFinanceReportCSV; printFinanceReport: typeof printFinanceReport;
+    exportFinanceReportExcel: typeof exportFinanceReportExcel;
     openAddBudget: typeof openAddBudget; openEditBudget: typeof openEditBudget;
     saveBudget: typeof saveBudget; handleDeleteBudget: typeof handleDeleteBudget;
     setBudgetFilter: typeof setBudgetFilter;
@@ -605,7 +606,7 @@ Object.assign(window, {
   openAddAccount, openEditAccount, handleDeleteAccount, setDefaultAccount,
   openAddFounderEntry, openEditFounderEntry, handleDeleteFounderEntry,
   setMonthlySummaryFilter,
-  setReportType, setReportFilter, exportFinanceReportCSV, printFinanceReport,
+  setReportType, setReportFilter, exportFinanceReportCSV, exportFinanceReportExcel, printFinanceReport,
   openAddBudget, openEditBudget, saveBudget, handleDeleteBudget, setBudgetFilter,
   // Operations
   filterPartners, handleFileSelect, npGoStep1, npGoStep2, npFinish, downloadNDA,

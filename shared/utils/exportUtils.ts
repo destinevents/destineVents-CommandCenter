@@ -1,5 +1,6 @@
-// Generic client-side export helpers: CSV download + printable window
+// Generic client-side export helpers: CSV + Excel download + printable window
 // (Print / Save as PDF). Used by the Finance Reports engine (§7).
+import { escapeHtml } from '@shared/utils/helpers.ts';
 
 // Quote a cell for CSV, escaping embedded quotes.
 function csvCell(value: unknown): string {
@@ -14,6 +15,49 @@ export function downloadCSV(filename: string, rows: (string | number)[][]): void
   const a = document.createElement('a');
   a.href = url;
   a.download = filename.endsWith('.csv') ? filename : `${filename}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// Download a native Excel file from the same 2D row model used for CSV. Uses
+// the dependency-free "Office HTML" format (Excel-namespaced HTML) that Excel
+// opens directly with formatting and numeric cells — matching the BIR export.
+// Rows: length 0 = blank spacer; length 1 = a full-width section heading;
+// length >=2 = a data row (numbers are right-aligned, formatted cells).
+export function downloadExcel(filename: string, sheetName: string, rows: (string | number)[][]): void {
+  const maxCols = rows.reduce((m, r) => Math.max(m, r.length), 1);
+  const dataCell = (v: string | number) => {
+    const isNum = typeof v === 'number';
+    const style = isNum ? 'mso-number-format:"#,##0.00";text-align:right;' : '';
+    return `<td style="${style}">${escapeHtml(String(v ?? ''))}</td>`;
+  };
+  const body = rows.map(r => {
+    if (r.length === 0) return `<tr><td colspan="${maxCols}"></td></tr>`;
+    if (r.length === 1) {
+      return `<tr><td colspan="${maxCols}" style="font-weight:700;background:#252f27;color:#fff;padding:4px 8px">${escapeHtml(String(r[0]))}</td></tr>`;
+    }
+    const cells = r.map(dataCell).join('') + '<td></td>'.repeat(maxCols - r.length);
+    return `<tr>${cells}</tr>`;
+  }).join('');
+
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:x="urn:schemas-microsoft-com:office:excel"
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="UTF-8"/>
+<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets>
+  <x:ExcelWorksheet><x:Name>${escapeHtml(sheetName)}</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet>
+</x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->
+</head><body>
+<table border="1" cellspacing="0" cellpadding="4" style="border-collapse:collapse;font-family:Arial;font-size:12px">${body}</table>
+</body></html>`;
+
+  const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename.endsWith('.xls') ? filename : `${filename}.xls`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

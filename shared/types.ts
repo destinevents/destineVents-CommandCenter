@@ -374,6 +374,7 @@ export interface BirFiling {
 export interface Project {
   id: number;
   name: string;
+  code: string | null;            // human code, auto PRJ-YYYY-NNN when blank
   client: string | null;
   brand: string | null;
   category: string | null;

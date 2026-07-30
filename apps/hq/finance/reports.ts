@@ -4,7 +4,7 @@
 import { formatCurrency } from '@shared/utils/formatUtils.ts';
 import { escapeHtml } from '@shared/utils/helpers.ts';
 import { formatDateShort } from '@shared/utils/dateUtils.ts';
-import { downloadCSV, printHTML } from '@shared/utils/exportUtils.ts';
+import { downloadCSV, downloadExcel, printHTML } from '@shared/utils/exportUtils.ts';
 import { toast } from '@hq/core/ui.ts';
 import { _ledger, _accounts, _founderCapital, _projects } from '@hq/core/state.ts';
 import {
@@ -49,6 +49,7 @@ export function renderReports(): void {
     ${REPORT_TYPES.map(r => `<option value="${r.value}"${r.value === _repType ? ' selected' : ''}>${r.label}</option>`).join('')}
   </select>`;
   const exportBtns = `
+    <button class="btn btn-ghost" onclick="exportFinanceReportExcel()" style="font-size:12px">Export Excel</button>
     <button class="btn btn-ghost" onclick="exportFinanceReportCSV()" style="font-size:12px">Export CSV</button>
     <button class="btn btn-ghost" onclick="printFinanceReport()" style="font-size:12px">Print / PDF</button>`;
 
@@ -322,6 +323,16 @@ export function exportFinanceReportCSV(): void {
   } catch (error) {
     console.error('exportFinanceReportCSV failed:', error);
     toast('Could not export CSV', 'error');
+  }
+}
+
+export function exportFinanceReportExcel(): void {
+  try {
+    downloadExcel(`${_reportLabel()}-${_scopeLabel()}`.replace(/[^\w-]+/g, '-'), _reportLabel(), _csvRows());
+    toast('Excel exported', 'success');
+  } catch (error) {
+    console.error('exportFinanceReportExcel failed:', error);
+    toast('Could not export Excel', 'error');
   }
 }
 

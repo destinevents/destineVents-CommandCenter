@@ -1,5 +1,6 @@
 import { formatCurrency } from '@shared/utils/formatUtils.ts';
 import { validateRequired } from '@shared/utils/validators.ts';
+import { nextDocNumber } from '@shared/services/documents/docNumberService.ts';
 import {
   fetchProjects, createProject, updateProject, deleteProject,
 } from '@hq/projects/projectService.ts';
@@ -55,8 +56,12 @@ export async function saveProject() {
   const name = gVal('fp2-name').trim();
   const err  = validateRequired(name, 'Project name');
   if (err) { showProjectError(err); return; }
+  // Auto-generate a code (PRJ-YYYY-NNN) when the field is left blank.
+  const code = gVal('fp2-code').trim() ||
+    nextDocNumber('PRJ', _projects.map(p => p.code ?? ''));
   const payload = {
     name,
+    code,
     client:   gVal('fp2-client').trim(),
     value:    +gVal('fp2-value') || 0,
     brand:    gVal('fp2-brand'),

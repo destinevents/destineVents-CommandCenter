@@ -137,7 +137,7 @@ describe('reportsCalc — cashFlowStatement', () => {
 
 describe('reportsCalc — projectProfitability', () => {
   const projects: Project[] = [
-    { id: 10, name: 'Alpha', client: null, brand: null, category: null, value: 0, status: 'active', notes: null, created_at: '', updated_at: '' },
+    { id: 10, name: 'Alpha', code: null, client: null, brand: null, category: null, value: 0, status: 'active', notes: null, created_at: '', updated_at: '' },
   ];
   it('groups revenue and expenses per project, unassigned last', () => {
     const entries = [

@@ -1,4 +1,4 @@
-export type DocType = 'SOB' | 'INV' | 'OR' | 'EXP' | 'PAY' | 'PO' | 'QUO' | 'CON' | 'CL' | 'FC'
+export type DocType = 'SOB' | 'INV' | 'OR' | 'EXP' | 'PAY' | 'PO' | 'QUO' | 'CON' | 'CL' | 'FC' | 'PRJ'
 
 const PREFIX: Record<DocType, string> = {
   SOB: 'SOB',
@@ -11,6 +11,7 @@ const PREFIX: Record<DocType, string> = {
   CON: 'CON',
   CL:  'CL',
   FC:  'FC',
+  PRJ: 'PRJ',
 }
 
 /**

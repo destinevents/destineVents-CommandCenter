@@ -16,7 +16,7 @@ export function projectRowHTML(p: Project): string {
   return `
     <tr>
       <td>
-        <div class="project-name">${escapeHtml(p.name)}</div>
+        <div class="project-name">${escapeHtml(p.name)}${p.code ? ` <span style="font-size:10px;color:var(--ink-3);font-weight:400">${escapeHtml(p.code)}</span>` : ''}</div>
         <div class="project-client">${escapeHtml(p.client || '—')}</div>
       </td>
       <td><span class="badge badge-${statusClass(p.status)}">${escapeHtml(p.status)}</span></td>
@@ -52,6 +52,7 @@ export function projectFormHTML(clients: Client[], p: Partial<Project> = {}): st
     <div id="fp2-error" class="modal-error"></div>
     <div class="form-grid">
       <div class="form-group full"><div class="form-label">Project Name</div><input class="form-input" id="fp2-name" value="${escapeHtml(p.name || '')}" placeholder="e.g. DTI MSME Innovation Summit"/></div>
+      <div class="form-group"><div class="form-label">Project Code</div><input class="form-input" id="fp2-code" value="${escapeHtml(p.code || '')}" placeholder="Auto-generated if blank"/></div>
       <div class="form-group"><div class="form-label">Client</div><input class="form-input" id="fp2-client" value="${escapeHtml(p.client || '')}" list="hq-client-list" placeholder="Client / org name" autocomplete="off"/></div>
       <div class="form-group"><div class="form-label">Value (₱)</div><input class="form-input" id="fp2-value" type="number" value="${p.value || 0}" min="0"/></div>
       <div class="form-group"><div class="form-label">Brand</div><select class="form-input" id="fp2-brand">${brands}</select></div>
