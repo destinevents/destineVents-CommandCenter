@@ -208,7 +208,9 @@
 .atab.active { display:block; }
 
 /* ─── FINANCE ─── */
-.finance-stat-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--ink-4); border:1px solid var(--ink-4); margin-bottom:20px; }
+/* auto-fit stretches the real cards to fill each row so a group with fewer than
+   4 cards leaves no empty (shaded) grid cells. */
+.finance-stat-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:1px; background:var(--ink-4); border:1px solid var(--ink-4); margin-bottom:20px; }
 .kpi-group { margin-bottom:18px; }
 .kpi-group .finance-stat-grid { margin-bottom:0; }
 .kpi-group-label { font-size:9px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-3); font-weight:600; margin-bottom:8px; }
@@ -267,7 +269,6 @@
 #hq-backdrop.show { display:block; }
 
 @media (max-width: 768px) {
-  .finance-stat-grid { grid-template-columns:1fr 1fr; }
   .page { padding:16px 14px 40px; }
   .page-title { font-size:24px; }
 }
