@@ -4,7 +4,7 @@
 import type {
   Client, Proposal, Partner, Document, Invoice, Bill,
   PayrollRun, Project, ImpactEntry, BirFiling, Event, EventRegistration, SOB, UserRole, Meeting,
-  PurchaseOrder,
+  PurchaseOrder, FinancialAccount, CashLedgerEntry, FounderCapitalEntry, Budget,
 } from '@shared/types.ts';
 
 export let _userRole: UserRole = 'admin';
@@ -57,3 +57,15 @@ export function setMeetings(v: Meeting[]): void { _meetings = v; }
 
 export let _pos: PurchaseOrder[] = [];
 export function setPOs(v: PurchaseOrder[]): void { _pos = v; }
+
+export let _accounts: FinancialAccount[] = [];
+export function setAccounts(v: FinancialAccount[]): void { _accounts = v; }
+
+export let _ledger: CashLedgerEntry[] = [];
+export function setLedger(v: CashLedgerEntry[]): void { _ledger = v; }
+
+export let _founderCapital: FounderCapitalEntry[] = [];
+export function setFounderCapital(v: FounderCapitalEntry[]): void { _founderCapital = v; }
+
+export let _budgets: Budget[] = [];
+export function setBudgets(v: Budget[]): void { _budgets = v; }

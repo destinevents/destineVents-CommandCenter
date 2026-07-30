@@ -427,6 +427,65 @@ export type ProjectCreateResult =
   | { ok: true; data: Project }
   | { ok: false; message: string };
 
+// ─── Cash Ledger / Financial Accounts / Founder Capital ──────────────────────
+export type AccountType = 'cash' | 'bank' | 'ewallet';
+
+export interface FinancialAccount {
+  id: number;
+  name: string;
+  type: AccountType;
+  opening_balance: number;
+  is_active: boolean;
+  is_default: boolean;            // account AR/AP/Payroll auto-posts into
+  notes: string | null;
+  created_at: string;
+}
+
+export interface CashLedgerEntry {
+  id: number;
+  reference_no: string | null;
+  txn_date: string | null;
+  description: string;
+  project_id: number | null;
+  category: string | null;
+  module_source: string;          // Manual | Founder | AR | AP | Payroll
+  payment_method: string | null;
+  account_id: number | null;
+  cash_in: number;
+  cash_out: number;
+  created_by: string | null;
+  attachment_url: string | null;
+  notes: string | null;
+  source_type: string | null;     // invoice | bill | payroll — links to the origin doc
+  source_id: number | null;
+  created_at: string;
+}
+
+export type FounderTransactionType = 'Capital Contribution' | 'Owner Withdrawal';
+
+export interface FounderCapitalEntry {
+  id: number;
+  reference_no: string | null;
+  txn_date: string | null;
+  founder: string;
+  transaction_type: FounderTransactionType;
+  amount: number;
+  account_id: number | null;
+  ledger_id: number | null;       // the auto-posted cash_ledger row
+  notes: string | null;
+  created_at: string;
+}
+
+export interface Budget {
+  id: number;
+  category: string;
+  period_year: number;
+  period_month: number | null;    // null = annual budget; 1-12 = monthly
+  amount: number;
+  notes: string | null;
+  created_at: string;
+}
+
 export interface Meeting {
   id: number;
   client_id: number | null;

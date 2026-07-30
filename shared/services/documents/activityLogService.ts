@@ -8,6 +8,10 @@ export type DocActivityType =
   | 'po'
   | 'quotation'
   | 'contract'
+  | 'ledger'
+  | 'account'
+  | 'founder'
+  | 'budget'
 
 export type DocAction =
   | 'created'

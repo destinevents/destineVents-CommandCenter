@@ -64,10 +64,17 @@ import {
   sendInvoiceEmail, printOfficialReceipt, openPaymentHistory,
   toggleActionMenu,
   togglePaidInvoices, setInvoicePage, setORPage,
-  showReceivablesTab, showPayablesTab,
+  showReceivablesTab, showPayablesTab, showAnalysisTab,
   showBIRTab, renderBIRReports,
   setBIRReportPeriod, setBIRReportYear, setBIRReportMonth, setBIRReportQuarter,
   printBIRReport, exportBIRReportCSV, exportBIRReportExcel,
+  setLedgerFilter, clearLedgerFilters,
+  openAddLedgerEntry, openEditLedgerEntry, handleDeleteLedgerEntry,
+  openAddAccount, openEditAccount, handleDeleteAccount, setDefaultAccount,
+  openAddFounderEntry, openEditFounderEntry, handleDeleteFounderEntry,
+  setMonthlySummaryFilter,
+  setReportType, setReportFilter, exportFinanceReportCSV, printFinanceReport,
+  openAddBudget, openEditBudget, saveBudget, handleDeleteBudget, setBudgetFilter,
 } from '../finance/finance.ts';
 import { loadProjects, openAddProject, openEditProject, handleDeleteProject, convertProposalToProject, openProjectDetail, addClientFromProposal } from '../projects/projects.ts';
 import { selectTemplate, copyAIOutput, simulateAI, saveAIOutput, initAIAutocomplete } from '../ai/ai.ts';
@@ -191,6 +198,10 @@ function setupRealtime() {
     bills: { page: 'finance', reload: () => loadFinance() },
     payroll_runs: { page: 'finance', reload: () => loadFinance() },
     bir_filings: { page: 'finance', reload: () => loadFinance() },
+    financial_accounts: { page: 'finance', reload: () => loadFinance() },
+    cash_ledger: { page: 'finance', reload: () => loadFinance() },
+    founder_capital: { page: 'finance', reload: () => loadFinance() },
+    budgets: { page: 'finance', reload: () => loadFinance() },
     documents: { page: 'documents', reload: () => loadDocuments() },
     contracts: { page: 'documents', reload: () => loadContracts() },
     projects: { page: 'projects', reload: () => loadProjects() },
@@ -471,7 +482,7 @@ declare global {
     openPaymentHistory: typeof openPaymentHistory; toggleActionMenu: typeof toggleActionMenu;
     togglePaidInvoices: typeof togglePaidInvoices; setInvoicePage: typeof setInvoicePage;
     setORPage: typeof setORPage; setSOBPage: typeof setSOBPage;
-    showReceivablesTab: typeof showReceivablesTab;
+    showReceivablesTab: typeof showReceivablesTab; showAnalysisTab: typeof showAnalysisTab;
     openAddBill: typeof openAddBill; saveBill: typeof saveBill;
     openEditBill: typeof openEditBill; handleDeleteBill: typeof handleDeleteBill;
     openUploadReceipt: typeof openUploadReceipt;
@@ -501,6 +512,19 @@ declare global {
     setBIRReportPeriod: typeof setBIRReportPeriod; setBIRReportYear: typeof setBIRReportYear;
     setBIRReportMonth: typeof setBIRReportMonth; setBIRReportQuarter: typeof setBIRReportQuarter;
     printBIRReport: typeof printBIRReport; exportBIRReportCSV: typeof exportBIRReportCSV; exportBIRReportExcel: typeof exportBIRReportExcel;
+    setLedgerFilter: typeof setLedgerFilter; clearLedgerFilters: typeof clearLedgerFilters;
+    openAddLedgerEntry: typeof openAddLedgerEntry; openEditLedgerEntry: typeof openEditLedgerEntry;
+    handleDeleteLedgerEntry: typeof handleDeleteLedgerEntry;
+    openAddAccount: typeof openAddAccount; openEditAccount: typeof openEditAccount;
+    handleDeleteAccount: typeof handleDeleteAccount; setDefaultAccount: typeof setDefaultAccount;
+    openAddFounderEntry: typeof openAddFounderEntry; openEditFounderEntry: typeof openEditFounderEntry;
+    handleDeleteFounderEntry: typeof handleDeleteFounderEntry;
+    setMonthlySummaryFilter: typeof setMonthlySummaryFilter;
+    setReportType: typeof setReportType; setReportFilter: typeof setReportFilter;
+    exportFinanceReportCSV: typeof exportFinanceReportCSV; printFinanceReport: typeof printFinanceReport;
+    openAddBudget: typeof openAddBudget; openEditBudget: typeof openEditBudget;
+    saveBudget: typeof saveBudget; handleDeleteBudget: typeof handleDeleteBudget;
+    setBudgetFilter: typeof setBudgetFilter;
     filterPartners: typeof filterPartners; handleFileSelect: typeof handleFileSelect;
     npGoStep1: typeof npGoStep1; npGoStep2: typeof npGoStep2; npFinish: typeof npFinish;
     downloadNDA: typeof downloadNDA; saveImpactEntry: typeof saveImpactEntry;
@@ -557,7 +581,7 @@ Object.assign(window, {
   sendInvoiceEmail, printOfficialReceipt, openPaymentHistory,
   toggleActionMenu,
   togglePaidInvoices, setInvoicePage, setORPage,
-  showReceivablesTab,
+  showReceivablesTab, showAnalysisTab,
   openAddBill, openEditBill, handleDeleteBill, saveBill,
   openUploadReceipt,
   submitBillForApproval, approveBill, saveApproveBill, rejectBill,
@@ -575,6 +599,14 @@ Object.assign(window, {
   showBIRTab, renderBIRReports,
   setBIRReportPeriod, setBIRReportYear, setBIRReportMonth, setBIRReportQuarter,
   printBIRReport, exportBIRReportCSV, exportBIRReportExcel,
+  // Cash Ledger + Settings + Founder Capital
+  setLedgerFilter, clearLedgerFilters,
+  openAddLedgerEntry, openEditLedgerEntry, handleDeleteLedgerEntry,
+  openAddAccount, openEditAccount, handleDeleteAccount, setDefaultAccount,
+  openAddFounderEntry, openEditFounderEntry, handleDeleteFounderEntry,
+  setMonthlySummaryFilter,
+  setReportType, setReportFilter, exportFinanceReportCSV, printFinanceReport,
+  openAddBudget, openEditBudget, saveBudget, handleDeleteBudget, setBudgetFilter,
   // Operations
   filterPartners, handleFileSelect, npGoStep1, npGoStep2, npFinish, downloadNDA,
   saveImpactEntry, openEditImpact, handleDeleteImpact,

@@ -415,15 +415,19 @@
     <div class="page-title">Finance</div>
     <div class="sub-tabs" id="finance-subtabs">
       <div class="sub-tab active" onclick="showFinanceTab('overview',this)">Overview</div>
+      <div class="sub-tab" onclick="showFinanceTab('ledger',this)">Cash Ledger</div>
       <div class="sub-tab" onclick="showFinanceTab('receivables',this)">Receivables</div>
       <div class="sub-tab" onclick="showFinanceTab('payables',this)">Payables</div>
       <div class="sub-tab" onclick="showFinanceTab('payroll',this)">Payroll</div>
-      <div class="sub-tab" onclick="showFinanceTab('bir',this)">BIR Reports</div>
+      <div class="sub-tab" onclick="showFinanceTab('founder',this)">Founder Capital</div>
+      <div class="sub-tab" onclick="showFinanceTab('budget',this)">Budget Planner</div>
+      <div class="sub-tab" onclick="showFinanceTab('analysis',this)">Reports</div>
+      <div class="sub-tab" onclick="showFinanceTab('settings',this)">Settings</div>
     </div>
 
     <!-- Overview -->
     <div class="ftab active" id="ftab-overview">
-      <div class="finance-stat-grid" id="finance-stats"></div>
+      <div id="finance-stats"></div>
       <div id="finance-charts" style="margin-top:16px"></div>
       <div class="two-col" style="margin-top:16px">
         <div class="card">
@@ -517,19 +521,50 @@
     <!-- Payroll — fully rendered by renderPayroll() in finance.ts -->
     <div class="ftab" id="ftab-payroll"></div>
 
-    <!-- BIR Reports -->
-    <div class="ftab" id="ftab-bir">
-      <div class="sub-tabs" id="bir-subtabs" style="margin-bottom:16px">
-        <div class="sub-tab active" id="bir-subtab-tracker" onclick="showBIRTab('tracker',this)">Filing Tracker</div>
-        <div class="sub-tab" id="bir-subtab-reports" onclick="showBIRTab('reports',this)">Reports</div>
+    <!-- Cash Ledger — fully rendered by renderCashLedger() -->
+    <div class="ftab" id="ftab-ledger"></div>
+
+    <!-- Founder Capital — fully rendered by renderFounderCapital() -->
+    <div class="ftab" id="ftab-founder"></div>
+
+    <!-- Budget Planner — rendered by renderBudgetPlanner() -->
+    <div class="ftab" id="ftab-budget"></div>
+
+    <!-- Reports hub — nests Monthly Summary, Projections, Financial Reports, BIR -->
+    <div class="ftab" id="ftab-analysis">
+      <div class="sub-tabs" id="analysis-subtabs">
+        <div class="sub-tab active" onclick="showAnalysisTab('summary',this)">Monthly Summary</div>
+        <div class="sub-tab" onclick="showAnalysisTab('projections',this)">Projections</div>
+        <div class="sub-tab" onclick="showAnalysisTab('reports',this)">Financial Reports</div>
+        <div class="sub-tab" onclick="showAnalysisTab('bir',this)">BIR</div>
       </div>
-      <div id="bir-panel-tracker">
-        <div class="bir-grid" id="bir-cards"></div>
-      </div>
-      <div id="bir-panel-reports" style="display:none">
-        <div id="bir-reports-content"></div>
+
+      <!-- Monthly Summary — read-only, rendered by renderMonthlySummary() -->
+      <div class="atab active" id="ftab-summary"></div>
+
+      <!-- Financial Projections — read-only, rendered by renderProjections() -->
+      <div class="atab" id="ftab-projections"></div>
+
+      <!-- Financial Reports — rendered by renderReports() -->
+      <div class="atab" id="ftab-reports"></div>
+
+      <!-- BIR Reports -->
+      <div class="atab" id="ftab-bir">
+        <div class="sub-tabs" id="bir-subtabs" style="margin-bottom:16px">
+          <div class="sub-tab active" id="bir-subtab-tracker" onclick="showBIRTab('tracker',this)">Filing Tracker</div>
+          <div class="sub-tab" id="bir-subtab-reports" onclick="showBIRTab('reports',this)">Reports</div>
+        </div>
+        <div id="bir-panel-tracker">
+          <div class="bir-grid" id="bir-cards"></div>
+        </div>
+        <div id="bir-panel-reports" style="display:none">
+          <div id="bir-reports-content"></div>
+        </div>
       </div>
     </div>
+
+    <!-- Settings: Financial Accounts — rendered by renderAccountsSettings() -->
+    <div class="ftab" id="ftab-settings"></div>
   </div>
 
   <!-- PARTNERS -->
