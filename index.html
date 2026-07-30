@@ -414,11 +414,18 @@
     <div class="page-eyebrow">bookkeeping & bir</div>
     <div class="page-title">Finance</div>
     <div class="sub-tabs" id="finance-subtabs">
-      <div class="sub-tab active" onclick="showFinanceTab('overview',this)">Overview</div>
+      <div class="sub-tab active" onclick="showFinanceTab('overview',this)">Dashboard</div>
       <div class="sub-tab" onclick="showFinanceTab('receivables',this)">Receivables</div>
       <div class="sub-tab" onclick="showFinanceTab('payables',this)">Payables</div>
       <div class="sub-tab" onclick="showFinanceTab('payroll',this)">Payroll</div>
+      <div class="sub-tab" onclick="showFinanceTab('ledger',this)">Cash Ledger</div>
+      <div class="sub-tab" onclick="showFinanceTab('founder',this)">Founder Capital</div>
+      <div class="sub-tab" onclick="showFinanceTab('budget',this)">Budget Planner</div>
+      <div class="sub-tab" onclick="showFinanceTab('summary',this)">Monthly Summary</div>
+      <div class="sub-tab" onclick="showFinanceTab('projections',this)">Projections</div>
+      <div class="sub-tab" onclick="showFinanceTab('reports',this)">Reports</div>
       <div class="sub-tab" onclick="showFinanceTab('bir',this)">BIR Reports</div>
+      <div class="sub-tab" onclick="showFinanceTab('settings',this)">Settings</div>
     </div>
 
     <!-- Overview -->
@@ -516,6 +523,27 @@
 
     <!-- Payroll — fully rendered by renderPayroll() in finance.ts -->
     <div class="ftab" id="ftab-payroll"></div>
+
+    <!-- Cash Ledger — fully rendered by renderCashLedger() -->
+    <div class="ftab" id="ftab-ledger"></div>
+
+    <!-- Founder Capital — fully rendered by renderFounderCapital() -->
+    <div class="ftab" id="ftab-founder"></div>
+
+    <!-- Budget Planner — rendered by renderBudgetPlanner() -->
+    <div class="ftab" id="ftab-budget"></div>
+
+    <!-- Monthly Summary — read-only, rendered by renderMonthlySummary() -->
+    <div class="ftab" id="ftab-summary"></div>
+
+    <!-- Financial Projections — read-only, rendered by renderProjections() -->
+    <div class="ftab" id="ftab-projections"></div>
+
+    <!-- Reports — rendered by renderReports() -->
+    <div class="ftab" id="ftab-reports"></div>
+
+    <!-- Settings: Financial Accounts — rendered by renderAccountsSettings() -->
+    <div class="ftab" id="ftab-settings"></div>
 
     <!-- BIR Reports -->
     <div class="ftab" id="ftab-bir">

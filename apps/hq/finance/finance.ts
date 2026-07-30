@@ -12,11 +12,19 @@ import { fetchProjects } from '@hq/projects/projectService.ts';
 import { fetchPartners } from '@hq/partners/partnerService.ts';
 import { fetchBirFilings } from '@hq/finance/birService.ts';
 import { fetchPurchaseOrders } from '@shared/services/documents/poService.ts';
+import { fetchAccounts, fetchLedger } from '@hq/finance/ledgerService.ts';
+import { fetchFounderCapital } from '@hq/finance/founderService.ts';
+import { fetchBudgets } from '@hq/finance/budgetService.ts';
 import {
   _projects, _invoices, _bills, _payroll, _birFilings, _sobs, _pos,
+  _accounts, _ledger, _founderCapital,
   setClients, setProjects, setPartners, setInvoices, setBills,
   setPayroll, setBirFilings, setSOBs, setPOs,
+  setAccounts, setLedger, setFounderCapital, setBudgets,
 } from '@hq/core/state.ts';
+import { cashPosition, founderEquity, projectionMetrics } from './ledgerCalc.ts';
+import { monthlySummary, expenseByCategory, revenueByCategory } from './reportsCalc.ts';
+import { barChartHTML } from './templates/reports.ts';
 import { renderSOB } from './sob.ts';
 import { renderPayroll } from './payroll.ts';
 import type { Invoice, Bill } from '@shared/types.ts';
@@ -54,6 +62,26 @@ import {
   printBIRReport, exportBIRReportCSV, exportBIRReportExcel,
   openFileBir, saveBirFiling,
 } from './bir/bir.ts';
+import {
+  renderCashLedger, renderAccountsSettings,
+  setLedgerFilter, clearLedgerFilters,
+  openAddLedgerEntry, openEditLedgerEntry, handleDeleteLedgerEntry,
+  openAddAccount, openEditAccount, handleDeleteAccount, setDefaultAccount,
+} from './ledger.ts';
+import {
+  renderFounderCapital,
+  openAddFounderEntry, openEditFounderEntry, handleDeleteFounderEntry,
+} from './founder.ts';
+import { renderProjections } from './projections.ts';
+import { renderMonthlySummary, setMonthlySummaryFilter } from './monthlySummary.ts';
+import {
+  renderBudgetPlanner, openAddBudget, openEditBudget, saveBudget,
+  handleDeleteBudget, setBudgetFilter,
+} from './budget.ts';
+import {
+  renderReports, setReportType, setReportFilter,
+  exportFinanceReportCSV, printFinanceReport,
+} from './reports.ts';
 
 // ── Re-export everything app.ts expects from a single finance entry point ─────
 export {
@@ -81,6 +109,24 @@ export {
   setBIRReportPeriod, setBIRReportYear, setBIRReportMonth, setBIRReportQuarter,
   printBIRReport, exportBIRReportCSV, exportBIRReportExcel,
   openFileBir, saveBirFiling,
+  // Cash Ledger + Settings
+  renderCashLedger, renderAccountsSettings,
+  setLedgerFilter, clearLedgerFilters,
+  openAddLedgerEntry, openEditLedgerEntry, handleDeleteLedgerEntry,
+  openAddAccount, openEditAccount, handleDeleteAccount, setDefaultAccount,
+  // Founder Capital
+  renderFounderCapital,
+  openAddFounderEntry, openEditFounderEntry, handleDeleteFounderEntry,
+  // Projections
+  renderProjections,
+  // Monthly Summary
+  renderMonthlySummary, setMonthlySummaryFilter,
+  // Budget Planner
+  renderBudgetPlanner, openAddBudget, openEditBudget, saveBudget,
+  handleDeleteBudget, setBudgetFilter,
+  // Reports
+  renderReports, setReportType, setReportFilter,
+  exportFinanceReportCSV, printFinanceReport,
 };
 
 const gEl = (id: string) => document.getElementById(id)!;
@@ -98,7 +144,7 @@ export function toggleActionMenu(btn: HTMLElement) {
 
 
 export async function loadFinance() {
-  const [inv, bil, pay, bir, clients, projs, parts, sobs, pos] = await Promise.all([
+  const [inv, bil, pay, bir, clients, projs, parts, sobs, pos, accts, ledger, founder, budgets] = await Promise.all([
     fetchInvoices(),
     fetchBills(),
     fetchPayrollRuns(),
@@ -108,6 +154,10 @@ export async function loadFinance() {
     fetchPartners(),
     fetchSOBs(),
     fetchPurchaseOrders(),
+    fetchAccounts(),
+    fetchLedger(),
+    fetchFounderCapital(),
+    fetchBudgets(),
   ]);
   setClients(clients || []);
   setProjects(projs || []);
@@ -118,6 +168,10 @@ export async function loadFinance() {
   setBirFilings(bir || []);
   setSOBs(sobs || []);
   setPOs(pos || []);
+  setAccounts(accts || []);
+  setLedger(ledger || []);
+  setFounderCapital(founder || []);
+  setBudgets(budgets || []);
   if (!_menuListenersSetup) {
     _menuListenersSetup = true;
     document.addEventListener('click', e => {
@@ -138,6 +192,13 @@ export async function loadFinance() {
   renderPayroll(_payroll);
   renderBIR();
   renderSOB(_sobs);
+  renderCashLedger();
+  renderFounderCapital();
+  renderBudgetPlanner();
+  renderMonthlySummary();
+  renderProjections();
+  renderReports();
+  renderAccountsSettings();
 }
 
 export function showFinanceTab(name: string, el: HTMLElement) {
@@ -197,6 +258,43 @@ function renderRevenueByProject(invoices: Invoice[], projects: typeof _projects)
     </table>`;
 }
 
+// The full §2 Dashboard KPI groups, all sourced from the Cash Ledger + Founder
+// Capital: Cash Position, Revenue, Expenses, Profitability, Cash Flow, Founder.
+function _financeLedgerCardsHTML(): string {
+  const pos  = cashPosition(_ledger, _accounts);
+  const eq   = founderEquity(_founderCapital);
+  const proj = projectionMetrics(_ledger, _accounts);
+  const now  = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  const thisMonth = monthlySummary(_ledger, _founderCapital, { year, month, projectId: null });
+  const thisYear  = monthlySummary(_ledger, _founderCapital, { year, month: null, projectId: null });
+  const allTime   = monthlySummary(_ledger, _founderCapital, { year: null, month: null, projectId: null });
+  const runway = proj.cashRunwayMonths === null ? '∞' : `${proj.cashRunwayMonths.toFixed(1)} mo`;
+  const burnColor = proj.monthlyBurnRate > 0 ? 'var(--red)' : 'var(--green)';
+  const activeCount = _accounts.filter(a => a.is_active).length;
+  const card = (label: string, value: number, color = '', sub = '') =>
+    `<div class="stat-card"><div class="stat-label">${label}</div><div class="stat-value" style="font-size:22px${color ? `;color:${color}` : ''}">${formatCurrency(value)}</div>${sub ? `<div class="stat-change">${sub}</div>` : ''}</div>`;
+  return `
+    ${card('Current Cash Balance', pos.total, 'var(--green)', `Across ${activeCount} account${activeCount !== 1 ? 's' : ''}`)}
+    ${card('Cash on Hand', pos.byType.cash)}
+    ${card('Bank Balance', pos.byType.bank)}
+    ${card('E-wallet Balance', pos.byType.ewallet)}
+    ${card('Revenue This Month', thisMonth.revenue, 'var(--green)')}
+    ${card('Revenue This Year', thisYear.revenue, 'var(--green)')}
+    ${card('Expenses This Month', thisMonth.expenses, 'var(--red)')}
+    ${card('Expenses This Year', thisYear.expenses, 'var(--red)')}
+    ${card('Gross Income', thisYear.grossProfit, '', 'This year · revenue − cost of services')}
+    ${card('Operating Expenses', thisYear.expenses, '', 'This year')}
+    ${card('Ledger Net Profit', thisYear.netProfit, thisYear.netProfit >= 0 ? 'var(--green)' : 'var(--red)', 'This year')}
+    ${card('Total Cash In', allTime.totalCashIn, 'var(--green)', 'All time')}
+    ${card('Total Cash Out', allTime.totalCashOut, 'var(--red)', 'All time')}
+    ${card('Capital Invested', eq.totalCapital)}
+    ${card('Owner Withdrawals', eq.totalWithdrawals)}
+    ${card('Net Owner Equity', eq.netEquity, '', 'Capital − withdrawals')}
+    ${card('Monthly Burn Rate', proj.monthlyBurnRate, burnColor, `Runway: ${runway}`)}`;
+}
+
 export function renderFinanceOverview(invoices: Invoice[], bills: Bill[]) {
   const summary = calcFinanceSummary(invoices, bills, _payroll);
   const net     = summary.arOutstanding - summary.apOutstanding;
@@ -212,7 +310,8 @@ export function renderFinanceOverview(invoices: Invoice[], bills: Bill[]) {
     <div class="stat-card"><div class="stat-label">Payroll Due</div><div class="stat-value" style="font-size:22px;color:var(--gold)">${formatCurrency(summary.payrollDue)}</div><div class="stat-change">Pending payroll runs</div></div>
     <div class="stat-card"><div class="stat-label">Cash Flow This Month</div><div class="stat-value" style="font-size:22px${summary.cashFlowThisMonth < 0 ? ';color:var(--red)' : ';color:var(--green)'}">${formatCurrency(Math.abs(summary.cashFlowThisMonth))}</div><div class="stat-change ${summary.cashFlowThisMonth >= 0 ? 'up' : ''}">${summary.cashFlowThisMonth >= 0 ? 'Positive cash flow' : 'Negative cash flow'}</div></div>
     <div class="stat-card"><div class="stat-label">Collected Today</div><div class="stat-value" style="font-size:22px;color:var(--green)">${formatCurrency(summary.collectedToday)}</div><div class="stat-change up">Payments received today</div></div>
-    <div class="stat-card"><div class="stat-label">Avg Collection Time</div><div class="stat-value" style="font-size:22px">${summary.avgCollectionDays}<span style="font-size:14px;font-weight:400;color:var(--ink-3)"> days</span></div><div class="stat-change">Issue date → payment date</div></div>`;
+    <div class="stat-card"><div class="stat-label">Avg Collection Time</div><div class="stat-value" style="font-size:22px">${summary.avgCollectionDays}<span style="font-size:14px;font-weight:400;color:var(--ink-3)"> days</span></div><div class="stat-change">Issue date → payment date</div></div>
+    ${_financeLedgerCardsHTML()}`;
 
   // ── Charts ────────────────────────────────────────────────────────────────
   const now = new Date();
@@ -310,6 +409,10 @@ export function renderFinanceOverview(invoices: Invoice[], bills: Bill[]) {
                 <div style="height:6px;background:var(--linen-3);border-radius:3px"><div style="height:100%;width:${Math.round(p.amount / maxProj * 100)}%;background:var(--green);border-radius:3px;opacity:0.8"></div></div>
               </div>`).join('')}
         </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+        ${barChartHTML('Expense by Category', expenseByCategory(_ledger), 'var(--red)')}
+        ${barChartHTML('Revenue by Category', revenueByCategory(_ledger), 'var(--green)')}
       </div>`;
   }
 

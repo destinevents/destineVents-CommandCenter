@@ -13,7 +13,8 @@ import {
 import { paginationBar } from '../templates/invoices.ts';
 import { createBill, updateBill, deleteBill } from '@hq/finance/financeService.ts';
 import { sb } from '@shared/core/supabase';
-import { _bills, _projects } from '@hq/core/state.ts';
+import { _bills, _projects, _accounts } from '@hq/core/state.ts';
+import { postSourceToLedger, reverseSourceFromLedger } from '../ledgerPosting.ts';
 import { toast, openModal, closeModal } from '@hq/core/ui.ts';
 import type { Bill } from '@shared/types.ts';
 import { loadFinance } from '../finance.ts';
@@ -344,6 +345,25 @@ export async function markBillPaid(id: number) {
   toast('Expense marked as Paid', 'success');
   const user = await getCurrentUser();
   await logDocActivity('bill', id, bill?.expense_number ?? null, 'paid', user?.name ?? user?.email ?? null);
+
+  // §7 integration — a paid expense auto-posts a cash-out row to the Cash Ledger.
+  if (bill) {
+    const res = await postSourceToLedger({
+      sourceType: 'bill', sourceId: id, moduleSource: 'AP',
+      category: bill.category || 'Operations',
+      description: `Expense — ${bill.vendor ?? bill.payee}`,
+      txnDate: bill.date ?? null,
+      referenceNo: bill.expense_number ?? null,
+      accounts: _accounts,
+      projectId: bill.project_id ?? null,
+      paymentMethod: null,
+      cashOut: bill.amount,
+      createdBy: user?.name ?? user?.email ?? null,
+    });
+    if (res === 'no-account') {
+      toast('Marked Paid — add a financial account in Settings so expenses post to the Cash Ledger', '');
+    }
+  }
   loadFinance();
 }
 
@@ -362,6 +382,7 @@ export async function handleDeleteBill(id: number) {
   if (!confirm('Delete this expense? This cannot be undone.')) return;
   const ok = await deleteBill(id);
   if (!ok) { toast('Could not delete expense', 'error'); return; }
+  await reverseSourceFromLedger('bill', id);
   toast('Expense deleted', '');
   loadFinance();
 }

@@ -19,8 +19,9 @@ import { updateSOB, createSOB } from '@hq/finance/sobService.ts';
 import { createInvoicePaymentLink } from '@hq/finance/paymentService.ts';
 import { updateProject } from '@hq/projects/projectService.ts';
 import {
-  _invoices, _bills, _payroll, _sobs, _clients, _projects,
+  _invoices, _bills, _payroll, _sobs, _clients, _projects, _accounts,
 } from '@hq/core/state.ts';
+import { postSourceToLedger, reverseSourceFromLedger } from '../ledgerPosting.ts';
 import { toast, openModal, closeModal } from '@hq/core/ui.ts';
 import type { Invoice, InvoiceLineItem, SOB } from '@shared/types.ts';
 import { loadFinance } from '../finance.ts';
@@ -403,6 +404,7 @@ export async function handleDeleteInvoice(id: number) {
   }
   const ok = await deleteInvoice(id);
   if (!ok) { toast('Could not delete invoice', 'error'); return; }
+  await reverseSourceFromLedger('invoice', id);
   toast('Invoice deleted', '');
   loadFinance();
 }
@@ -607,6 +609,26 @@ export async function saveRecordPayment() {
   if (!ok) { toast('Could not record payment', 'error'); return; }
   toast('Payment recorded — invoice marked as Paid', 'success');
   const paidId = _editingInvoiceId;
+
+  // §7 integration — a paid invoice auto-posts a cash-in row to the Cash Ledger.
+  const inv = _invoices.find(i => i.id === paidId);
+  if (inv) {
+    const res = await postSourceToLedger({
+      sourceType: 'invoice', sourceId: inv.id, moduleSource: 'AR',
+      category: 'Client Payment',
+      description: `Client payment — ${inv.client ?? 'Invoice'}${inv.or_num ? ` (${inv.or_num})` : ''}`,
+      txnDate: payload.payment_date ?? null,
+      referenceNo: inv.or_num ?? null,
+      accounts: _accounts,
+      projectId: inv.project_id ?? null,
+      paymentMethod: method,
+      cashIn: inv.amount,
+      createdBy: payload.received_by ?? null,
+    });
+    if (res === 'no-account') {
+      toast('Marked Paid — add a financial account in Settings so payments post to the Cash Ledger', '');
+    }
+  }
   closeModal();
   loadFinance();
   setTimeout(() => printOfficialReceipt(paidId), 400);

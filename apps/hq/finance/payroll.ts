@@ -10,7 +10,8 @@ import { payrollTableHTML, payrollFormHTML, PAYROLL_STATUSES, EMPLOYEE_TYPES } f
 import {
   fetchPayrollRuns, createPayrollRun, updatePayrollRun, deletePayrollRun,
 } from '@hq/finance/financeService.ts';
-import { _payroll, setPayroll } from '@hq/core/state.ts';
+import { _payroll, setPayroll, _accounts } from '@hq/core/state.ts';
+import { postSourceToLedger, reverseSourceFromLedger } from '@hq/finance/ledgerPosting.ts';
 import { toast, openModal, closeModal } from '@hq/core/ui.ts';
 import type { PayrollRun } from '@shared/types.ts';
 
@@ -290,6 +291,23 @@ export async function markPayrollPaid(id: number) {
     toast('Payroll marked as Paid', 'success');
     const run = _payroll.find(r => r.id === id);
     await logDocActivity('payroll', id, run?.payroll_number ?? null, 'paid', released_by);
+
+    // §7 integration — paid payroll auto-posts a cash-out row to the Cash Ledger.
+    if (run) {
+      const res = await postSourceToLedger({
+        sourceType: 'payroll', sourceId: id, moduleSource: 'Payroll',
+        category: 'Payroll',
+        description: `Payroll — ${run.period}${run.employee_name ? ` · ${run.employee_name}` : ''}`,
+        txnDate: null,
+        referenceNo: run.payroll_number ?? null,
+        accounts: _accounts,
+        cashOut: run.net,
+        createdBy: released_by,
+      });
+      if (res === 'no-account') {
+        toast('Marked Paid — add a financial account in Settings so payroll posts to the Cash Ledger', '');
+      }
+    }
     await loadPayroll();
   } catch (error) {
     console.error('markPayrollPaid failed:', error);
@@ -302,6 +320,7 @@ export async function handleDeletePayroll(id: number) {
   try {
     const ok = await deletePayrollRun(id);
     if (!ok) { toast('Could not delete payroll record', 'error'); return; }
+    await reverseSourceFromLedger('payroll', id);
     toast('Payroll record deleted', 'success');
     await loadPayroll();
   } catch (error) {
