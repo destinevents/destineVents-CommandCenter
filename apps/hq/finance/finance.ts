@@ -22,7 +22,7 @@ import {
   setPayroll, setBirFilings, setSOBs, setPOs,
   setAccounts, setLedger, setFounderCapital, setBudgets,
 } from '@hq/core/state.ts';
-import { cashPosition, founderEquity, projectionMetrics } from './ledgerCalc.ts';
+import { cashPosition, founderEquity } from './ledgerCalc.ts';
 import { monthlySummary, expenseByCategory, revenueByCategory } from './reportsCalc.ts';
 import { barChartHTML } from './templates/reports.ts';
 import { renderSOB } from './sob.ts';
@@ -215,6 +215,13 @@ export function showReceivablesTab(name: string, el: HTMLElement) {
   el.classList.add('active');
 }
 
+export function showAnalysisTab(name: string, el: HTMLElement) {
+  document.querySelectorAll('#ftab-analysis .atab').forEach(t => t.classList.remove('active'));
+  gEl('ftab-' + name).classList.add('active');
+  document.querySelectorAll('#analysis-subtabs .sub-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+}
+
 export function showPayablesTab(name: string, el: HTMLElement) {
   document.querySelectorAll('#ftab-payables .ptab').forEach(t => t.classList.remove('active'));
   gEl('ptab-' + name).classList.add('active');
@@ -258,60 +265,60 @@ function renderRevenueByProject(invoices: Invoice[], projects: typeof _projects)
     </table>`;
 }
 
-// The full §2 Dashboard KPI groups, all sourced from the Cash Ledger + Founder
-// Capital: Cash Position, Revenue, Expenses, Profitability, Cash Flow, Founder.
-function _financeLedgerCardsHTML(): string {
+// The §2 Dashboard as 7 labeled KPI groups (Cash Position, Revenue, Expenses,
+// Profitability, Cash Flow, Receivables & Payables, Founder Capital). Ledger
+// figures come from the Cash Ledger + Founder Capital; AR/AP come from the
+// invoice/bill summary. De-duplicated — one canonical card per metric.
+function _dashboardGroupsHTML(summary: ReturnType<typeof calcFinanceSummary>): string {
   const pos  = cashPosition(_ledger, _accounts);
   const eq   = founderEquity(_founderCapital);
-  const proj = projectionMetrics(_ledger, _accounts);
   const now  = new Date();
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
   const thisMonth = monthlySummary(_ledger, _founderCapital, { year, month, projectId: null });
   const thisYear  = monthlySummary(_ledger, _founderCapital, { year, month: null, projectId: null });
   const allTime   = monthlySummary(_ledger, _founderCapital, { year: null, month: null, projectId: null });
-  const runway = proj.cashRunwayMonths === null ? '∞' : `${proj.cashRunwayMonths.toFixed(1)} mo`;
-  const burnColor = proj.monthlyBurnRate > 0 ? 'var(--red)' : 'var(--green)';
   const activeCount = _accounts.filter(a => a.is_active).length;
+
   const card = (label: string, value: number, color = '', sub = '') =>
     `<div class="stat-card"><div class="stat-label">${label}</div><div class="stat-value" style="font-size:22px${color ? `;color:${color}` : ''}">${formatCurrency(value)}</div>${sub ? `<div class="stat-change">${sub}</div>` : ''}</div>`;
-  return `
-    ${card('Current Cash Balance', pos.total, 'var(--green)', `Across ${activeCount} account${activeCount !== 1 ? 's' : ''}`)}
-    ${card('Cash on Hand', pos.byType.cash)}
-    ${card('Bank Balance', pos.byType.bank)}
-    ${card('E-wallet Balance', pos.byType.ewallet)}
-    ${card('Revenue This Month', thisMonth.revenue, 'var(--green)')}
-    ${card('Revenue This Year', thisYear.revenue, 'var(--green)')}
-    ${card('Expenses This Month', thisMonth.expenses, 'var(--red)')}
-    ${card('Expenses This Year', thisYear.expenses, 'var(--red)')}
-    ${card('Gross Income', thisYear.grossProfit, '', 'This year · revenue − cost of services')}
-    ${card('Operating Expenses', thisYear.expenses, '', 'This year')}
-    ${card('Ledger Net Profit', thisYear.netProfit, thisYear.netProfit >= 0 ? 'var(--green)' : 'var(--red)', 'This year')}
-    ${card('Total Cash In', allTime.totalCashIn, 'var(--green)', 'All time')}
-    ${card('Total Cash Out', allTime.totalCashOut, 'var(--red)', 'All time')}
-    ${card('Capital Invested', eq.totalCapital)}
-    ${card('Owner Withdrawals', eq.totalWithdrawals)}
-    ${card('Net Owner Equity', eq.netEquity, '', 'Capital − withdrawals')}
-    ${card('Monthly Burn Rate', proj.monthlyBurnRate, burnColor, `Runway: ${runway}`)}`;
+  const group = (label: string, cards: string) =>
+    `<div class="kpi-group"><div class="kpi-group-label">${label}</div><div class="finance-stat-grid">${cards}</div></div>`;
+
+  return [
+    group('Cash Position',
+      card('Current Cash Balance', pos.total, 'var(--green)', `Across ${activeCount} account${activeCount !== 1 ? 's' : ''}`) +
+      card('Cash on Hand', pos.byType.cash) +
+      card('Bank Balance', pos.byType.bank) +
+      card('E-wallet Balance', pos.byType.ewallet)),
+    group('Revenue',
+      card('Revenue This Month', thisMonth.revenue, 'var(--green)') +
+      card('Revenue This Year', thisYear.revenue, 'var(--green)')),
+    group('Expenses',
+      card('Expenses This Month', thisMonth.expenses, 'var(--red)') +
+      card('Expenses This Year', thisYear.expenses, 'var(--red)')),
+    group('Profitability',
+      card('Net Profit', thisYear.netProfit, thisYear.netProfit >= 0 ? 'var(--green)' : 'var(--red)', 'This year') +
+      card('Gross Income', thisYear.grossProfit, '', 'Revenue − cost of services') +
+      card('Operating Expenses', thisYear.expenses, '', 'This year')),
+    group('Cash Flow',
+      card('Total Cash In', allTime.totalCashIn, 'var(--green)', 'All time') +
+      card('Total Cash Out', allTime.totalCashOut, 'var(--red)', 'All time')),
+    group('Receivables & Payables',
+      card('Accounts Receivable', summary.arOutstanding, '', `${summary.overdueCount} overdue invoice${summary.overdueCount !== 1 ? 's' : ''}`) +
+      card('Accounts Payable', summary.apOutstanding, '', `${summary.pendingBillsCount} pending bills`)),
+    group('Founder Capital',
+      card('Capital Invested', eq.totalCapital) +
+      card('Owner Withdrawals', eq.totalWithdrawals) +
+      card('Net Owner Equity', eq.netEquity, '', 'Capital − withdrawals')),
+  ].join('');
 }
 
 export function renderFinanceOverview(invoices: Invoice[], bills: Bill[]) {
   const summary = calcFinanceSummary(invoices, bills, _payroll);
-  const net     = summary.arOutstanding - summary.apOutstanding;
 
-  // ── Stat Cards ────────────────────────────────────────────────────────────
-  gEl('finance-stats').innerHTML = `
-    <div class="stat-card"><div class="stat-label">AR Outstanding</div><div class="stat-value" style="font-size:22px">${formatCurrency(summary.arOutstanding)}</div><div class="stat-change">${summary.overdueCount} overdue invoice${summary.overdueCount !== 1 ? 's' : ''}</div></div>
-    <div class="stat-card"><div class="stat-label">AP Outstanding</div><div class="stat-value" style="font-size:22px">${formatCurrency(summary.apOutstanding)}</div><div class="stat-change">${summary.pendingBillsCount} pending bills</div></div>
-    <div class="stat-card"><div class="stat-label">Revenue Collected</div><div class="stat-value" style="font-size:22px">${formatCurrency(summary.revenueCollected)}</div><div class="stat-change up">All time</div></div>
-    <div class="stat-card"><div class="stat-label">Net Position</div><div class="stat-value" style="font-size:22px${net < 0 ? ';color:var(--red)' : ''}">${formatCurrency(Math.abs(net))}</div><div class="stat-change ${net >= 0 ? 'up' : ''}">${net >= 0 ? 'Receivable surplus' : 'Payable deficit'}</div></div>
-    <div class="stat-card"><div class="stat-label">Collected This Month</div><div class="stat-value" style="font-size:22px;color:var(--green)">${formatCurrency(summary.collectedThisMonth)}</div><div class="stat-change up">Paid invoices this month</div></div>
-    <div class="stat-card"><div class="stat-label">Net Profit</div><div class="stat-value" style="font-size:22px${summary.netProfit < 0 ? ';color:var(--red)' : ';color:var(--green)'}">${formatCurrency(Math.abs(summary.netProfit))}</div><div class="stat-change ${summary.netProfit >= 0 ? 'up' : ''}">${summary.netProfit >= 0 ? 'Revenue − expenses' : 'Operating at a loss'}</div></div>
-    <div class="stat-card"><div class="stat-label">Payroll Due</div><div class="stat-value" style="font-size:22px;color:var(--gold)">${formatCurrency(summary.payrollDue)}</div><div class="stat-change">Pending payroll runs</div></div>
-    <div class="stat-card"><div class="stat-label">Cash Flow This Month</div><div class="stat-value" style="font-size:22px${summary.cashFlowThisMonth < 0 ? ';color:var(--red)' : ';color:var(--green)'}">${formatCurrency(Math.abs(summary.cashFlowThisMonth))}</div><div class="stat-change ${summary.cashFlowThisMonth >= 0 ? 'up' : ''}">${summary.cashFlowThisMonth >= 0 ? 'Positive cash flow' : 'Negative cash flow'}</div></div>
-    <div class="stat-card"><div class="stat-label">Collected Today</div><div class="stat-value" style="font-size:22px;color:var(--green)">${formatCurrency(summary.collectedToday)}</div><div class="stat-change up">Payments received today</div></div>
-    <div class="stat-card"><div class="stat-label">Avg Collection Time</div><div class="stat-value" style="font-size:22px">${summary.avgCollectionDays}<span style="font-size:14px;font-weight:400;color:var(--ink-3)"> days</span></div><div class="stat-change">Issue date → payment date</div></div>
-    ${_financeLedgerCardsHTML()}`;
+  // ── KPI groups (handout §2) ─────────────────────────────────────────────────
+  gEl('finance-stats').innerHTML = _dashboardGroupsHTML(summary);
 
   // ── Charts ────────────────────────────────────────────────────────────────
   const now = new Date();

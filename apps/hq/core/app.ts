@@ -64,7 +64,7 @@ import {
   sendInvoiceEmail, printOfficialReceipt, openPaymentHistory,
   toggleActionMenu,
   togglePaidInvoices, setInvoicePage, setORPage,
-  showReceivablesTab, showPayablesTab,
+  showReceivablesTab, showPayablesTab, showAnalysisTab,
   showBIRTab, renderBIRReports,
   setBIRReportPeriod, setBIRReportYear, setBIRReportMonth, setBIRReportQuarter,
   printBIRReport, exportBIRReportCSV, exportBIRReportExcel,
@@ -482,7 +482,7 @@ declare global {
     openPaymentHistory: typeof openPaymentHistory; toggleActionMenu: typeof toggleActionMenu;
     togglePaidInvoices: typeof togglePaidInvoices; setInvoicePage: typeof setInvoicePage;
     setORPage: typeof setORPage; setSOBPage: typeof setSOBPage;
-    showReceivablesTab: typeof showReceivablesTab;
+    showReceivablesTab: typeof showReceivablesTab; showAnalysisTab: typeof showAnalysisTab;
     openAddBill: typeof openAddBill; saveBill: typeof saveBill;
     openEditBill: typeof openEditBill; handleDeleteBill: typeof handleDeleteBill;
     openUploadReceipt: typeof openUploadReceipt;
@@ -581,7 +581,7 @@ Object.assign(window, {
   sendInvoiceEmail, printOfficialReceipt, openPaymentHistory,
   toggleActionMenu,
   togglePaidInvoices, setInvoicePage, setORPage,
-  showReceivablesTab,
+  showReceivablesTab, showAnalysisTab,
   openAddBill, openEditBill, handleDeleteBill, saveBill,
   openUploadReceipt,
   submitBillForApproval, approveBill, saveApproveBill, rejectBill,
