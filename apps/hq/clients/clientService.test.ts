@@ -39,6 +39,14 @@ describe('computeClientValue', () => {
   it('returns 0 when there are no projects', () => {
     expect(computeClientValue('Acme Corp', [])).toBe(0);
   });
+
+  it('matches despite messy spacing and capitalization on either side', () => {
+    const messy = [
+      { client: '  ACME   Corp ', value: 100 },
+      { client: 'acme corp',      value: 200 },
+    ] as unknown as Project[];
+    expect(computeClientValue(' Acme Corp  ', messy)).toBe(300);
+  });
 });
 
 describe('findClientByName', () => {

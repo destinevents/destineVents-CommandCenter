@@ -31,18 +31,28 @@ export function getClientTotalValue(clients: Client[]): number {
 }
 
 /**
+ * Normalize a name for matching: ignore capitalization, leading/trailing
+ * spaces, and any doubled-up spaces in the middle. So "  Chimichanga  by
+ * Jaime's " and "chimichanga by jaime's" are treated as the same client.
+ */
+export function normalizeName(name: string | null | undefined): string {
+  return (name ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+/**
  * A client's live total value = sum of the `value` of every project linked to
- * that client (linked by name, case-insensitive). Computed on read rather than
- * stored, so it always reflects the current projects.
+ * that client (linked by name — see normalizeName for how flexible the match
+ * is). Computed on read rather than stored, so it always reflects the current
+ * projects.
  */
 export function computeClientValue(
   clientName: string | null | undefined,
   projects: Project[],
 ): number {
-  if (!clientName) return 0;
-  const name = clientName.toLowerCase();
+  const name = normalizeName(clientName);
+  if (!name) return 0;
   return projects.reduce(
-    (s, p) => (p.client?.toLowerCase() === name ? s + (p.value || 0) : s),
+    (s, p) => (normalizeName(p.client) === name ? s + (p.value || 0) : s),
     0,
   );
 }
