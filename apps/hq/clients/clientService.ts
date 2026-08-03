@@ -1,6 +1,6 @@
 import { sb } from '@shared/core/supabase';
 import { handleServiceError } from '@shared/core/serviceError.ts';
-import type { Client } from '@shared/types';
+import type { Client, Project } from '@shared/types';
 
 export async function fetchClients(): Promise<Client[]> {
   const { data, error } = await sb.from('clients').select('*').order('name');
@@ -28,6 +28,23 @@ export async function deleteClient(id: number): Promise<boolean> {
 
 export function getClientTotalValue(clients: Client[]): number {
   return clients.reduce((s, c) => s + (c.total_value || 0), 0);
+}
+
+/**
+ * A client's live total value = sum of the `value` of every project linked to
+ * that client (linked by name, case-insensitive). Computed on read rather than
+ * stored, so it always reflects the current projects.
+ */
+export function computeClientValue(
+  clientName: string | null | undefined,
+  projects: Project[],
+): number {
+  if (!clientName) return 0;
+  const name = clientName.toLowerCase();
+  return projects.reduce(
+    (s, p) => (p.client?.toLowerCase() === name ? s + (p.value || 0) : s),
+    0,
+  );
 }
 
 export function findClientByName(name: string | null, clients: Client[]): Client | null {

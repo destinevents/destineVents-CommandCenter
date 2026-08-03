@@ -25,7 +25,7 @@ function crmStageBadge(stage: string): string {
   return `<span class="badge badge-${cls}" style="font-size:9px;white-space:nowrap">${escapeHtml(stage)}</span>`;
 }
 
-export function clientRowHTML(c: Client, crmStage?: string): string {
+export function clientRowHTML(c: Client, crmStage?: string, value?: number): string {
   return `
     <tr>
       <td><div class="project-name">${escapeHtml(c.name)}</div><div class="project-client">${escapeHtml(c.type)}</div></td>
@@ -34,7 +34,7 @@ export function clientRowHTML(c: Client, crmStage?: string): string {
       <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(c.brand) || '—'}</td>
       <td style="font-size:12px">${escapeHtml(c.contact) || '—'}</td>
       <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(c.email) || '—'}</td>
-      <td class="project-value">${formatCurrency(c.total_value)}</td>
+      <td class="project-value">${formatCurrency(value ?? c.total_value)}</td>
       <td>
         <div class="flex-gap" style="gap:4px">
           <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="openClientDetail(${c.id})">View</button>
@@ -45,9 +45,13 @@ export function clientRowHTML(c: Client, crmStage?: string): string {
     </tr>`;
 }
 
-export function clientTableHTML(clients: Client[], crmStages?: Record<number, string>): string {
+export function clientTableHTML(
+  clients: Client[],
+  crmStages?: Record<number, string>,
+  values?: Record<number, number>,
+): string {
   return clients.length
-    ? clients.map(c => clientRowHTML(c, crmStages?.[c.id])).join('')
+    ? clients.map(c => clientRowHTML(c, crmStages?.[c.id], values?.[c.id])).join('')
     : `<tr><td colspan="8"><div class="empty-state">No clients yet — add your first one</div></td></tr>`;
 }
 

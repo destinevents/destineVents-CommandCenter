@@ -1,10 +1,10 @@
 import { formatCurrency } from '@shared/utils/formatUtils.ts';
 import { validateRequired } from '@shared/utils/validators.ts';
-import { fetchClients, createClient, updateClient, deleteClient } from './clientService.ts';
+import { fetchClients, createClient, updateClient, deleteClient, computeClientValue } from './clientService.ts';
 import { fetchProposals } from '@hq/proposals/proposalService.ts';
 import { fetchProjects } from '@hq/projects/projectService.ts';
 import { fetchInvoices } from '@hq/finance/financeService.ts';
-import { _clients, _proposals, _projects, _invoices, _sobs, _meetings, setClients, setMeetings } from '@hq/core/state.ts';
+import { _clients, _proposals, _projects, _invoices, _sobs, _meetings, setClients, setProjects, setMeetings } from '@hq/core/state.ts';
 import { toast, openModal, closeModal } from '@hq/core/ui.ts';
 import type { Client } from '@shared/types.ts';
 import { clientTableHTML, clientFormHTML, clientDetailHTML } from './clients.templates.ts';
@@ -40,27 +40,31 @@ export function setClientStageFilter(filter: string): void {
 }
 
 export async function loadClients() {
-  const [clients, meetings] = await Promise.all([
+  const [clients, projects, meetings] = await Promise.all([
     fetchClients(),
+    fetchProjects(),
     _meetings.length ? Promise.resolve(_meetings) : fetchMeetings(),
   ]);
   setClients(clients);
+  setProjects(projects);
   if (!_meetings.length && meetings) setMeetings(meetings);
   renderClients(_clients);
 }
 
 export function renderClients(clients: Client[]) {
   const crmStages: Record<number, string> = {};
+  const values: Record<number, number> = {};
   for (const c of clients) {
     const clientMeetings = _meetings.filter(m => m.client_id === c.id);
     crmStages[c.id] = getCrmStageLabel(clientMeetings);
+    values[c.id] = computeClientValue(c.name, _projects);
   }
 
   const filtered = _clientStageFilter
     ? clients.filter(c => stageFilterMatch(crmStages[c.id] ?? 'Waiting for Discovery', _clientStageFilter))
     : clients;
 
-  const total = filtered.reduce((s, c) => s + (c.total_value || 0), 0);
+  const total = filtered.reduce((s, c) => s + (values[c.id] || 0), 0);
   gEl('clients-summary').textContent =
     `${filtered.length} clients · ${formatCurrency(total)} total value`;
 
@@ -76,7 +80,7 @@ export function renderClients(clients: Client[]) {
     </div>`;
   }
 
-  gEl('clients-tbody').innerHTML = clientTableHTML(filtered, crmStages);
+  gEl('clients-tbody').innerHTML = clientTableHTML(filtered, crmStages, values);
 }
 
 export function openAddClient() {
