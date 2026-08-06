@@ -191,6 +191,10 @@ export interface Bill {
   receipt_url: string | null;
   ewt: string;
   status: string;
+  // When the expense was actually settled. Distinct from `date` (the bill's own
+  // date) so "Paid This Month" reflects the month cash left, not the month the
+  // supplier dated their invoice. Nullable for rows predating the migration.
+  paid_at: string | null;
   remarks: string | null;
   partner_id: number | null;
   project_id: number | null;
@@ -217,6 +221,8 @@ export interface PayrollRun {
   net: number;
   status: string;
   released_by: string | null;
+  // When the payslip was actually released. See the note on Bill.paid_at.
+  released_at: string | null;
   notes: string | null;
   created_at: string;
 }

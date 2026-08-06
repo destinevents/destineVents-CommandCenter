@@ -1,7 +1,8 @@
 import type { Invoice, InvoiceLineItem, Client, Project, SOB } from '@shared/types.ts';
 import { escapeHtml, statusClass } from '@shared/utils/helpers.ts';
 import { formatCurrency } from '@shared/utils/formatUtils.ts';
-import { formatDateShort } from '@shared/utils/dateUtils.ts';
+import { formatDateShort, todayISO } from '@shared/utils/dateUtils.ts';
+import { invoiceDisplayStatus } from '../arCalc.ts';
 
 function toISODate(val: string | null | undefined): string {
   if (!val || val === '—') return '';
@@ -31,6 +32,9 @@ export function paginationBar(page: number, total: number, size: number, fn: str
 export function invoiceRowHTML(i: Invoice, sobs: SOB[], bpiEnabled: boolean): string {
   const isActive   = !['Paid', 'Cancelled'].includes(i.status);
   const isArchived = !!i.archived_at;
+  // Overdue is derived from the due date rather than stored, so the badge and
+  // the Overdue stat card always agree without anyone editing the invoice.
+  const shownStatus = invoiceDisplayStatus(i, todayISO());
   const payMethodBadge = i.status === 'Paid' && i.payment_method
     ? `<span style="font-size:10px;color:var(--ink-3);margin-left:4px">${escapeHtml(i.payment_method)}</span>`
     : '';
@@ -77,7 +81,7 @@ export function invoiceRowHTML(i: Invoice, sobs: SOB[], bpiEnabled: boolean): st
     <td class="amount-cell">${formatCurrency(i.amount)}</td>
     <td style="font-size:11px;color:var(--ink-3)">${displayDate(i.date)}</td>
     <td style="font-size:11px;color:var(--ink-3)">${displayDate(i.due)}</td>
-    <td><span class="badge badge-${statusClass(i.status)}">${escapeHtml(i.status)}</span>${payMethodBadge}</td>
+    <td><span class="badge badge-${statusClass(shownStatus)}">${escapeHtml(shownStatus)}</span>${payMethodBadge}</td>
     <td>
       <div class="flex-gap" style="gap:4px">
         ${primaryBtns}

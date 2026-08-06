@@ -11,13 +11,32 @@ import {
   AP_CATEGORIES, AP_STATUSES, AP_STATUS_CLASS, apRowHTML, billFormHTML,
 } from '../templates/bills.ts';
 import { paginationBar } from '../templates/invoices.ts';
-import { createBill, updateBill, deleteBill } from '@hq/finance/financeService.ts';
+import { createBill, updateBill, deleteBill, billPaidDate } from '@hq/finance/financeService.ts';
 import { sb } from '@shared/core/supabase';
 import { _bills, _projects, _accounts } from '@hq/core/state.ts';
-import { postSourceToLedger, reverseSourceFromLedger } from '../ledgerPosting.ts';
+import { reverseSourceFromLedger, syncSourceLedger } from '../ledgerPosting.ts';
+import { localISODate } from '@shared/utils/dateUtils.ts';
 import { toast, openModal, closeModal } from '@hq/core/ui.ts';
 import type { Bill } from '@shared/types.ts';
 import { loadFinance } from '../finance.ts';
+
+// Single source of truth for what a paid expense looks like in the Cash Ledger,
+// shared by "Mark Paid" and by editing an expense's status straight to Paid.
+async function syncBillToLedger(bill: Bill, createdBy: string | null = null) {
+  return syncSourceLedger({
+    isCash: bill.status === 'Paid' && !bill.archived_at,
+    sourceType: 'bill', sourceId: bill.id, moduleSource: 'AP',
+    category: bill.category || 'Operations',
+    description: `Expense — ${bill.vendor ?? bill.payee}`,
+    txnDate: bill.paid_at ?? bill.date ?? null,
+    referenceNo: bill.expense_number ?? null,
+    accounts: _accounts,
+    projectId: bill.project_id ?? null,
+    paymentMethod: null,
+    cashOut: bill.amount,
+    createdBy,
+  });
+}
 
 // ── AP module-level state ─────────────────────────────────────────────────────
 let _editingBillId: number | null   = null;
@@ -68,7 +87,8 @@ export function renderAP(bills: Bill[]) {
   const pendingBills     = active.filter(b => b.status === 'Pending');
   const forApprovalBills = active.filter(b => b.status === 'For Approval');
   const approvedBills    = active.filter(b => b.status === 'Approved');
-  const paidThisMonth    = active.filter(b => b.status === 'Paid' && (b.date ?? '').startsWith(thisMonth));
+  // Counts the month the money left, not the month the supplier dated the bill.
+  const paidThisMonth    = active.filter(b => b.status === 'Paid' && billPaidDate(b).startsWith(thisMonth));
 
   let filtered = active;
   if (_apFilterCategory) filtered = filtered.filter(b => b.category === _apFilterCategory);
@@ -238,9 +258,17 @@ export async function saveBill() {
 
   const user = await getCurrentUser();
   const actor = user?.name ?? user?.email ?? null;
+  let billId = _editingBillId;
   if (_editingBillId) {
     const statusEl = document.getElementById('fb-status') as HTMLSelectElement | null;
     if (statusEl) payload.status = statusEl.value;
+    // Setting the status straight to Paid from this form is a payment too — it
+    // needs a paid date, or the expense lands in the wrong month.
+    if (payload.status === 'Paid' && !existingBill?.paid_at) {
+      payload.paid_at = payload.date || localISODate();
+    } else if (payload.status && payload.status !== 'Paid') {
+      payload.paid_at = null;
+    }
     const ok = await updateBill(_editingBillId, payload);
     if (!ok) { toast('Could not update expense', 'error'); return; }
     toast('Expense updated', 'success');
@@ -249,8 +277,20 @@ export async function saveBill() {
     payload.status = 'Pending';
     const result = await createBill(payload);
     if (!result) { toast('Could not add expense. Please try again.', 'error'); return; }
+    billId = result.id;
     toast('Expense added', 'success');
     await logDocActivity('bill', result.id, expenseNumber, 'created', actor);
+  }
+
+  // Editing an expense to Paid used to write nothing to the Cash Ledger, so the
+  // dashboard never moved. Sync covers post, correct and reverse alike.
+  // A brand-new expense starts Pending, so there is no ledger row to reconcile.
+  if (billId && _editingBillId) {
+    const merged = { ...(existingBill ?? {}), ...payload, id: billId } as Bill;
+    const res = await syncBillToLedger(merged, actor);
+    if (res === 'no-account' && merged.status === 'Paid') {
+      toast('Saved, but no financial account exists yet — add one under Finance → Settings so this shows on the dashboard.', 'error');
+    }
   }
   closeModal();
   loadFinance();
@@ -340,28 +380,21 @@ export async function rejectBill(id: number) {
 export async function markBillPaid(id: number) {
   if (!confirm('Mark this expense as Paid?')) return;
   const bill = _bills.find(b => b.id === id);
-  const ok = await updateBill(id, { status: 'Paid' });
+  // paid_at is what "Paid This Month" counts on — without it a June-dated
+  // expense paid today would land in June and today's card would not move.
+  const paid_at = localISODate();
+  const ok = await updateBill(id, { status: 'Paid', paid_at });
   if (!ok) { toast('Could not mark as paid', 'error'); return; }
   toast('Expense marked as Paid', 'success');
   const user = await getCurrentUser();
-  await logDocActivity('bill', id, bill?.expense_number ?? null, 'paid', user?.name ?? user?.email ?? null);
+  const actor = user?.name ?? user?.email ?? null;
+  await logDocActivity('bill', id, bill?.expense_number ?? null, 'paid', actor);
 
   // §7 integration — a paid expense auto-posts a cash-out row to the Cash Ledger.
   if (bill) {
-    const res = await postSourceToLedger({
-      sourceType: 'bill', sourceId: id, moduleSource: 'AP',
-      category: bill.category || 'Operations',
-      description: `Expense — ${bill.vendor ?? bill.payee}`,
-      txnDate: bill.date ?? null,
-      referenceNo: bill.expense_number ?? null,
-      accounts: _accounts,
-      projectId: bill.project_id ?? null,
-      paymentMethod: null,
-      cashOut: bill.amount,
-      createdBy: user?.name ?? user?.email ?? null,
-    });
+    const res = await syncBillToLedger({ ...bill, status: 'Paid', paid_at }, actor);
     if (res === 'no-account') {
-      toast('Marked Paid — add a financial account in Settings so expenses post to the Cash Ledger', '');
+      toast('Marked Paid, but it is NOT on the dashboard yet — add a financial account under Finance → Settings, then reopen this expense and save it.', 'error');
     }
   }
   loadFinance();
@@ -370,11 +403,15 @@ export async function markBillPaid(id: number) {
 export async function archiveBill(id: number) {
   if (!confirm('Archive this expense? It will be hidden from the main view.')) return;
   const bill = _bills.find(b => b.id === id);
-  const ok = await updateBill(id, { archived_at: new Date().toISOString() } as Partial<Bill>);
+  const archived_at = new Date().toISOString();
+  const ok = await updateBill(id, { archived_at } as Partial<Bill>);
   if (!ok) { toast('Could not archive expense', 'error'); return; }
   toast('Expense archived', '');
   const user = await getCurrentUser();
   await logDocActivity('bill', id, bill?.expense_number ?? null, 'archived', user?.name ?? user?.email ?? null);
+  // Archived expenses drop out of every AP figure — take their cash off the
+  // ledger too so the dashboard halves agree.
+  if (bill) await syncBillToLedger({ ...bill, archived_at });
   loadFinance();
 }
 

@@ -11,7 +11,8 @@ import {
   fetchPayrollRuns, createPayrollRun, updatePayrollRun, deletePayrollRun,
 } from '@hq/finance/financeService.ts';
 import { _payroll, setPayroll, _accounts } from '@hq/core/state.ts';
-import { postSourceToLedger, reverseSourceFromLedger } from '@hq/finance/ledgerPosting.ts';
+import { reverseSourceFromLedger, syncSourceLedger } from '@hq/finance/ledgerPosting.ts';
+import { localISODate } from '@shared/utils/dateUtils.ts';
 import { toast, openModal, closeModal } from '@hq/core/ui.ts';
 import type { PayrollRun } from '@shared/types.ts';
 
@@ -63,13 +64,19 @@ export function clearPayrollFilters() {
   renderPayroll(_payroll);
 }
 
+// The month a payslip was released, falling back to when the record was
+// created for rows predating the released_at column.
+export function payrollReleasedDate(run: PayrollRun): string {
+  return (run.released_at ?? run.created_at ?? '').slice(0, 10);
+}
+
 function _payrollStatsHTML(runs: PayrollRun[], now: Date): string {
   const pending       = runs.filter(r => r.status === 'Pending');
   const paid          = runs.filter(r => r.status === 'Paid');
-  const paidThisMonth = paid.filter(r => {
-    const d = new Date(r.created_at);
-    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
-  });
+  // Counts the month the payslip was released, not the month the draft was
+  // typed up — a July draft released in August belongs to August.
+  const thisMonth     = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const paidThisMonth = paid.filter(r => payrollReleasedDate(r).startsWith(thisMonth));
   const totalNet = runs.reduce((s, r) => s + (r.net || 0), 0);
   const sumOf    = (arr: PayrollRun[]) => arr.reduce((s, r) => s + (r.net || 0), 0);
   return `
@@ -286,7 +293,8 @@ export async function markPayrollPaid(id: number) {
   try {
     const user = await getCurrentUser();
     const released_by = user?.name ?? user?.email ?? null;
-    const ok = await updatePayrollRun(id, { status: 'Paid', released_by });
+    const released_at = localISODate();
+    const ok = await updatePayrollRun(id, { status: 'Paid', released_by, released_at });
     if (!ok) { toast('Could not mark as Paid', 'error'); return; }
     toast('Payroll marked as Paid', 'success');
     const run = _payroll.find(r => r.id === id);
@@ -294,18 +302,20 @@ export async function markPayrollPaid(id: number) {
 
     // §7 integration — paid payroll auto-posts a cash-out row to the Cash Ledger.
     if (run) {
-      const res = await postSourceToLedger({
+      const res = await syncSourceLedger({
+        isCash: true,
         sourceType: 'payroll', sourceId: id, moduleSource: 'Payroll',
         category: 'Payroll',
         description: `Payroll — ${run.period}${run.employee_name ? ` · ${run.employee_name}` : ''}`,
-        txnDate: null,
+        // Dated when the payslip was released, so it lands in the right month.
+        txnDate: released_at,
         referenceNo: run.payroll_number ?? null,
         accounts: _accounts,
         cashOut: run.net,
         createdBy: released_by,
       });
       if (res === 'no-account') {
-        toast('Marked Paid — add a financial account in Settings so payroll posts to the Cash Ledger', '');
+        toast('Marked Paid, but it is NOT on the dashboard yet — add a financial account under Finance → Settings, then mark this payroll paid again.', 'error');
       }
     }
     await loadPayroll();
