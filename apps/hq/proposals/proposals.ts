@@ -6,6 +6,7 @@ import { logDocActivity } from '@shared/services/documents/activityLogService.ts
 import { getCurrentUser } from '@shared/core/authService.ts';
 import { buildDocPDF, docPDFLineItemsTable, docPDFTotals } from '@shared/documents/pdfTemplate.ts';
 import { openDocEmail } from '@shared/documents/docEmail.ts';
+import { canTransition } from '@shared/documents/docTransitions.ts';
 import {
   fetchProposals, createProposal, updateProposal, deleteProposal, calcWinRate,
   fetchProposalLineItems, upsertProposalLineItems,
@@ -169,8 +170,32 @@ export function sendQuotationEmail(id: number) {
     onSend: async () => {
       const user = await getCurrentUser();
       await logDocActivity('quotation', id, p.quo_number ?? null, 'sent', user?.name ?? user?.email ?? null);
+      // Emailing a quotation moves it to Sent, the same way sendInvoiceEmail and
+      // openSOBSendEmail do. Without this the quotation stayed on Draft, and Won
+      // is only reachable from Sent — so a won quotation could never be recorded.
+      if (canTransition('quotation', p.status, 'Sent')) {
+        await updateProposal(id, { status: 'Sent' } as Partial<Proposal>);
+        loadProposals();
+      }
     },
   });
+}
+
+// For a quotation sent outside HQ. Same move the Email action makes, without
+// pretending to send anything.
+export async function markQuotationSent(id: number) {
+  const p = _proposals.find(x => x.id === id);
+  if (!p) return;
+  if (!canTransition('quotation', p.status, 'Sent')) {
+    toast(`A ${p.status} quotation cannot be marked as sent`, 'error');
+    return;
+  }
+  const ok = await updateProposal(id, { status: 'Sent' } as Partial<Proposal>);
+  if (!ok) return;                      // updateProposal already explains why
+  toast(`${p.quo_number ?? 'Quotation'} marked as sent`, 'success');
+  const user = await getCurrentUser();
+  await logDocActivity('quotation', id, p.quo_number ?? null, 'sent', user?.name ?? user?.email ?? null);
+  loadProposals();
 }
 
 export async function handleDeleteProposal(id: number) {

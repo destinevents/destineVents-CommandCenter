@@ -22,6 +22,7 @@ import {
   _invoices, _bills, _payroll, _sobs, _clients, _projects, _accounts,
 } from '@hq/core/state.ts';
 import { reverseSourceFromLedger, syncSourceLedger } from '../ledgerPosting.ts';
+import { canTransition } from '@shared/documents/docTransitions.ts';
 import { toast, openModal, closeModal } from '@hq/core/ui.ts';
 import type { Invoice, InvoiceLineItem, SOB } from '@shared/types.ts';
 import { loadFinance } from '../finance.ts';
@@ -607,10 +608,59 @@ export function togglePaymentFields(status: string) {
   }
 }
 
+// Move a Draft invoice to Issued. Exposed as its own action so the step is
+// visible in the row, rather than only happening as a side effect of emailing.
+export async function issueInvoice(id: number) {
+  const inv = _invoices.find(x => x.id === id);
+  if (!inv) return;
+  if (!canTransition('invoice', inv.status, 'Issued')) {
+    toast(`${inv.or_num} cannot be issued from ${inv.status}`, 'error');
+    return;
+  }
+  const ok = await updateInvoice(id, { status: 'Issued' } as Partial<Invoice>);
+  if (!ok) return;                       // updateInvoice already explains why
+  toast(`${inv.or_num} issued — you can now record payment`, 'success');
+  const user = await getCurrentUser();
+  await logDocActivity('invoice', id, inv.or_num, 'sent', user?.name ?? user?.email ?? null);
+  // Awaited so a caller that reopens the payment form straight after sees the
+  // refreshed status rather than the stale Draft.
+  await loadFinance();
+}
+
+// Recording a payment against a Draft invoice is refused by the database, and
+// used to fail only after the user had filled in the whole form. So this is a
+// router, the same shape as openSOBRecordPayment: it either opens the payment
+// form, or explains what has to happen first and offers to do it.
 export function openRecordPayment(id: number) {
   const inv = _invoices.find(x => x.id === id);
   if (!inv) return;
   if (inv.status === 'Paid') { toast('This invoice is already marked as paid', 'error'); return; }
+
+  if (!canTransition('invoice', inv.status, 'Paid')) {
+    if (!canTransition('invoice', inv.status, 'Issued')) {
+      toast(`A ${inv.status} invoice cannot be paid`, 'error');
+      return;
+    }
+    openModal('Record Payment', `
+      <div style="font-size:13px;color:var(--ink-2);line-height:1.7">
+        <p style="margin-bottom:10px">
+          Invoice <strong>${escapeHtml(inv.or_num)}</strong> is still a draft.
+        </p>
+        <p style="margin-bottom:10px">
+          An invoice has to be issued to the client before a payment can be recorded
+          against it — that is what makes it a real document rather than a working copy.
+        </p>
+        <div style="padding:12px;background:var(--linen-3);border-radius:6px;font-size:12px;color:var(--ink-3)">
+          Draft → <strong>Issued</strong> → Paid → Official Receipt
+        </div>
+      </div>`, async () => {
+      closeModal();
+      await issueInvoice(id);
+      openRecordPayment(id);
+    }, 'Issue Invoice');
+    return;
+  }
+
   _editingInvoiceId = id;
   const payMethodOpts = ['GCash', 'BPI', 'PayMongo', 'Cash', 'Check', 'Bank Transfer', 'Other']
     .map(m => `<option value="${m}">${m}</option>`).join('');

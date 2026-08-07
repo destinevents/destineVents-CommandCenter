@@ -22,7 +22,7 @@ import {
 } from '../clients/clients.ts';
 import {
   loadProposals, openAddProposal, openEditProposal, handleDeleteProposal,
-  printQuotation, addQuoRow, recalcQuo, sendQuotationEmail,
+  printQuotation, addQuoRow, recalcQuo, sendQuotationEmail, markQuotationSent,
 } from '../proposals/proposals.ts';
 import { openDocActivityLog } from '@shared/documents/activityLogUI.ts';
 import {
@@ -49,7 +49,7 @@ import {
   toggleArchivedInvoices, openInvoiceFromSOB,
   openPaymentLink, copyPaymentLink,
   openBpiQr, copyBpiText, downloadBpiQr,
-  openRecordPayment, openRecordPaymentBpi, saveRecordPayment,
+  openRecordPayment, openRecordPaymentBpi, saveRecordPayment, issueInvoice,
   addInvoiceRow, recalcInvoice, togglePaymentFields,
   openAddBill, openEditBill, handleDeleteBill, saveBill,
   openUploadReceipt,
@@ -452,7 +452,7 @@ declare global {
     openAddProposal: typeof openAddProposal; openEditProposal: typeof openEditProposal;
     handleDeleteProposal: typeof handleDeleteProposal;
     printQuotation: typeof printQuotation; addQuoRow: typeof addQuoRow; recalcQuo: typeof recalcQuo;
-    sendQuotationEmail: typeof sendQuotationEmail;
+    sendQuotationEmail: typeof sendQuotationEmail; markQuotationSent: typeof markQuotationSent;
     openDocActivityLog: typeof openDocActivityLog;
     openAddProject: typeof openAddProject; openEditProject: typeof openEditProject;
     handleDeleteProject: typeof handleDeleteProject; convertProposalToProject: typeof convertProposalToProject;
@@ -470,7 +470,7 @@ declare global {
     openSOBRecordPayment: typeof openSOBRecordPayment; openSOBSendEmail: typeof openSOBSendEmail;
     openPaymentLink: typeof openPaymentLink; copyPaymentLink: typeof copyPaymentLink;
     openBpiQr: typeof openBpiQr; copyBpiText: typeof copyBpiText; downloadBpiQr: typeof downloadBpiQr;
-    openRecordPayment: typeof openRecordPayment; openRecordPaymentBpi: typeof openRecordPaymentBpi; saveRecordPayment: typeof saveRecordPayment;
+    openRecordPayment: typeof openRecordPayment; openRecordPaymentBpi: typeof openRecordPaymentBpi; saveRecordPayment: typeof saveRecordPayment; issueInvoice: typeof issueInvoice;
     addInvoiceRow: typeof addInvoiceRow; recalcInvoice: typeof recalcInvoice;
     togglePaymentFields: typeof togglePaymentFields;
     openARProjectSOB: typeof openARProjectSOB; advanceARProjectStage: typeof advanceARProjectStage;
@@ -559,7 +559,7 @@ Object.assign(window, {
   openAddClient, openEditClient, handleDeleteClient, openClientDetail, setClientStageFilter,
   // Proposals
   openAddProposal, openEditProposal, handleDeleteProposal,
-  printQuotation, addQuoRow, recalcQuo, sendQuotationEmail,
+  printQuotation, addQuoRow, recalcQuo, sendQuotationEmail, markQuotationSent,
   openDocActivityLog,
   // Partners
   openAddPartner, openEditPartner, handleDeletePartner,
@@ -571,7 +571,7 @@ Object.assign(window, {
   toggleArchivedInvoices, openInvoiceFromSOB,
   openPaymentLink, copyPaymentLink,
   openBpiQr, copyBpiText, downloadBpiQr,
-  openRecordPayment, openRecordPaymentBpi, saveRecordPayment,
+  openRecordPayment, openRecordPaymentBpi, saveRecordPayment, issueInvoice,
   addInvoiceRow, recalcInvoice, togglePaymentFields,
   openARProjectSOB, advanceARProjectStage,
   sendInvoiceEmail, printOfficialReceipt, openPaymentHistory,

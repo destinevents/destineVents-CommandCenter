@@ -1,6 +1,7 @@
 import type { PayrollRun } from '@shared/types.ts';
 import { escapeHtml, statusClass } from '@shared/utils/helpers.ts';
 import { formatCurrency } from '@shared/utils/formatUtils.ts';
+import { statusOptions } from '@shared/documents/docTransitions.ts';
 
 const EMPLOYEE_TYPES = ['Employee', 'Freelancer', 'Intern', 'Contractor'] as const;
 const PAYROLL_STATUSES = ['Draft', 'Pending', 'Paid'] as const;
@@ -53,7 +54,7 @@ export function payrollFormHTML(r: Partial<PayrollRun> = {}): string {
   const typeOpts = EMPLOYEE_TYPES.map(t =>
     `<option${r.employee_type === t ? ' selected' : ''}>${t}</option>`
   ).join('');
-  const statusOpts = PAYROLL_STATUSES.map(s =>
+  const statusOpts = statusOptions('payroll', r.status ?? 'Pending').map(s =>
     `<option${(r.status ?? 'Pending') === s ? ' selected' : ''}>${s}</option>`
   ).join('');
 

@@ -2,7 +2,7 @@ import type { Client, Proposal, ProposalLineItem } from '@shared/types.ts';
 import { escapeHtml, statusClass } from '@shared/utils/helpers.ts';
 import { formatCurrency } from '@shared/utils/formatUtils.ts';
 import { formatDateShort } from '@shared/utils/dateUtils.ts';
-import { APP_SETTINGS } from '@config/settings.ts';
+import { statusOptions, canTransition } from '@shared/documents/docTransitions.ts';
 
 function toISODate(val: string | null | undefined): string {
   if (!val || val === '—') return '';
@@ -30,6 +30,7 @@ export function proposalRowHTML(p: Proposal): string {
       <td>
         <div class="flex-gap" style="gap:4px;flex-wrap:wrap">
           ${p.status === 'Won' ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--green)" onclick="convertProposalToProject(${p.id})">→ Project</button>` : ''}
+          ${canTransition('quotation', p.status, 'Sent') ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--blue)" onclick="markQuotationSent(${p.id})">Mark Sent</button>` : ''}
           <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="printQuotation(${p.id})">PDF</button>
           <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--blue)" onclick="sendQuotationEmail(${p.id})">Email</button>
           <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="openEditProposal(${p.id})">Edit</button>
@@ -83,7 +84,9 @@ export function proposalFormHTML(
   p: Partial<Proposal> = {},
   items: ProposalLineItem[] = [],
 ): string {
-  const statusOpts = APP_SETTINGS.finance.proposalStatuses.map(
+  // Only what this quotation can actually become. Won, for instance, is
+  // unreachable until the quotation has been sent — the database refuses it.
+  const statusOpts = statusOptions('quotation', p.status ?? 'Draft').map(
     (s: string) => `<option${s === (p.status ?? 'Draft') ? ' selected' : ''}>${s}</option>`,
   ).join('');
   const clientOpts = clients.map(c => `<option value="${escapeHtml(c.name)}"/>`).join('');

@@ -3,6 +3,7 @@ import { escapeHtml, statusClass } from '@shared/utils/helpers.ts';
 import { formatCurrency } from '@shared/utils/formatUtils.ts';
 import { formatDateShort, todayISO } from '@shared/utils/dateUtils.ts';
 import { invoiceDisplayStatus } from '../arCalc.ts';
+import { canTransition, statusOptions } from '@shared/documents/docTransitions.ts';
 
 function toISODate(val: string | null | undefined): string {
   if (!val || val === '—') return '';
@@ -30,7 +31,6 @@ export function paginationBar(page: number, total: number, size: number, fn: str
 // ── Invoice row ───────────────────────────────────────────────────────────────
 
 export function invoiceRowHTML(i: Invoice, sobs: SOB[], bpiEnabled: boolean): string {
-  const isActive   = !['Paid', 'Cancelled'].includes(i.status);
   const isArchived = !!i.archived_at;
   // Overdue is derived from the due date rather than stored, so the badge and
   // the Overdue stat card always agree without anyone editing the invoice.
@@ -42,9 +42,16 @@ export function invoiceRowHTML(i: Invoice, sobs: SOB[], bpiEnabled: boolean): st
   const sobBadge   = linkedSOB
     ? `<div style="font-size:9px;color:var(--ink-3);margin-top:1px">from ${escapeHtml(linkedSOB.sob_num)}</div>`
     : '';
+  // Record only appears once the invoice can actually be paid. On a Draft the
+  // database refuses Draft → Paid, so offer Issue instead — otherwise the user
+  // fills in a payment form only to lose it to a failed save.
+  const canPay   = canTransition('invoice', i.status, 'Paid');
+  const canIssue = canTransition('invoice', i.status, 'Issued');
   const primaryBtns = isArchived ? '' :
-    isActive
+    canPay
       ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--green)" onclick="openRecordPayment(${i.id})">Record</button>`
+      : canIssue
+      ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--blue)" onclick="issueInvoice(${i.id})">Issue</button>`
       : i.status === 'Paid'
         ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--green)" onclick="printOfficialReceipt(${i.id})">Print OR</button>
            <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--ink-2)" onclick="openPaymentHistory(${i.id})">History</button>`
@@ -52,12 +59,15 @@ export function invoiceRowHTML(i: Invoice, sobs: SOB[], bpiEnabled: boolean): st
   const emailBtnVis = !isArchived
     ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--blue)" onclick="sendInvoiceEmail(${i.id})">Email</button>`
     : '';
-  const payLinkItem = isActive
+  // Collecting money against an invoice that cannot be marked Paid is a trap:
+  // the client pays, the webhook's update is refused by the database, and the
+  // payment lands nowhere. Same gate as the Record button.
+  const payLinkItem = canPay
     ? i.payment_url
       ? `<a href="${escapeHtml(i.payment_url)}" target="_blank" rel="noopener">Copy Pay Link</a>`
       : `<button onclick="openPaymentLink(${i.id},${i.amount},'${escapeHtml(i.client ?? '')}','${escapeHtml(i.or_num)}')">Pay Link</button>`
     : '';
-  const bpiItem = isActive && bpiEnabled
+  const bpiItem = canPay && bpiEnabled
     ? `<button onclick="openBpiQr(${i.id},${i.amount},'${escapeHtml(i.client ?? '')}','${escapeHtml(i.or_num)}')">BPI QR</button>`
     : '';
   const moreItems = isArchived
@@ -135,11 +145,12 @@ export function invoiceFormHTML(
     <div class="form-group"><div class="form-label">Status</div>
       ${i.status === 'Paid'
         ? `<input class="form-input" id="fi-status" value="Paid" readonly style="color:var(--green);background:var(--linen-3);cursor:not-allowed" title="Use Record Payment to set an invoice as Paid"/>`
+        // Only the statuses this invoice can actually reach — the database
+        // rejects anything else. Overdue is deliberately absent: it is derived
+        // from the due date by invoiceDisplayStatus, never stored.
         : `<select class="form-input" id="fi-status" onchange="togglePaymentFields(this.value)">
-        <option${i.status === 'Draft' || !i.status ? ' selected' : ''}>Draft</option>
-        <option${i.status === 'Issued' || i.status === 'Unpaid' ? ' selected' : ''}>Issued</option>
-        <option${i.status === 'Overdue' ? ' selected' : ''}>Overdue</option>
-        <option${i.status === 'Cancelled' ? ' selected' : ''}>Cancelled</option>
+        ${statusOptions('invoice', i.status || 'Draft')
+          .map(s => `<option${s === (i.status || 'Draft') ? ' selected' : ''}>${s}</option>`).join('')}
       </select>`}
     </div>
     <div class="form-group"><div class="form-label">Date Issued</div><input class="form-input" id="fi-date" type="date" value="${toISODate(i.date)}"/></div>

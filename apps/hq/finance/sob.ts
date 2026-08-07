@@ -10,6 +10,7 @@ import { _clients, _projects, _invoices, _sobs, setSOBs } from '@hq/core/state.t
 import { toast, openModal, closeModal } from '@hq/core/ui.ts';
 import type { SOB, SOBLineItem, InvoiceLineItem } from '@shared/types.ts';
 import { nextDocNumber } from '@shared/services/documents/docNumberService.ts';
+import { statusOptions } from '@shared/documents/docTransitions.ts';
 import { logDocActivity } from '@shared/services/documents/activityLogService.ts';
 import { getCurrentUser } from '@shared/core/authService.ts';
 import {
@@ -72,12 +73,8 @@ function sobFormHTML(s: Partial<SOB> = {}, items: SOBLineItem[] = []) {
     <div class="form-group"><div class="form-label">Client</div><input class="form-input" id="sob-client" value="${escapeHtml(s.client || '')}" list="sob-client-list" placeholder="Client name" autocomplete="off"/></div>
     <div class="form-group"><div class="form-label">Status</div>
       <select class="form-input" id="sob-status">
-        <option${s.status === 'Draft' || !s.status ? ' selected' : ''}>Draft</option>
-        <option${s.status === 'Sent' ? ' selected' : ''}>Sent</option>
-        <option${s.status === 'Viewed' ? ' selected' : ''}>Viewed</option>
-        <option${s.status === 'Partially Paid' ? ' selected' : ''}>Partially Paid</option>
-        <option${s.status === 'Paid' ? ' selected' : ''}>Paid</option>
-        <option${s.status === 'Cancelled' ? ' selected' : ''}>Cancelled</option>
+        ${statusOptions('sob', s.status || 'Draft')
+          .map(o => `<option${o === (s.status || 'Draft') ? ' selected' : ''}>${o}</option>`).join('')}
       </select>
     </div>
     <div class="form-group"><div class="form-label">Currency</div>
