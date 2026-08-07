@@ -44,8 +44,20 @@ vi.mock('@hq/core/state.ts', () => {
   return {
     get _payroll() { return store; },
     setPayroll: (v: unknown[]) => { store = v; },
+    _accounts: [{ id: 1, name: 'Cash on Hand', is_default: true, is_active: true }],
   };
 });
+
+vi.mock('@hq/finance/ledgerPosting.ts', () => ({
+  syncSourceLedger:         vi.fn().mockResolvedValue('posted'),
+  reverseSourceFromLedger:  vi.fn().mockResolvedValue(true),
+}));
+
+// Unmocked, this reaches for a real Supabase client and throws — which savePayroll
+// catches, so every assertion after the log call silently never ran.
+vi.mock('@shared/services/documents/activityLogService.ts', () => ({
+  logDocActivity: vi.fn().mockResolvedValue(undefined),
+}));
 
 vi.mock('@hq/core/ui.ts', () => ({
   toast:      vi.fn(),
@@ -59,7 +71,10 @@ vi.mock('@shared/core/authService.ts', () => ({
 
 // ── Subject ───────────────────────────────────────────────────────────────────
 
-import { _nextPayrollNumber, autoFillDeductions, recalcPayroll } from './payroll.ts';
+import {
+  _nextPayrollNumber, _withReleaseFields, autoFillDeductions, recalcPayroll,
+} from './payroll.ts';
+import { syncSourceLedger } from '@hq/finance/ledgerPosting.ts';
 import { payrollTableHTML } from './templates/payroll.ts';
 import { toast, openModal } from '@hq/core/ui.ts';
 import { setPayroll } from '@hq/core/state.ts';
@@ -68,6 +83,7 @@ import {
 } from '@hq/finance/financeService.ts';
 import type { PayrollRun } from '@shared/types.ts';
 
+const mockSyncLedger   = syncSourceLedger as ReturnType<typeof vi.fn>;
 const mockToast        = toast as ReturnType<typeof vi.fn>;
 const mockOpenModal    = openModal as ReturnType<typeof vi.fn>;
 const mockTableHTML    = payrollTableHTML as ReturnType<typeof vi.fn>;
@@ -399,6 +415,110 @@ describe('savePayroll validation', () => {
 });
 
 // ── savePayroll edit path ─────────────────────────────────────────────────────
+
+describe('_withReleaseFields', () => {
+  const TODAY = '2026-08-07';
+
+  it('stamps a release date when the form sets status to Paid', () => {
+    const out = _withReleaseFields({ status: 'Paid' }, undefined, 'Gab', TODAY);
+    expect(out).toEqual({ status: 'Paid', released_at: TODAY, released_by: 'Gab' });
+  });
+
+  it('keeps the original release details when editing an already-paid run', () => {
+    const existing = makeRun({ status: 'Paid', released_at: '2026-07-15', released_by: 'Ana' });
+    const out = _withReleaseFields({ status: 'Paid', net: 19000 }, existing, 'Gab', TODAY);
+    expect(out.released_at).toBe('2026-07-15');
+    expect(out.released_by).toBe('Ana');
+  });
+
+  it('clears release details when a run is moved back off Paid', () => {
+    const existing = makeRun({ status: 'Paid', released_at: '2026-07-15', released_by: 'Ana' });
+    const out = _withReleaseFields({ status: 'Pending' }, existing, 'Gab', TODAY);
+    expect(out.released_at).toBeNull();
+    expect(out.released_by).toBeNull();
+  });
+
+  it('does not mutate the payload it is given', () => {
+    const payload = { status: 'Paid' };
+    _withReleaseFields(payload, undefined, 'Gab', TODAY);
+    expect(payload).toEqual({ status: 'Paid' });
+  });
+});
+
+// Editing a payroll run used to write nothing to the Cash Ledger, so correcting
+// a paid run's net pay left the dashboard on the old figure and un-paying a run
+// left its cash-out row behind for good.
+describe('savePayroll ledger sync', () => {
+  function fillForm(status: string, basic: string) {
+    document.body.innerHTML = `
+      <input id="pp-employee" value="Maria"/>
+      <input id="pp-period"   value="Aug 2026"/>
+      <input id="pp-basic"    value="${basic}"/>
+      <input id="pp-overtime" value="0"/>
+      <input id="pp-allowances" value="0"/>
+      <input id="pp-ded"      value="0"/>
+      <input id="pp-hours"    value=""/>
+      <input id="pp-type"     value="Employee"/>
+      <input id="pp-status"   value="${status}"/>
+      <input id="pp-notes"    value=""/>
+      <div id="ftab-payroll"></div>
+    `;
+  }
+
+  it('posts the corrected net pay when a paid run is edited', async () => {
+    mockSetPayroll([makeRun({ id: 5, status: 'Paid', released_at: '2026-08-01', net: 18200 })]);
+    fillForm('Paid', '19000');
+    const { openEditPayroll, savePayroll } = await import('./payroll.ts');
+    openEditPayroll(5);
+    await savePayroll();
+
+    expect(mockSyncLedger).toHaveBeenCalledWith(expect.objectContaining({
+      isCash: true, sourceType: 'payroll', sourceId: 5, cashOut: 19000,
+      txnDate: '2026-08-01',
+    }));
+  });
+
+  it('reverses the cash-out when a paid run is moved back to Pending', async () => {
+    mockSetPayroll([makeRun({ id: 5, status: 'Paid', released_at: '2026-08-01' })]);
+    fillForm('Pending', '18000');
+    const { openEditPayroll, savePayroll } = await import('./payroll.ts');
+    openEditPayroll(5);
+    await savePayroll();
+
+    expect(mockSyncLedger).toHaveBeenCalledWith(expect.objectContaining({
+      isCash: false, sourceType: 'payroll', sourceId: 5,
+    }));
+  });
+
+  it('posts a cash-out when the form itself sets status to Paid', async () => {
+    mockSetPayroll([makeRun({ id: 5, status: 'Pending', released_at: null })]);
+    fillForm('Paid', '18000');
+    const { openEditPayroll, savePayroll } = await import('./payroll.ts');
+    openEditPayroll(5);
+    await savePayroll();
+
+    expect(updatePayrollRun).toHaveBeenCalledWith(5, expect.objectContaining({
+      status: 'Paid',
+      released_at: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+    }));
+    expect(mockSyncLedger).toHaveBeenCalledWith(expect.objectContaining({
+      isCash: true, cashOut: 18000,
+    }));
+  });
+
+  it('warns when there is no financial account to post into', async () => {
+    mockSyncLedger.mockResolvedValueOnce('no-account');
+    mockSetPayroll([makeRun({ id: 5, status: 'Pending' })]);
+    fillForm('Paid', '18000');
+    const { openEditPayroll, savePayroll } = await import('./payroll.ts');
+    openEditPayroll(5);
+    await savePayroll();
+
+    expect(mockToast).toHaveBeenCalledWith(
+      expect.stringContaining('no financial account'), 'error',
+    );
+  });
+});
 
 describe('savePayroll edit path', () => {
   beforeEach(() => { document.body.innerHTML = ''; });

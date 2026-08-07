@@ -19,6 +19,26 @@ import type { PayrollRun } from '@shared/types.ts';
 // H2: null-safe — consistent with setPayrollFilter which already uses optional chaining
 const gVal = (id: string) => (document.getElementById(id) as HTMLInputElement | null)?.value ?? '';
 
+// Single source of truth for what a paid payroll run looks like in the Cash
+// Ledger, shared by "Mark as Paid" and by editing a run in the form. Editing a
+// paid run used to write nothing to the ledger, so correcting someone's net pay
+// left the dashboard showing the old figure, and moving a run back to Pending
+// left its cash-out row behind for good.
+async function syncPayrollToLedger(run: PayrollRun, createdBy: string | null = null) {
+  return syncSourceLedger({
+    isCash: run.status === 'Paid',
+    sourceType: 'payroll', sourceId: run.id, moduleSource: 'Payroll',
+    category: 'Payroll',
+    description: `Payroll — ${run.period}${run.employee_name ? ` · ${run.employee_name}` : ''}`,
+    // Dated when the payslip was released, so it lands in the right month.
+    txnDate: run.released_at ?? null,
+    referenceNo: run.payroll_number ?? null,
+    accounts: _accounts,
+    cashOut: run.net,
+    createdBy: createdBy ?? run.released_by ?? null,
+  });
+}
+
 let _editingPayrollId: number | null = null;
 let _payrollSearch       = '';
 let _payrollFilterType   = '';
@@ -261,25 +281,62 @@ function _readPayrollForm(): Partial<PayrollRun> | null {
   };
 }
 
+// The form's status dropdown can release a payslip just as "Mark as Paid" does,
+// so a save that lands on Paid needs a release date — without one the run has no
+// month and drops out of "Paid This Month". Moving a run back off Paid clears
+// both fields, so a later re-release is dated when it actually happened.
+// Exported for testing.
+export function _withReleaseFields(
+  payload: Partial<PayrollRun>,
+  existing: PayrollRun | undefined,
+  actor: string | null,
+  today: string,
+): Partial<PayrollRun> {
+  if (payload.status !== 'Paid') {
+    return { ...payload, released_at: null, released_by: null };
+  }
+  return {
+    ...payload,
+    released_at: existing?.released_at ?? today,
+    released_by: existing?.released_by ?? actor,
+  };
+}
+
 export async function savePayroll() {
-  const payload = _readPayrollForm();
-  if (!payload) return;
+  const form = _readPayrollForm();
+  if (!form) return;
   try {
-    const user = await getCurrentUser();
-    const actor = user?.name ?? user?.email ?? null;
+    const user     = await getCurrentUser();
+    const actor    = user?.name ?? user?.email ?? null;
+    const existing = _payroll.find(r => r.id === _editingPayrollId);
+    const payload  = _withReleaseFields(form, existing, actor, localISODate());
+
+    let runId = _editingPayrollId;
     if (_editingPayrollId !== null) {
-      const existing = _payroll.find(r => r.id === _editingPayrollId);
       const ok = await updatePayrollRun(_editingPayrollId, payload);
       if (!ok) { toast('Could not update payroll record', 'error'); return; }
       toast('Payroll record updated', 'success');
       await logDocActivity('payroll', _editingPayrollId, existing?.payroll_number ?? null, 'updated', actor);
     } else {
-      payload.payroll_number = _nextPayrollNumber(_payroll);
-      const result = await createPayrollRun(payload);
+      const created = { ...payload, payroll_number: _nextPayrollNumber(_payroll) };
+      const result  = await createPayrollRun(created);
       if (!result) { toast('Could not save payroll record. Please try again.', 'error'); return; }
+      runId = result.id;
       toast('Payroll record saved', 'success');
-      await logDocActivity('payroll', result.id, payload.payroll_number, 'created', actor);
+      await logDocActivity('payroll', result.id, created.payroll_number, 'created', actor);
     }
+
+    // Keep the Cash Ledger honest after an edit: correcting a paid run's net pay
+    // must move the dashboard with it, and a status change away from Paid must
+    // take the cash back off. Sync covers post, correct and reverse alike.
+    if (runId !== null) {
+      const merged = { ...(existing ?? {}), ...payload, id: runId } as PayrollRun;
+      const res = await syncPayrollToLedger(merged, actor);
+      if (res === 'no-account' && merged.status === 'Paid') {
+        toast('Saved, but no financial account exists yet — add one under Finance → Settings so this shows on the dashboard.', 'error');
+      }
+    }
+
     closeModal();
     await loadPayroll();
   } catch (error) {
@@ -302,18 +359,9 @@ export async function markPayrollPaid(id: number) {
 
     // §7 integration — paid payroll auto-posts a cash-out row to the Cash Ledger.
     if (run) {
-      const res = await syncSourceLedger({
-        isCash: true,
-        sourceType: 'payroll', sourceId: id, moduleSource: 'Payroll',
-        category: 'Payroll',
-        description: `Payroll — ${run.period}${run.employee_name ? ` · ${run.employee_name}` : ''}`,
-        // Dated when the payslip was released, so it lands in the right month.
-        txnDate: released_at,
-        referenceNo: run.payroll_number ?? null,
-        accounts: _accounts,
-        cashOut: run.net,
-        createdBy: released_by,
-      });
+      const res = await syncPayrollToLedger(
+        { ...run, status: 'Paid', released_by, released_at }, released_by,
+      );
       if (res === 'no-account') {
         toast('Marked Paid, but it is NOT on the dashboard yet — add a financial account under Finance → Settings, then mark this payroll paid again.', 'error');
       }
