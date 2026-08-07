@@ -5,7 +5,7 @@ import {
   fetchProjects, createProject, updateProject, deleteProject,
 } from '@hq/projects/projectService.ts';
 import { fetchClients, createClient, findClientByName } from '@hq/clients/clientService.ts';
-import { fetchProposals } from '@hq/proposals/proposalService.ts';
+import { fetchProposals, proposalValue } from '@hq/proposals/proposalService.ts';
 import { fetchInvoices } from '@hq/finance/financeService.ts';
 import { _clients, _proposals, _projects, setClients, setProjects } from '@hq/core/state.ts';
 import { toast, openModal, closeModal } from '@hq/core/ui.ts';
@@ -122,7 +122,7 @@ export function convertProposalToProject(proposalId: number) {
 
   openModal(
     'New Project (from Proposal)',
-    banner + projectFormHTML(_clients, { name: p.name, client: p.client ?? undefined, value: p.value, status: 'Proposal Approved' }),
+    banner + projectFormHTML(_clients, { name: p.name, client: p.client ?? undefined, value: proposalValue(p), status: 'Proposal Approved' }),
     saveProject,
   );
 }

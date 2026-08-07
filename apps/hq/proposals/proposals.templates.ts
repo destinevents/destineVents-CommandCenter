@@ -1,8 +1,9 @@
-import type { Client, Proposal, ProposalLineItem } from '@shared/types.ts';
+import type { Client, Proposal, ProposalLineItem, ProposalStats } from '@shared/types.ts';
 import { escapeHtml, statusClass } from '@shared/utils/helpers.ts';
 import { formatCurrency } from '@shared/utils/formatUtils.ts';
 import { formatDateShort } from '@shared/utils/dateUtils.ts';
 import { statusOptions, canTransition } from '@shared/documents/docTransitions.ts';
+import { proposalValue } from './proposalService.ts';
 
 function toISODate(val: string | null | undefined): string {
   if (!val || val === '—') return '';
@@ -18,7 +19,7 @@ function displayDate(val: string | null | undefined): string {
 }
 
 export function proposalRowHTML(p: Proposal): string {
-  const displayValue = p.total_amount ?? p.value;
+  const displayValue = proposalValue(p);
   return `
     <tr>
       <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(p.quo_number ?? '—')}</td>
@@ -47,18 +48,8 @@ export function proposalTableHTML(proposals: Proposal[]): string {
     : `<tr><td colspan="7"><div class="empty-state">No proposals yet</div></td></tr>`;
 }
 
-export interface ProposalStats {
-  winRate: number;
-  won: number;
-  lost: number;
-  total: number;
-  closed: number;
-  wonValue: number;
-  pipelineValue: number;
-}
-
 export function proposalWinRateHTML(stats: ProposalStats): string {
-  return `<div>${stats.won} won · ${stats.lost} lost · ${stats.total - stats.closed} open</div>
+  return `<div>${stats.won} won · ${stats.lost} lost · ${stats.open} open</div>
           <div>Closed: <strong>${stats.closed} of ${stats.total}</strong></div>`;
 }
 

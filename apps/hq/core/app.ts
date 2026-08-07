@@ -7,7 +7,7 @@ import { formatCurrency } from '@shared/utils/formatUtils.ts';
 import { formatDateShort, todayISO } from '@shared/utils/dateUtils.ts';
 import { escapeHtml } from '@shared/utils/helpers.ts';
 import { fetchClients } from '@hq/clients/clientService.ts';
-import { fetchProposals } from '@hq/proposals/proposalService.ts';
+import { fetchProposals, calcWinRate } from '@hq/proposals/proposalService.ts';
 import { fetchPartners } from '@hq/partners/partnerService.ts';
 import { fetchInvoices, fetchBills } from '@hq/finance/financeService.ts';
 import { fetchProjects } from '@hq/projects/projectService.ts';
@@ -356,13 +356,14 @@ function renderDashboard() {
 
   // ── Stat cards ──
   const activeProjects  = _projects.filter(p => p.status === 'Active').length;
-  const pipelineValue   = _proposals.filter(p => p.status !== 'Won' && p.status !== 'Lost').reduce((s, p) => s + (p.value || 0), 0);
+  // Same source as the Proposals page, so the two pages cannot disagree.
+  const proposalStats   = calcWinRate(_proposals);
   const openLeads       = _clients.filter(c => c.status === 'Lead').length;
   const totalClients    = _clients.length;
 
   el('dash-stats').innerHTML = `
     <div class="stat-card"><div class="stat-accent" style="background:var(--green)"></div><div class="stat-label">Active Projects</div><div class="stat-value">${activeProjects}</div><div class="stat-change">of ${_projects.length} total</div></div>
-    <div class="stat-card"><div class="stat-accent" style="background:var(--blue)"></div><div class="stat-label">Pipeline Value</div><div class="stat-value" style="font-size:24px">${formatCurrency(pipelineValue)}</div><div class="stat-change">${_proposals.filter(p => p.status !== 'Won' && p.status !== 'Lost').length} open proposals</div></div>
+    <div class="stat-card"><div class="stat-accent" style="background:var(--blue)"></div><div class="stat-label">Pipeline Value</div><div class="stat-value" style="font-size:24px">${formatCurrency(proposalStats.pipelineValue)}</div><div class="stat-change">${proposalStats.open} open proposals</div></div>
     <div class="stat-card"><div class="stat-accent" style="background:var(--amber)"></div><div class="stat-label">Open Leads</div><div class="stat-value">${openLeads}</div><div class="stat-change">${_clients.filter(c => c.status === 'Active').length} converted to active</div></div>
     <div class="stat-card"><div class="stat-accent" style="background:var(--forest)"></div><div class="stat-label">Total Clients</div><div class="stat-value">${totalClients}</div><div class="stat-change up">across all brands</div></div>`;
 

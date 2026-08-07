@@ -9,7 +9,7 @@ import { openDocEmail } from '@shared/documents/docEmail.ts';
 import { canTransition } from '@shared/documents/docTransitions.ts';
 import {
   fetchProposals, createProposal, updateProposal, deleteProposal, calcWinRate,
-  fetchProposalLineItems, upsertProposalLineItems,
+  fetchProposalLineItems, upsertProposalLineItems, proposalValue,
 } from './proposalService.ts';
 import { fetchClients } from '@hq/clients/clientService.ts';
 import { _clients, _proposals, setClients, setProposals } from '@hq/core/state.ts';
@@ -160,7 +160,7 @@ export function sendQuotationEmail(id: number) {
   const p = _proposals.find(x => x.id === id);
   if (!p) return;
   const { company } = APP_SETTINGS;
-  const displayValue = p.total_amount ?? p.value;
+  const displayValue = proposalValue(p);
   openDocEmail({
     modalTitle:     'Send Quotation',
     docSummary:     `${p.quo_number ?? '—'} · ${p.client ?? p.name} · ₱${displayValue.toLocaleString('en-PH', { minimumFractionDigits: 2 })}`,
@@ -219,9 +219,11 @@ export async function printQuotation(id: number) {
     vat_rate:    i.vat_rate,
   }));
 
-  const subtotal    = p.subtotal    ?? p.value;
-  const vatAmount   = p.vat_amount  ?? 0;
-  const totalAmount = p.total_amount ?? p.value;
+  // `||` not `??` — these columns were added with DEFAULT 0, so an older
+  // quotation holds 0 rather than null and would print as ₱0.00.
+  const subtotal    = p.subtotal || p.value || 0;
+  const vatAmount   = p.vat_amount || 0;
+  const totalAmount = proposalValue(p);
 
   const body = `
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:28px">

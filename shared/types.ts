@@ -408,6 +408,9 @@ export interface ProposalStats {
   closed: number;
   won: number;
   lost: number;
+  // Still live: not Won, Lost or Expired. Counts the same quotations that
+  // pipelineValue sums, so the figure and its caption always agree.
+  open: number;
   winRate: number;
   wonValue: number;
   pipelineValue: number;
