@@ -80,7 +80,7 @@ function makeRun(overrides: Partial<PayrollRun> = {}): PayrollRun {
     employees: 1, hours_worked: null,
     basic_pay: 20000, overtime: 0, allowances: 0,
     gross: 20000, deductions: 1800, net: 18200,
-    status: 'Draft', released_by: null, notes: null,
+    status: 'Draft', released_by: null, released_at: null, notes: null,
     created_at: '2026-07-01',
     ...overrides,
   };
@@ -258,7 +258,12 @@ describe('markPayrollPaid', () => {
 
     await markPayrollPaid(42);
 
-    expect(updatePayrollRun).toHaveBeenCalledWith(42, { status: 'Paid', released_by: 'Test User' });
+    // released_at is what the payroll "Paid This Month" card counts on.
+    expect(updatePayrollRun).toHaveBeenCalledWith(42, {
+      status: 'Paid',
+      released_by: 'Test User',
+      released_at: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+    });
   });
 
   it('does nothing when user cancels the confirm', async () => {

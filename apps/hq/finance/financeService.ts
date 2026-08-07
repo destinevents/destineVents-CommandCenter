@@ -1,6 +1,51 @@
 import { sb } from '@shared/core/supabase';
 import { handleServiceError } from '@shared/core/serviceError.ts';
+import { logger } from '@shared/utils/logger.ts';
+import { localISODate } from '@shared/utils/dateUtils.ts';
+import {
+  isCountableInvoice, isOutstandingInvoice, isOverdueInvoice, invoicePaymentDate,
+} from './arCalc.ts';
 import type { Invoice, InvoiceLineItem, Bill, PayrollRun, FinanceSummary } from '@shared/types';
+
+// The date cash actually left for an expense. `paid_at` is set when the expense
+// is marked Paid; older rows fall back to the bill's own date.
+export function billPaidDate(bill: Bill): string {
+  return (bill.paid_at ?? bill.date ?? '').slice(0, 10);
+}
+
+// PostgREST reports a column the schema cache does not know about as PGRST204.
+// It happens while a migration is still pending — the app ships before the SQL
+// is run in the Supabase dashboard.
+function isUnknownColumnError(error: { code?: string } | null): boolean {
+  return error?.code === 'PGRST204';
+}
+
+// Update that degrades gracefully: if the table does not have the new columns
+// yet, retry without them rather than failing the whole write. Marking an
+// expense paid must not break just because paid_at has not been migrated in.
+async function updateWithOptionalColumns(
+  table: string,
+  id: number,
+  data: Record<string, unknown>,
+  optionalColumns: ReadonlyArray<string>,
+  context: string,
+): Promise<boolean> {
+  const { error } = await sb.from(table).update(data).eq('id', id);
+  if (!error) return true;
+
+  const hasOptional = optionalColumns.some(col => col in data);
+  if (!isUnknownColumnError(error) || !hasOptional) {
+    handleServiceError(context, error);
+    return false;
+  }
+
+  const fallback = { ...data };
+  for (const col of optionalColumns) delete fallback[col];
+  const { error: retryError } = await sb.from(table).update(fallback).eq('id', id);
+  if (retryError) { handleServiceError(context, retryError); return false; }
+  logger.warn(context, `Saved without ${optionalColumns.join(', ')} — run the pending migration in Supabase.`);
+  return true;
+}
 
 export async function fetchLineItems(invoiceId: number): Promise<InvoiceLineItem[]> {
   const { data, error } = await sb
@@ -61,9 +106,7 @@ export async function createBill(data: Partial<Bill>): Promise<Bill | null> {
 }
 
 export async function updateBill(id: number, data: Partial<Bill>): Promise<boolean> {
-  const { error } = await sb.from('bills').update(data).eq('id', id);
-  if (error) { handleServiceError('updateBill', error); return false; }
-  return true;
+  return updateWithOptionalColumns('bills', id, data, ['paid_at'], 'updateBill');
 }
 
 export async function deleteBill(id: number): Promise<boolean> {
@@ -85,9 +128,7 @@ export async function createPayrollRun(data: Partial<PayrollRun>): Promise<Payro
 }
 
 export async function updatePayrollRun(id: number, data: Partial<PayrollRun>): Promise<boolean> {
-  const { error } = await sb.from('payroll_runs').update(data).eq('id', id);
-  if (error) { handleServiceError('updatePayrollRun', error); return false; }
-  return true;
+  return updateWithOptionalColumns('payroll_runs', id, data, ['released_at'], 'updatePayrollRun');
 }
 
 export async function deletePayrollRun(id: number): Promise<boolean> {
@@ -96,33 +137,46 @@ export async function deletePayrollRun(id: number): Promise<boolean> {
   return true;
 }
 
-export function calcFinanceSummary(invoices: Invoice[], bills: Bill[], payrollRuns: PayrollRun[] = []): FinanceSummary {
-  const now = new Date();
+export function calcFinanceSummary(
+  invoices: Invoice[],
+  bills: Bill[],
+  payrollRuns: PayrollRun[] = [],
+  now: Date = new Date(),
+): FinanceSummary {
   const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const today = localISODate(now);
 
-  const arOutstanding    = invoices.filter(i => i.status !== 'Paid').reduce((s, i) => s + (i.amount || 0), 0);
-  const apOutstanding    = bills.filter(b => !['Paid', 'Cancelled'].includes(b.status) && !b.archived_at).reduce((s, b) => s + (b.amount || 0), 0);
-  const revenueCollected = invoices.filter(i => i.status === 'Paid').reduce((s, i) => s + (i.amount || 0), 0);
-  const expensesPaid     = bills.filter(b => b.status === 'Paid').reduce((s, b) => s + (b.amount || 0), 0);
+  // Archived and cancelled documents are hidden from every table, so they must
+  // not sit in the totals either — otherwise cancelling an invoice leaves the
+  // Outstanding card unchanged while the table below it drops the row.
+  const liveInvoices = invoices.filter(isCountableInvoice);
+  const paidInvoices = liveInvoices.filter(i => i.status === 'Paid');
+  const liveBills    = bills.filter(b => !b.archived_at);
+  const paidBills    = liveBills.filter(b => b.status === 'Paid');
 
-  const collectedThisMonth = invoices
-    .filter(i => i.status === 'Paid' && ((i.payment_date ?? i.date ?? '').startsWith(thisMonth)))
+  const arOutstanding    = liveInvoices.filter(isOutstandingInvoice).reduce((s, i) => s + (i.amount || 0), 0);
+  const apOutstanding    = liveBills.filter(b => !['Paid', 'Cancelled'].includes(b.status)).reduce((s, b) => s + (b.amount || 0), 0);
+  const revenueCollected = paidInvoices.reduce((s, i) => s + (i.amount || 0), 0);
+  const expensesPaid     = paidBills.reduce((s, b) => s + (b.amount || 0), 0);
+
+  const collectedThisMonth = paidInvoices
+    .filter(i => invoicePaymentDate(i).startsWith(thisMonth))
     .reduce((s, i) => s + (i.amount || 0), 0);
 
-  const expensesPaidThisMonth = bills
-    .filter(b => b.status === 'Paid' && (b.date ?? '').startsWith(thisMonth))
+  const expensesPaidThisMonth = paidBills
+    .filter(b => billPaidDate(b).startsWith(thisMonth))
     .reduce((s, b) => s + (b.amount || 0), 0);
 
-  const overdueInvoices = invoices.filter(i => i.status === 'Overdue');
-  const pendingBills    = bills.filter(b => !['Paid', 'Cancelled'].includes(b.status) && !b.archived_at);
+  // Derived, not stored — nothing in the app ever wrote the 'Overdue' status.
+  const overdueInvoices = liveInvoices.filter(i => isOverdueInvoice(i, today));
+  const pendingBills    = liveBills.filter(b => !['Paid', 'Cancelled'].includes(b.status));
   const payrollDue      = payrollRuns.filter(p => p.status === 'Pending').reduce((s, p) => s + (p.net || 0), 0);
 
-  const today = now.toISOString().slice(0, 10);
-  const collectedToday = invoices
-    .filter(i => i.status === 'Paid' && (i.payment_date ?? i.date ?? '') === today)
+  const collectedToday = paidInvoices
+    .filter(i => invoicePaymentDate(i) === today)
     .reduce((s, i) => s + (i.amount || 0), 0);
 
-  const paidWithDates = invoices.filter(i => i.status === 'Paid' && i.date && i.payment_date);
+  const paidWithDates = paidInvoices.filter(i => i.date && i.payment_date);
   const avgCollectionDays = paidWithDates.length === 0 ? 0 : Math.round(
     paidWithDates.reduce((s, i) => {
       const diff = new Date(i.payment_date!).getTime() - new Date(i.date!).getTime();

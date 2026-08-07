@@ -1,5 +1,5 @@
 import { formatCurrency } from '@shared/utils/formatUtils.ts';
-import { formatDateShort, todayISO } from '@shared/utils/dateUtils.ts';
+import { formatDateShort } from '@shared/utils/dateUtils.ts';
 import { escapeHtml, statusClass } from '@shared/utils/helpers.ts';
 import { validateRequired } from '@shared/utils/validators.ts';
 import { APP_SETTINGS } from '@config/settings.ts';
@@ -529,50 +529,50 @@ export function openSOBSendEmail(id: number) {
   });
 }
 
+// A Statement of Billing is a request for payment, not a receipt — cash is
+// recorded against the *invoice* it converts into. This used to open its own
+// payment form that wrote the payment into the SOB's notes as free text: no
+// ledger row, no Official Receipt, and nothing on the dashboard moved.
+//
+// So this is now a router. With a linked invoice it hands off to the invoice's
+// payment flow (which posts to the ledger and prints the OR); without one it
+// says what to do first. One cash event, one ledger row — recording it in both
+// places would double-count revenue the moment the SOB was converted.
 export function openSOBRecordPayment(id: number) {
   const s = _sobs.find(x => x.id === id);
   if (!s) return;
-  const gv = (elId: string) => (document.getElementById(elId) as HTMLInputElement).value;
+
+  if (s.linked_invoice_id) {
+    const invoice = _invoices.find(i => i.id === s.linked_invoice_id);
+    if (!invoice) { toast('The linked invoice could not be found — please refresh.', 'error'); return; }
+    if (invoice.status === 'Paid') { toast(`Invoice ${invoice.or_num} is already paid`, 'error'); return; }
+    window.openRecordPayment(invoice.id);
+    return;
+  }
+
   openModal('Record Payment', `
-    <div style="font-size:11px;color:var(--ink-3);margin-bottom:12px">
-      SOB <strong>${escapeHtml(s.sob_num)}</strong> · Total Due: <strong>${formatCurrency(s.total_amount)}</strong>
-    </div>
-    <div class="form-grid">
-      <div class="form-group"><div class="form-label">Amount Paid (₱)</div><input class="form-input" id="spr-amount" type="number" value="${s.total_amount || 0}" min="0" step="any"/></div>
-      <div class="form-group"><div class="form-label">Payment Date</div><input class="form-input" id="spr-date" type="date" value="${todayISO()}"/></div>
-      <div class="form-group"><div class="form-label">Payment Method</div>
-        <select class="form-input" id="spr-method">
-          <option>Cash</option><option>GCash</option><option>Bank Transfer</option><option>Cheque</option>
-        </select>
+    <div style="font-size:13px;color:var(--ink-2);line-height:1.7">
+      <p style="margin-bottom:10px">
+        SOB <strong>${escapeHtml(s.sob_num)}</strong> has not been converted to an invoice yet.
+      </p>
+      <p style="margin-bottom:10px">
+        Payments are recorded against the invoice, so the amount reaches the Cash Ledger,
+        the dashboard, and the Official Receipt. Convert this SOB first, then record the
+        payment on the invoice.
+      </p>
+      <div style="padding:12px;background:var(--linen-3);border-radius:6px;font-size:12px;color:var(--ink-3)">
+        Statement of Billing → <strong>Invoice</strong> → Payment → Official Receipt
       </div>
-      <div class="form-group"><div class="form-label">Reference Number</div><input class="form-input" id="spr-ref" placeholder="Transaction ID / cheque #"/></div>
-      <div class="form-group"><div class="form-label">Received By</div><input class="form-input" id="spr-received" placeholder="Staff name"/></div>
-      <div class="form-group full"><div class="form-label">Notes (optional)</div><input class="form-input" id="spr-notes" placeholder="Additional remarks"/></div>
     </div>`, async () => {
-    const amountPaid = +gv('spr-amount') || 0;
-    const method     = gv('spr-method');
-    const ref        = gv('spr-ref').trim();
-    const received   = gv('spr-received').trim();
-    const date       = gv('spr-date') || todayISO();
-    const notes      = gv('spr-notes').trim();
-    const newStatus  = amountPaid >= (s.total_amount || 0) ? 'Paid' : 'Partially Paid';
-    const paymentLog = `[PAYMENT: ${formatCurrency(amountPaid)} via ${method}${ref ? ' · Ref: ' + ref : ''}${received ? ' · Received by: ' + received : ''} · ${date}${notes ? ' · ' + notes : ''}]`;
-    const updatedNotes = s.notes ? `${s.notes}\n${paymentLog}` : paymentLog;
-    const ok = await updateSOB(id, { status: newStatus, notes: updatedNotes } as Partial<SOB>);
-    if (!ok) { toast('Could not record payment', 'error'); return; }
-    const payUser = await getCurrentUser();
-    await logDocActivity('sob', id, s.sob_num, 'paid', payUser?.name ?? payUser?.email ?? null, `${formatCurrency(amountPaid)} via ${method}`);
-    toast(`Payment recorded — SOB marked as ${newStatus}`, 'success');
     closeModal();
-    const fresh = await fetchSOBs();
-    setSOBs(fresh);
-    renderSOB(fresh);
-  });
+    await convertSOBToInvoice(id);
+  }, 'Convert to Invoice');
 }
 
-// Extend Window to include the cross-module SOB→Invoice bridge
+// Extend Window to include the cross-module SOB↔Invoice bridges
 declare global {
   interface Window {
     openInvoiceFromSOB: (draft: Partial<import('@shared/types.ts').Invoice>, items: InvoiceLineItem[], sobId: number) => void;
+    openRecordPayment: (invoiceId: number) => void;
   }
 }

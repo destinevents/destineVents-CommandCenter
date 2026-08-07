@@ -21,13 +21,33 @@ import { updateProject } from '@hq/projects/projectService.ts';
 import {
   _invoices, _bills, _payroll, _sobs, _clients, _projects, _accounts,
 } from '@hq/core/state.ts';
-import { postSourceToLedger, reverseSourceFromLedger } from '../ledgerPosting.ts';
+import { reverseSourceFromLedger, syncSourceLedger } from '../ledgerPosting.ts';
 import { toast, openModal, closeModal } from '@hq/core/ui.ts';
 import type { Invoice, InvoiceLineItem, SOB } from '@shared/types.ts';
 import { loadFinance } from '../finance.ts';
 
 const gEl = (id: string) => document.getElementById(id)!;
 const gVal = (id: string) => (document.getElementById(id) as HTMLInputElement).value;
+
+// Single source of truth for what a paid invoice looks like in the Cash Ledger.
+// Called both when a payment is first recorded and whenever the invoice is
+// edited afterwards — editing a paid invoice's amount or payment date used to
+// leave the ledger row (and so the whole dashboard) showing the old figure.
+async function syncInvoiceToLedger(invoice: Invoice, createdBy: string | null = null) {
+  return syncSourceLedger({
+    isCash: invoice.status === 'Paid' && !invoice.archived_at,
+    sourceType: 'invoice', sourceId: invoice.id, moduleSource: 'AR',
+    category: 'Client Payment',
+    description: `Client payment — ${invoice.client ?? 'Invoice'}${invoice.or_num ? ` (${invoice.or_num})` : ''}`,
+    txnDate: invoice.payment_date ?? invoice.date ?? null,
+    referenceNo: invoice.or_num ?? null,
+    accounts: _accounts,
+    projectId: invoice.project_id ?? null,
+    paymentMethod: invoice.payment_method ?? null,
+    cashIn: invoice.amount,
+    createdBy: createdBy ?? invoice.received_by ?? null,
+  });
+}
 
 // ── AR module-level state ─────────────────────────────────────────────────────
 let _editingInvoiceId: number | null   = null;
@@ -391,6 +411,18 @@ export async function saveInvoice() {
     _pendingSOBConvertId = null;
   }
 
+  // Keep the Cash Ledger honest after an edit: correcting a paid invoice's
+  // amount, payment date or method must move the dashboard with it, and a
+  // status change away from Paid must take the cash back off.
+  // A brand-new invoice that is not paid has no ledger row to reconcile.
+  if (invoiceId && (_editingInvoiceId || status === 'Paid')) {
+    const existing = _invoices.find(i => i.id === invoiceId);
+    const res = await syncInvoiceToLedger({ ...(existing ?? {}), ...payload, id: invoiceId } as Invoice, actor);
+    if (res === 'no-account' && status === 'Paid') {
+      toast('Saved, but no financial account exists yet — add one under Finance → Settings so this shows on the dashboard.', 'error');
+    }
+  }
+
   closeModal();
   loadFinance();
 }
@@ -508,18 +540,24 @@ ${inv.notes ? `<div style="margin-top:24px;padding:14px;background:#f9f6f0;borde
 
 export async function archiveInvoice(id: number) {
   const inv = _invoices.find(x => x.id === id);
-  const ok = await updateInvoice(id, { archived_at: new Date().toISOString() } as Partial<Invoice>);
+  const archived_at = new Date().toISOString();
+  const ok = await updateInvoice(id, { archived_at } as Partial<Invoice>);
   if (!ok) { toast('Could not archive invoice', 'error'); return; }
   toast('Invoice archived', '');
   const user = await getCurrentUser();
   await logDocActivity('invoice', id, inv?.or_num ?? null, 'archived', user?.name ?? user?.email ?? null);
+  // Archived invoices are excluded from every AR figure, so their cash must
+  // come off the ledger too — otherwise the two halves of the dashboard disagree.
+  if (inv) await syncInvoiceToLedger({ ...inv, archived_at });
   loadFinance();
 }
 
 export async function restoreInvoice(id: number) {
+  const inv = _invoices.find(x => x.id === id);
   const ok = await updateInvoice(id, { archived_at: null } as Partial<Invoice>);
   if (!ok) { toast('Could not restore invoice', 'error'); return; }
   toast('Invoice restored', '');
+  if (inv) await syncInvoiceToLedger({ ...inv, archived_at: null });
   loadFinance();
 }
 
@@ -613,20 +651,9 @@ export async function saveRecordPayment() {
   // §7 integration — a paid invoice auto-posts a cash-in row to the Cash Ledger.
   const inv = _invoices.find(i => i.id === paidId);
   if (inv) {
-    const res = await postSourceToLedger({
-      sourceType: 'invoice', sourceId: inv.id, moduleSource: 'AR',
-      category: 'Client Payment',
-      description: `Client payment — ${inv.client ?? 'Invoice'}${inv.or_num ? ` (${inv.or_num})` : ''}`,
-      txnDate: payload.payment_date ?? null,
-      referenceNo: inv.or_num ?? null,
-      accounts: _accounts,
-      projectId: inv.project_id ?? null,
-      paymentMethod: method,
-      cashIn: inv.amount,
-      createdBy: payload.received_by ?? null,
-    });
+    const res = await syncInvoiceToLedger({ ...inv, ...payload }, payload.received_by ?? null);
     if (res === 'no-account') {
-      toast('Marked Paid — add a financial account in Settings so payments post to the Cash Ledger', '');
+      toast('Payment saved, but it is NOT on the dashboard yet — add a financial account under Finance → Settings, then reopen this invoice and save it.', 'error');
     }
   }
   closeModal();
