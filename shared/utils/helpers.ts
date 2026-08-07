@@ -81,7 +81,7 @@ export function skillPillGreen(s: string): string { return `<span class="skill-p
 
 export function statusClass(s = ''): string {
   return ({
-    'Active':'active','Completed':'completed','NDA Signed':'nda','Lead':'lead','Proposal':'proposal',
+    'Active':'active','Completed':'completed','Lead':'lead','Proposal':'proposal',
     'Paid':'paid','Unpaid':'unpaid','Overdue':'overdue',
     'Draft':'draft','Issued':'issued','Cancelled':'cancelled',
     'For Approval':'for-approval','Approved':'approved',
@@ -96,12 +96,11 @@ export function statusClass(s = ''): string {
 }
 
 export function docTypeIcon(t: string): string {
-  return ({'NDA':'📋','Contract':'📄','Proposal':'📝','Agreement':'🤝','Document':'📁'} as Record<string, string>)[t] || '📁';
+  return ({'Contract':'📄','Proposal':'📝','Agreement':'🤝','Document':'📁'} as Record<string, string>)[t] || '📁';
 }
 
 export function guessDocType(name: string): string {
   const n = name.toLowerCase();
-  if (n.includes('nda'))                            return 'NDA';
   if (n.includes('contract'))                       return 'Contract';
   if (n.includes('proposal'))                       return 'Proposal';
   if (n.includes('agreement') || n.includes('mou')) return 'Agreement';

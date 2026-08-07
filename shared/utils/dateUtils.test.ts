@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatDate, formatDateShort, formatDateForNDA, todayISO, getQuarter } from './dateUtils.ts';
+import { formatDate, formatDateShort, todayISO, getQuarter } from './dateUtils.ts';
 
 describe('formatDate', () => {
   it('returns em dash for null', () => {
@@ -27,12 +27,6 @@ describe('formatDateShort', () => {
   });
   it('returns em dash for null', () => {
     expect(formatDateShort(null)).toBe('—');
-  });
-});
-
-describe('formatDateForNDA', () => {
-  it('includes the full month name', () => {
-    expect(formatDateForNDA('2026-07-01')).toContain('July');
   });
 });
 

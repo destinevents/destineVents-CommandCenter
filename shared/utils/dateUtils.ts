@@ -18,10 +18,6 @@ export function formatDateShort(isoVal: string | null | undefined): string {
   return formatDate(isoVal, 'en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-export function formatDateForNDA(isoVal: string | null | undefined): string {
-  return formatDate(isoVal, 'en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-}
-
 // The calendar date in the *user's own* timezone. toISOString() is UTC, which
 // in Manila (UTC+8) returns yesterday's date between midnight and 8 AM — that
 // pre-filled the wrong payment date on early-morning entries and made the

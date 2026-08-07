@@ -11,7 +11,6 @@
 }
 .badge-active    { color:var(--green); }
 .badge-proposal  { color:var(--blue); }
-.badge-nda       { color:var(--amber); }
 .badge-lead      { color:var(--ink-3); }
 .badge-completed { background:var(--ink); color:var(--linen); border-color:var(--ink); }
 .badge-paid      { color:var(--green); }
