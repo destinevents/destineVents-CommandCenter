@@ -93,7 +93,7 @@ async function handleSignUp() {
     }
     errEl.style.color = '#10b981';
     errEl.textContent =
-      'Account created — your access is pending review. Jenn will assign your role. You can sign in once approved.';
+      'Account created — your access is pending review. An admin will approve your account and assign your role. You can sign in once that is done.';
     (gEl('signup-btn') as HTMLButtonElement).disabled = true;
   } finally {
     setLoading(false);
