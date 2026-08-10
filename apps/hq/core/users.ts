@@ -5,7 +5,7 @@ import { toast } from './ui.ts';
 import type { InternUser, UserRole } from '@shared/types';
 
 const ASSIGNABLE_ROLES: UserRole[] = [
-  'finance_officer', 'external_accountant', 'team_staff',
+  'finance_officer', 'external_accountant', 'team_staff', 'freelancer',
   'supervisor', 'intern',
 ];
 

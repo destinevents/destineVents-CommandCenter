@@ -3,6 +3,7 @@ export type UserRole =
   | 'supervisor'
   | 'intern'
   | 'pending'
+  | 'freelancer'
   | 'finance_officer'
   | 'external_accountant'
   | 'team_staff';

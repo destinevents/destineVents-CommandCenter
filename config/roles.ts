@@ -5,13 +5,16 @@ export const ROLES = {
   SUPERVISOR:          'supervisor',
   INTERN:              'intern',
   PENDING:             'pending',
+  FREELANCER:          'freelancer',
   FINANCE_OFFICER:     'finance_officer',
   EXTERNAL_ACCOUNTANT: 'external_accountant',
   TEAM_STAFF:          'team_staff',
 } as const;
 
 // Roles that belong to the HQ portal
-export const HQ_ROLES: UserRole[] = ['admin', 'finance_officer', 'external_accountant', 'team_staff'];
+export const HQ_ROLES: UserRole[] = [
+  'admin', 'finance_officer', 'external_accountant', 'team_staff', 'freelancer',
+];
 
 // Roles that belong to the ICC (Intern Command Center) portal
 export const ICC_ROLES: UserRole[] = ['supervisor', 'intern'];
@@ -22,6 +25,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   supervisor:          'Supervisor',
   intern:              'Intern',
   pending:             'Pending',
+  freelancer:          'Freelancer',
   finance_officer:     'Finance Officer / Bookkeeper',
   external_accountant: 'External Accountant',
   team_staff:          'Team / Staff',
@@ -32,6 +36,9 @@ export const HQ_ALLOWED_PAGES: Partial<Record<UserRole, string[]>> = {
   finance_officer:     ['dashboard', 'finance', 'projects', 'clients'],
   external_accountant: ['finance'],
   team_staff:          ['projects', 'clients', 'documents'],
+  // Contracted external workers: the work they deliver, but no client list and
+  // nothing financial.
+  freelancer:          ['projects', 'documents'],
 };
 
 export const ROLE_HIERARCHY: Record<UserRole, number> = {
@@ -41,6 +48,7 @@ export const ROLE_HIERARCHY: Record<UserRole, number> = {
   finance_officer:     4,
   external_accountant: 2,
   team_staff:          2,
+  freelancer:          1,
   pending:             0,
 };
 
@@ -72,6 +80,7 @@ export const PERMISSIONS: Record<UserRole, Partial<Record<Resource, string[]>>> 
   },
   // HQ roles have no ICC permissions
   pending:             {},
+  freelancer:          {},
   finance_officer:     {},
   external_accountant: {},
   team_staff:          {},
