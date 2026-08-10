@@ -1,6 +1,19 @@
--- AUTO-SEED-TRIGGER.SQL
--- Run ONCE in Supabase SQL Editor.
--- After this, every new auth signup automatically gets an intern_users row —
+-- ⚠️  SUPERSEDED BY migrations/017_fix_signup_approval_trigger.sql — DO NOT RUN.
+--
+-- Steps 1 and 2 below re-point the on_auth_user_created trigger at
+-- handle_new_user(), which hardcodes role = 'intern' and ignores requested_role.
+-- Running them silently breaks the admin approval queue: every signup skips
+-- "Pending Approval" and lands on the ICC portal regardless of what the person
+-- selected. That is the exact bug migration 017 exists to fix, and 017 drops
+-- handle_new_user() so re-running this file now fails loudly instead.
+--
+-- Kept only as a record of how the bug was introduced. For the current signup
+-- behaviour see migrations/017 and 018.
+--
+-- ─────────────────────────────────────────────────────────────────────────────
+-- AUTO-SEED-TRIGGER.SQL (historical)
+-- Ran ONCE in Supabase SQL Editor.
+-- Intent was: every new auth signup automatically gets an intern_users row —
 -- no more FK constraint errors when new users try to log timesheets.
 
 -- Step 1: trigger function
