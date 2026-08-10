@@ -263,9 +263,10 @@
         <div>
           <h2 style="font-size:20px;font-weight:800;color:var(--forest)">Intern Overview</h2>
         </div>
-        <div class="filter-row" style="margin:0">
+        <div class="filter-row" style="margin:0;align-items:center;gap:10px">
           <button class="filter-tab active" id="intern-tab-active" data-action="intern-tab-active">Active</button>
           <button class="filter-tab" id="intern-tab-completed" data-action="intern-tab-completed">Completed</button>
+          <button class="btn-primary admin-only" data-action="add-intern">+ Add Intern</button>
         </div>
       </div>
       <div class="grid-auto" id="interns-grid"></div>
@@ -380,6 +381,56 @@
     <div class="modal-footer">
       <button class="btn-ghost" data-action="close-modal" data-modal="modal-add-task">Cancel</button>
       <button class="btn-primary" id="nt-submit-btn" data-action="create-task">Create Task</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Intern Modal -->
+<div class="modal-overlay" id="modal-add-intern" role="dialog" aria-modal="true" aria-labelledby="modal-add-intern-title">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-add-intern-title">Add Intern</span>
+      <button class="modal-close" data-action="close-modal" data-modal="modal-add-intern" aria-label="Close dialog">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:12px;color:var(--muted);margin:0 0 16px">
+        We'll email them a link to set their own password. They appear in the HQ
+        Users list right away.
+      </p>
+      <div class="login-error" id="ai-error"></div>
+      <div class="form-row">
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label" for="ai-name">Full Name <span class="req">*</span></label>
+          <input class="form-input" id="ai-name" placeholder="e.g. Ja De Ocampo" autocomplete="off" />
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label" for="ai-email">Email <span class="req">*</span></label>
+          <input class="form-input" id="ai-email" type="email" placeholder="name@example.com" autocomplete="off" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="ai-school">School</label>
+          <input class="form-input" id="ai-school" placeholder="e.g. UB Baguio" autocomplete="off" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="ai-program">Program / Course</label>
+          <input class="form-input" id="ai-program" placeholder="e.g. BS Information Technology" autocomplete="off" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="ai-role">Role</label>
+          <select class="form-input" id="ai-role">
+            <option value="intern" selected>Intern</option>
+            <option value="supervisor">Supervisor</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="ai-hours">Required Hours</label>
+          <input class="form-input" id="ai-hours" type="number" min="0" step="1" placeholder="e.g. 486" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" data-action="close-modal" data-modal="modal-add-intern">Cancel</button>
+      <button class="btn-primary" id="ai-submit-btn" data-action="create-intern">Send Invite</button>
     </div>
   </div>
 </div>

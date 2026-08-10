@@ -4,8 +4,9 @@ import { fetchAuditLogs } from '../audit/auditService.ts';
 import { escapeHtml, avatarEl, skillPill, skillPillGreen } from '@shared/utils/helpers.ts';
 import { formatDateShort, formatTime } from '@shared/utils/dateUtils.ts';
 import { liveUsers, liveTasks, liveTimesheets, pendingApprovals } from '../core/state.ts';
-import { toast } from '../core/ui.ts';
+import { toast, openModal, closeModal } from '../core/ui.ts';
 import { loadLiveUsers } from '../core/data.ts';
+import { createUser } from '@shared/core/userService.ts';
 
 let showCompletedInterns = false;
 
@@ -14,6 +15,72 @@ export function setInternTab(completed) {
   document.getElementById('intern-tab-active')?.classList.toggle('active', !completed);
   document.getElementById('intern-tab-completed')?.classList.toggle('active', completed);
   renderInterns();
+}
+
+// ── Add Intern ────────────────────────────────────────────────────────────
+// Invites someone and sets their role in one step. Both portals read the same
+// intern_users table, so whoever is added here also shows up under Users in HQ.
+
+const ADD_INTERN_FIELDS = ['ai-name', 'ai-email', 'ai-school', 'ai-program', 'ai-hours'];
+
+function setAddInternError(message) {
+  const el = document.getElementById('ai-error');
+  if (el) el.textContent = message || '';
+}
+
+export function openAddIntern() {
+  ADD_INTERN_FIELDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const roleEl = document.getElementById('ai-role');
+  if (roleEl) roleEl.value = 'intern';
+  setAddInternError('');
+  openModal('modal-add-intern');
+}
+
+export async function handleAddIntern() {
+  const val = id => (document.getElementById(id)?.value ?? '').trim();
+  const name = val('ai-name');
+  const email = val('ai-email');
+  const role = val('ai-role') || 'intern';
+  const hours = val('ai-hours');
+
+  if (!name) return setAddInternError('Full name is required.');
+  if (!email) return setAddInternError('Email is required.');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return setAddInternError('Enter a valid email address.');
+  }
+  if (hours && (!Number.isInteger(Number(hours)) || Number(hours) < 0)) {
+    return setAddInternError('Required hours must be a whole number.');
+  }
+  setAddInternError('');
+
+  const btn = document.getElementById('ai-submit-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+
+  try {
+    const result = await createUser({
+      name,
+      email,
+      role,
+      school: val('ai-school'),
+      program: val('ai-program'),
+      required_hours: hours ? Number(hours) : null,
+    });
+
+    if (!result.ok) {
+      setAddInternError(result.error || 'Could not add the user.');
+      return;
+    }
+
+    closeModal('modal-add-intern');
+    await loadLiveUsers();
+    renderInterns();
+    toast(`Invite sent to ${name}. They'll set their own password.`);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Send Invite'; }
+  }
 }
 
 export async function completeIntern(uid) {

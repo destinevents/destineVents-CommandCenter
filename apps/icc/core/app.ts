@@ -29,6 +29,7 @@ import { renderOutputs, outputPager } from '../outputs/outputs.ts';
 import {
   renderApprovals, renderInterns, renderReports, renderAuditLog,
   exportExcel, exportPDF, completeIntern, reopenIntern, setInternTab,
+  openAddIntern, handleAddIntern,
 } from '../admin/admin.ts';
 import { renderAccount } from '../account/account.ts';
 import { renderCalendar, calPrev, calNext, calGoToStart, calGoToToday } from '../timesheets/calendar.ts';
@@ -313,6 +314,14 @@ document.addEventListener('click', async (e) => {
   }
   if (a === 'reopen-intern') {
     await reopenIntern(el.dataset.id);
+    return;
+  }
+  if (a === 'add-intern') {
+    openAddIntern();
+    return;
+  }
+  if (a === 'create-intern') {
+    await handleAddIntern();
     return;
   }
   if (a === 'intern-tab-active') {
