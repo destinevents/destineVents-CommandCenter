@@ -114,6 +114,16 @@ module.exports = async function handler(req, res) {
           error: 'That email already has an account. Change their role from the Users list instead.',
         });
       }
+      // Supabase's built-in mailer allows only a couple of emails an hour, and
+      // says so in developer shorthand. Nobody using this form can act on
+      // "email rate limit exceeded" — say what it means and what fixes it.
+      if (/rate limit|too many/i.test(msg)) {
+        return res.status(429).json({
+          error: 'The email service has hit its hourly limit, so no invite was sent. '
+               + 'Try again in an hour, or set up custom SMTP in Supabase to lift the limit. '
+               + 'If a retry says the email already has an account, remove it from the Users list first.',
+        });
+      }
       return res.status(400).json({ error: msg || 'Could not send the invite.' });
     }
     newUserId = data?.user?.id;
