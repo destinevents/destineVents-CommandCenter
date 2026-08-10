@@ -128,25 +128,51 @@ function togglePassword(inputId: string, btn: HTMLElement) {
   btn.classList.toggle('active', show);
 }
 
+/**
+ * Turns a Supabase auth error into something a person can act on.
+ * Supabase deliberately does NOT report whether an address has an account, so
+ * anything that comes back here is a real failure — showing it leaks nothing
+ * and is far better than the silent "on its way" this used to print regardless.
+ */
+function forgotErrorMessage(message: string): string {
+  if (/rate|limit|too many|after \d+ seconds|security purposes/i.test(message)) {
+    return 'Too many requests — the mail service is rate-limited. Wait a minute, then try again.';
+  }
+  if (/redirect/i.test(message)) {
+    return 'This site is not on the allowed redirect list in Supabase. Tell your admin.';
+  }
+  return message || 'Could not send the reset link. Please try again.';
+}
+
 async function handleForgot() {
   const email = (document.getElementById('forgot-email') as HTMLInputElement).value.trim();
   const errEl = document.getElementById('forgot-error')!;
+  errEl.style.color = '';
   errEl.textContent = '';
   if (!email) {
     errEl.textContent = 'Email is required.';
+    return;
+  }
+  if (validateEmail(email) !== null) {
+    errEl.textContent = 'Enter a valid email address.';
     return;
   }
   const btn = document.getElementById('forgot-btn') as HTMLButtonElement;
   btn.disabled = true;
   btn.textContent = 'Sending…';
   try {
-    await sb.auth.resetPasswordForEmail(email, {
+    const { error } = await sb.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password.html`,
     });
-    // Always show the same message so the form can't be used to probe
-    // which emails have accounts
+    if (error) {
+      errEl.textContent = forgotErrorMessage(String(error.message || ''));
+      return;
+    }
+    // Worded so the form can't be used to probe which emails have accounts
     errEl.style.color = 'var(--green, #10b981)';
-    errEl.textContent = 'If that email has an account, a reset link is on its way. Check your inbox.';
+    errEl.textContent = 'If that email has an account, a reset link is on its way. Check your inbox and spam folder.';
+  } catch (err) {
+    errEl.textContent = `Could not reach the server: ${(err as Error).message || 'unknown error'}`;
   } finally {
     btn.disabled = false;
     btn.textContent = 'Send Reset Link';
