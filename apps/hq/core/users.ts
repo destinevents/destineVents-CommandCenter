@@ -1,4 +1,4 @@
-import { fetchPendingUsers, fetchAllUsers, updateUserRole } from '@shared/core/userService.ts';
+import { fetchPendingUsers, fetchAllUsers, updateUserRole, deleteUser } from '@shared/core/userService.ts';
 import { ROLE_LABELS, HQ_ROLES, ICC_ROLES } from '@config/roles.ts';
 import { escapeHtml } from '@shared/utils/helpers.ts';
 import { toast } from './ui.ts';
@@ -26,9 +26,22 @@ function roleOptions(selectedRole: UserRole): string {
   ).join('');
 }
 
+// Names for the confirmation prompt, keyed by id. Held here rather than
+// interpolated into the inline onclick so a name containing a quote or an
+// apostrophe cannot break out of the handler.
+const namesById = new Map<string, string>();
+
+const DANGER_BTN =
+  'padding:4px 12px;height:32px;font-size:12px;background:#fef2f2;color:#b91c1c;' +
+  'border:1px solid #fecaca;border-radius:6px;font-weight:600;cursor:pointer;font-family:inherit';
+
+function removeButton(id: string, label: string): string {
+  return `<button style="${DANGER_BTN}" onclick="removeUser('${id}')">${label}</button>`;
+}
+
 function renderPending(users: InternUser[]): string {
   if (!users.length) {
-    return '<tr><td colspan="5" style="color:var(--ink-3);padding:16px 0">No pending users</td></tr>';
+    return '<tr><td colspan="6" style="color:var(--ink-3);padding:16px 0">No pending users</td></tr>';
   }
   return users.map(u => `
     <tr>
@@ -48,12 +61,13 @@ function renderPending(users: InternUser[]): string {
             onclick="approveUser('${u.id}')">Approve</button>
         </div>
       </td>
+      <td>${removeButton(u.id, 'Reject')}</td>
     </tr>`).join('');
 }
 
 function renderAll(users: InternUser[]): string {
   if (!users.length) {
-    return '<tr><td colspan="5" style="color:var(--ink-3);padding:16px 0">No users</td></tr>';
+    return '<tr><td colspan="6" style="color:var(--ink-3);padding:16px 0">No users</td></tr>';
   }
   return users.map(u => `
     <tr>
@@ -69,15 +83,36 @@ function renderAll(users: InternUser[]): string {
           </select>
         </div>
       </td>
+      <td>${removeButton(u.id, 'Remove')}</td>
     </tr>`).join('');
 }
 
 export async function loadUsers() {
   const [pending, all] = await Promise.all([fetchPendingUsers(), fetchAllUsers()]);
+  namesById.clear();
+  [...pending, ...all].forEach(u => namesById.set(u.id, u.name));
   const pendingBody = document.getElementById('users-pending-body');
   const allBody = document.getElementById('users-all-body');
   if (pendingBody) pendingBody.innerHTML = renderPending(pending);
   if (allBody) allBody.innerHTML = renderAll(all.filter(u => u.role !== 'pending' && u.role !== 'admin'));
+}
+
+export async function removeUser(id: string) {
+  const name = namesById.get(id) ?? 'this user';
+  const confirmed = window.confirm(
+    `Permanently remove ${name}?\n\n` +
+    'Their account, and everything attached to it, is deleted from both HQ and ' +
+    'the Intern Command Center. This cannot be undone.'
+  );
+  if (!confirmed) return;
+
+  const result = await deleteUser(id);
+  if (!result.ok) {
+    toast(result.error || 'Failed to remove the user. Please try again.', 'error');
+    return;
+  }
+  toast(`${name} removed.`, 'success');
+  await loadUsers();
 }
 
 export async function approveUser(id: string) {

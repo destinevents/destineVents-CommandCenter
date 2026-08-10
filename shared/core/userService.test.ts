@@ -16,7 +16,7 @@ vi.mock('@shared/components/toast.ts', () => ({
 }));
 
 import { sb } from './supabase';
-import { createUser } from './userService';
+import { createUser, deleteUser } from './userService';
 
 const mockSb = sb as unknown as {
   auth: { getSession: ReturnType<typeof vi.fn> };
@@ -113,6 +113,71 @@ describe('createUser', () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
 
     const result = await createUser({ name: 'A', email: 'a@b.co', role: 'intern' });
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/offline/);
+  });
+});
+
+describe('deleteUser', () => {
+  const ID = '11111111-2222-3333-4444-555555555555';
+
+  it('posts the id to the delete endpoint with the caller token', async () => {
+    const fetchMock = mockFetch(200, { id: ID });
+
+    const result = await deleteUser(ID);
+
+    expect(result.ok).toBe(true);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe('/api/admin/delete-user');
+    expect(init.method).toBe('POST');
+    expect(init.headers.Authorization).toBe('Bearer jwt-123');
+    expect(JSON.parse(init.body)).toEqual({ id: ID });
+  });
+
+  it('never reaches the endpoint without a session', async () => {
+    const fetchMock = mockFetch(200, {});
+    mockSb.auth.getSession.mockResolvedValue({ data: { session: null } });
+
+    const result = await deleteUser(ID);
+
+    expect(result.ok).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('surfaces the refusal when a non-admin calls it', async () => {
+    mockFetch(403, { error: 'Only an admin can remove users.' });
+
+    const result = await deleteUser(ID);
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toBe('Only an admin can remove users.');
+  });
+
+  it('surfaces the refusal when the target is an admin', async () => {
+    mockFetch(403, { error: 'Admin accounts must be removed directly in Supabase.' });
+
+    const result = await deleteUser(ID);
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/Supabase/);
+  });
+
+  // A failed delete that reports success would let an admin believe someone
+  // had lost access while their account was still live.
+  it('reports failure rather than success when the server errors', async () => {
+    mockFetch(500, {});
+
+    const result = await deleteUser(ID);
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/500/);
+  });
+
+  it('does not throw when the network is unreachable', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+
+    const result = await deleteUser(ID);
 
     expect(result.ok).toBe(false);
     expect(result.error).toMatch(/offline/);

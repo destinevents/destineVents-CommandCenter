@@ -3,10 +3,10 @@ import { sb } from '@shared/core/supabase';
 import { fetchAuditLogs } from '../audit/auditService.ts';
 import { escapeHtml, avatarEl, skillPill, skillPillGreen } from '@shared/utils/helpers.ts';
 import { formatDateShort, formatTime } from '@shared/utils/dateUtils.ts';
-import { liveUsers, liveTasks, liveTimesheets, pendingApprovals } from '../core/state.ts';
+import { liveUsers, liveTasks, liveTimesheets, pendingApprovals, currentUser } from '../core/state.ts';
 import { toast, openModal, closeModal } from '../core/ui.ts';
 import { loadLiveUsers } from '../core/data.ts';
-import { createUser } from '@shared/core/userService.ts';
+import { createUser, deleteUser } from '@shared/core/userService.ts';
 
 let showCompletedInterns = false;
 
@@ -92,6 +92,30 @@ export async function completeIntern(uid) {
   await loadLiveUsers();
   renderInterns();
   toast(`${intern.name} marked as completed.`);
+}
+
+// Deleting is not the same as completing: "Mark Complete" archives someone who
+// finished their hours and keeps their record, this erases the account outright.
+// Both portals share intern_users, so the person also disappears from HQ Users.
+export async function deleteIntern(uid) {
+  const intern = liveUsers.find(u => u.id === uid);
+  if (!intern) return;
+  const confirmed = confirm(
+    `Permanently remove ${intern.name}?\n\n` +
+    'Their account, timesheets and tasks are deleted from both the Intern ' +
+    'Command Center and HQ. This cannot be undone.\n\n' +
+    'To archive someone who has finished instead, use "Mark Complete".'
+  );
+  if (!confirmed) return;
+
+  const result = await deleteUser(uid);
+  if (!result.ok) {
+    toast(result.error || 'Failed to remove — try again.');
+    return;
+  }
+  await loadLiveUsers();
+  renderInterns();
+  toast(`${intern.name} removed.`);
 }
 
 export async function reopenIntern(uid) {
@@ -208,6 +232,9 @@ export async function renderInterns() {
         ${intern.completed_at
           ? `<button style="font-size:11px;background:#fef9ec;color:#92400e;border:none;border-radius:6px;padding:4px 10px;font-weight:600;cursor:pointer;font-family:inherit" data-action="reopen-intern" data-id="${intern.id}">↩ Reactivate</button>`
           : `<button style="font-size:11px;background:#f0fdf4;color:#166534;border:none;border-radius:6px;padding:4px 10px;font-weight:600;cursor:pointer;font-family:inherit" data-action="complete-intern" data-id="${intern.id}">✓ Mark Complete</button>`}
+        ${currentUser.role === 'admin'
+          ? `<button style="font-size:11px;background:#fef2f2;color:#b91c1c;border:none;border-radius:6px;padding:4px 10px;font-weight:600;cursor:pointer;font-family:inherit" data-action="delete-intern" data-id="${intern.id}">🗑 Remove</button>`
+          : ''}
       </div>
     </div>`;
     })

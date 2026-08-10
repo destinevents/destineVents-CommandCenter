@@ -28,7 +28,7 @@ import {
 import { renderOutputs, outputPager } from '../outputs/outputs.ts';
 import {
   renderApprovals, renderInterns, renderReports, renderAuditLog,
-  exportExcel, exportPDF, completeIntern, reopenIntern, setInternTab,
+  exportExcel, exportPDF, completeIntern, reopenIntern, deleteIntern, setInternTab,
   openAddIntern, handleAddIntern,
 } from '../admin/admin.ts';
 import { renderAccount } from '../account/account.ts';
@@ -314,6 +314,10 @@ document.addEventListener('click', async (e) => {
   }
   if (a === 'reopen-intern') {
     await reopenIntern(el.dataset.id);
+    return;
+  }
+  if (a === 'delete-intern') {
+    await deleteIntern(el.dataset.id);
     return;
   }
   if (a === 'add-intern') {

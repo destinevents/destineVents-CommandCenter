@@ -84,7 +84,7 @@ import {
 } from '../events/events.ts';
 import { HQ_ALLOWED_PAGES, isHQRole, isICCRole } from '@config/roles.ts';
 import type { UserRole } from '@shared/types';
-import { loadUsers, approveUser, changeUserRole } from './users.ts';
+import { loadUsers, approveUser, changeUserRole, removeUser } from './users.ts';
 import {
   loadMeetings, showMeetingTab, setMeetingFilter, clearMeetingFilters,
   openAddMeeting, openEditMeeting, saveMeeting, handleDeleteMeeting,
@@ -544,6 +544,7 @@ declare global {
     selectTemplate: typeof selectTemplate; copyAIOutput: typeof copyAIOutput;
     simulateAI: typeof simulateAI; saveAIOutput: typeof saveAIOutput;
     approveUser: typeof approveUser; changeUserRole: typeof changeUserRole;
+    removeUser: typeof removeUser;
     loadMeetings: typeof loadMeetings; showMeetingTab: typeof showMeetingTab;
     setMeetingFilter: typeof setMeetingFilter; clearMeetingFilters: typeof clearMeetingFilters;
     openAddMeeting: typeof openAddMeeting; openEditMeeting: typeof openEditMeeting;
@@ -626,7 +627,7 @@ Object.assign(window, {
   toggleArchivedSOBs, addSOBRow, recalcSOB, printSOB, openSOBRecordPayment, openSOBSendEmail,
   setSOBPage,
   // Users (admin)
-  approveUser, changeUserRole,
+  approveUser, changeUserRole, removeUser,
   // Meetings
   loadMeetings, showMeetingTab, setMeetingFilter, clearMeetingFilters,
   openAddMeeting, openEditMeeting, saveMeeting, handleDeleteMeeting,
