@@ -61,10 +61,40 @@ export function calcTimesheetStats(sheets: Timesheet[]): TimesheetStats {
   };
 }
 
-export function getExistingHoursForDate(sheets: Timesheet[], date: string, userId: string): number {
-  return sheets
-    .filter((ts) => ts.date === date && ts.intern_id === userId)
-    .reduce((s, t) => s + t.hours, 0);
+export function getExistingHoursForDate(
+  sheets: Timesheet[],
+  date: string,
+  userId: string,
+  excludeId?: string | null
+): number {
+  return sheetsForDate(sheets, date, userId, excludeId).reduce((s, t) => s + t.hours, 0);
+}
+
+// Entries already logged by one intern on one date. `excludeId` leaves out the
+// entry currently being edited, so re-saving it never counts its own hours
+// twice against the daily cap or trips the duplicate-date warning.
+export function sheetsForDate(
+  sheets: Timesheet[],
+  date: string,
+  userId: string,
+  excludeId?: string | null
+): Timesheet[] {
+  return sheets.filter(
+    (ts) => ts.date === date && ts.intern_id === userId && ts.id !== excludeId
+  );
+}
+
+// Approved entries are permanently locked for everyone, admins included
+// (spec §4.1). Pending and rejected entries stay editable by the intern who
+// owns them, and by supervisors/admins who may need to correct them.
+export function canEditTimesheet(
+  sheet: Pick<Timesheet, 'status' | 'intern_id'> | null | undefined,
+  userId: string,
+  role: UserRole
+): boolean {
+  if (!sheet) return false;
+  if (sheet.status !== 'pending' && sheet.status !== 'rejected') return false;
+  return role === 'intern' ? sheet.intern_id === userId : true;
 }
 
 export function buildSkillFrequency(sheets: Timesheet[]): SkillFrequency[] {

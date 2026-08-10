@@ -11,6 +11,8 @@ import {
   updateTimesheet,
   calcTimesheetStats,
   getExistingHoursForDate,
+  sheetsForDate,
+  canEditTimesheet,
   buildSkillFrequency,
 } from './timesheetService.ts';
 import type { Timesheet } from '@shared/types';
@@ -152,6 +154,71 @@ describe('getExistingHoursForDate', () => {
       makeSheet({ date: '2025-06-01', hours: 8, intern_id: 'u2' }),
     ];
     expect(getExistingHoursForDate(sheets, '2025-06-01', 'u1')).toBe(5);
+  });
+
+  it('excludes the entry being edited so its hours are not counted twice', () => {
+    const sheets = [
+      makeSheet({ id: 's1', date: '2025-06-01', hours: 3, intern_id: 'u1' }),
+      makeSheet({ id: 's2', date: '2025-06-01', hours: 2, intern_id: 'u1' }),
+    ];
+    expect(getExistingHoursForDate(sheets, '2025-06-01', 'u1', 's1')).toBe(2);
+  });
+});
+
+describe('sheetsForDate', () => {
+  it('returns the other entries for that intern and date', () => {
+    const sheets = [
+      makeSheet({ id: 's1', date: '2025-06-01', intern_id: 'u1' }),
+      makeSheet({ id: 's2', date: '2025-06-01', intern_id: 'u1' }),
+      makeSheet({ id: 's3', date: '2025-06-02', intern_id: 'u1' }),
+      makeSheet({ id: 's4', date: '2025-06-01', intern_id: 'u2' }),
+    ];
+    expect(sheetsForDate(sheets, '2025-06-01', 'u1', 's1').map((s) => s.id)).toEqual(['s2']);
+  });
+
+  it('keeps every entry when no id is excluded', () => {
+    const sheets = [makeSheet({ id: 's1' }), makeSheet({ id: 's2' })];
+    expect(sheetsForDate(sheets, '2025-06-01', 'u1')).toHaveLength(2);
+  });
+});
+
+describe('canEditTimesheet', () => {
+  it('lets an intern edit their own pending entry', () => {
+    expect(canEditTimesheet(makeSheet({ status: 'pending', intern_id: 'u1' }), 'u1', 'intern')).toBe(
+      true
+    );
+  });
+
+  it('lets an intern edit their own rejected entry', () => {
+    expect(
+      canEditTimesheet(makeSheet({ status: 'rejected', intern_id: 'u1' }), 'u1', 'intern')
+    ).toBe(true);
+  });
+
+  it('locks an approved entry for the owning intern', () => {
+    expect(
+      canEditTimesheet(makeSheet({ status: 'approved', intern_id: 'u1' }), 'u1', 'intern')
+    ).toBe(false);
+  });
+
+  it('locks an approved entry for admins too', () => {
+    expect(canEditTimesheet(makeSheet({ status: 'approved' }), 'admin1', 'admin')).toBe(false);
+  });
+
+  it("blocks an intern from editing another intern's entry", () => {
+    expect(canEditTimesheet(makeSheet({ status: 'pending', intern_id: 'u2' }), 'u1', 'intern')).toBe(
+      false
+    );
+  });
+
+  it("allows staff to correct an intern's pending entry", () => {
+    expect(canEditTimesheet(makeSheet({ status: 'pending', intern_id: 'u2' }), 'sup1', 'supervisor')).toBe(
+      true
+    );
+  });
+
+  it('returns false for a missing entry', () => {
+    expect(canEditTimesheet(undefined, 'u1', 'intern')).toBe(false);
   });
 });
 

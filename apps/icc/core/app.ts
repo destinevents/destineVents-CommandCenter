@@ -22,7 +22,7 @@ import {
   handleMoveTaskStatus,
 } from '../tasks/tasks.ts';
 import {
-  renderTimesheets, openLogHours, setSheetFilter, exportTimesheetCSV,
+  renderTimesheets, openLogHours, openEditHours, setSheetFilter, exportTimesheetCSV,
   approveSheet, rejectSheet, confirmReject, deleteSheet, logHours, sheetPager,
 } from '../timesheets/timesheets.ts';
 import { renderOutputs, outputPager } from '../outputs/outputs.ts';
@@ -253,6 +253,10 @@ document.addEventListener('click', async (e) => {
   }
   if (a === 'log-hours-open') {
     openLogHours();
+    return;
+  }
+  if (a === 'edit-sheet') {
+    openEditHours(el.dataset.id);
     return;
   }
   if (a === 'confirm-reject') {

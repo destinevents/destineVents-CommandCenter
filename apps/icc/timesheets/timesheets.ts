@@ -6,10 +6,10 @@ import { renderSkillPicker, resetSkillPicker } from '../tasks/skillPicker.ts';
 import { STATUS_LABELS, MAX_DAILY_HOURS } from '@shared/constants.ts';
 import { formatDateShort } from '@shared/utils/dateUtils.ts';
 import { validateDailyHours } from '@shared/utils/validators.ts';
-import { createTimesheet, updateTimesheet, deleteTimesheet } from './timesheetService.ts';
+import { createTimesheet, updateTimesheet, deleteTimesheet, canEditTimesheet, sheetsForDate } from './timesheetService.ts';
 import { logAudit } from '../audit/auditService.ts';
 import { currentUser, activePage, sheetFilter, setSheetFilterValue, liveTasks, liveUsers, liveTimesheets, myTasks, mySheets } from '../core/state.ts';
-import { toast, openModal, closeModal, updateBadges } from '../core/ui.ts';
+import { toast, openModal, closeModal, updateBadges, MODAL_CLOSE_HOOKS } from '../core/ui.ts';
 import { loadLiveTimesheets } from '../core/data.ts';
 import { renderDashboard } from '../dashboard/dashboard.ts';
 import { renderPage } from '../core/app.ts';
@@ -69,9 +69,11 @@ export async function renderTimesheets() {
   document.getElementById('sheet-tbody').innerHTML = visible.map((ts, i)=>{
     const task = taskById.get(ts.task_id);
     const intern = userById.get(ts.intern_id);
-    // Approved entries are locked (spec §4.1); pending/rejected can be removed
+    // Approved entries are locked (spec §4.1); pending/rejected can be edited or removed
     const canDelete = ['pending','rejected'].includes(ts.status) && (isAdmin || ts.intern_id === currentUser.id);
     const delBtn = canDelete ? `<button class="btn-sm-reject" data-action="delete-sheet" data-id="${ts.id}" title="Delete entry">🗑</button>` : '';
+    const editBtn = canEditTimesheet(ts, currentUser.id, currentUser.role)
+      ? `<button class="btn-sm-ghost" data-action="edit-sheet" data-id="${ts.id}" title="Edit this entry while it is still awaiting approval">✎ Edit</button>` : '';
     const approveBtn = ts.status==='pending' && isAdmin ? `<button class="btn-sm-approve" data-action="approve-sheet" data-id="${ts.id}">✓ Approve</button><button class="btn-sm-reject" data-action="reject-sheet" data-id="${ts.id}">✕ Reject</button>` : '';
     const skillHtml = (ts.skills||[]).slice(0,2).map(skillPillGreen).join(' ')+((ts.skills||[]).length>2?`<span style="font-size:10px;color:var(--faint)">+${ts.skills.length-2}</span>`:'');
     return `<tr class="stagger-item" style="--i:${i}">
@@ -83,7 +85,7 @@ export async function renderTimesheets() {
       <td class="text-muted">${ts.industry_category}</td>
       <td>${skillHtml}</td>
       <td>${badge(ts.status)}${ts.status === 'rejected' && ts.rejection_reason ? `<div style="font-size:10px;color:#ef4444;margin-top:3px;max-width:180px;line-height:1.3">${escapeHtml(ts.rejection_reason)}</div>` : ''}</td>
-      <td><div style="display:flex;gap:5px">${approveBtn}${delBtn}</div></td>
+      <td><div style="display:flex;gap:5px">${approveBtn}${editBtn}${delBtn}</div></td>
     </tr>`;
   }).join('');
 
@@ -93,22 +95,97 @@ export async function renderTimesheets() {
     : '';
 }
 
-// Populate the Log Hours form when the modal OPENS — never during table
+// Id of the entry being edited, or null when logging a brand-new one
+let editingSheetId = null;
+
+// Any close path must clear edit mode — a stale editingSheetId would make the
+// next "Log Hours" submit overwrite the previously edited entry
+MODAL_CLOSE_HOOKS['modal-log-hours'] = () => {
+  if (editingSheetId) {
+    editingSheetId = null;
+    setHoursModalMode(null);
+  }
+};
+
+function setHoursModalMode(sheet) {
+  const editing = !!sheet;
+  document.getElementById('modal-log-hours-title').textContent = editing ? 'Edit Work Hours' : 'Log Work Hours';
+  document.getElementById('log-hours-btn').textContent = editing ? 'Save Changes' : 'Save Entry';
+  const note = document.getElementById('lh-edit-note');
+  if (note) {
+    note.textContent = editing && sheet.status === 'rejected'
+      ? 'This entry was rejected. Saving your changes sends it back for approval.'
+      : editing
+        ? 'This entry is still awaiting approval, so you can still change it. Once approved it is locked for good.'
+        : '';
+    note.style.display = editing ? 'block' : 'none';
+  }
+}
+
+const FORM_FIELD_BY_ID = {
+  'lh-date':     'date',
+  'lh-hours':    'hours',
+  'lh-activity': 'activity_description',
+};
+
+// Fill the shared form. Called when the modal OPENS — never during table
 // renders, or a realtime event / search keystroke would rebuild the skill
 // picker and wipe the intern's in-progress selections mid-form.
-export function openLogHours() {
-  // Clear stale form state from previous opens
+function populateHoursForm(sheet) {
   ['lh-date', 'lh-hours', 'lh-activity'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) (el as HTMLInputElement).value = '';
+    if (el) (el as HTMLInputElement).value = sheet ? (sheet[FORM_FIELD_BY_ID[id]] ?? '') : '';
   });
+  document.getElementById('lh-cat').value = sheet?.industry_category || '';
+
   // Active tasks first; status suffix disambiguates same-titled tasks
   const activeFirst = [...myTasks()].sort((a, b) =>
     (['completed','reviewed'].includes(a.status) ? 1 : 0) - (['completed','reviewed'].includes(b.status) ? 1 : 0)
   );
   document.getElementById('lh-task').innerHTML = '<option value="">Not linked to a task</option>' +
     activeFirst.map(t=>`<option value="${t.id}">${escapeHtml(t.title)} — ${STATUS_LABELS[t.status]}${t.due_date ? ' · due ' + formatDateShort(t.due_date) : ''}</option>`).join('');
+
+  // renderSkillPicker rebuilds the picker unselected, so restore afterwards
   renderSkillPicker('lh-skills-picker', 'lh-skills');
+  if (!sheet) return;
+
+  // An admin may be fixing an entry linked to a task that isn't in their own
+  // task list — keep the link instead of silently dropping it on save
+  const taskSelect = document.getElementById('lh-task') as HTMLSelectElement;
+  if (sheet.task_id && ![...taskSelect.options].some(o => o.value === sheet.task_id)) {
+    const task = liveTasks.find(t => t.id === sheet.task_id);
+    taskSelect.insertAdjacentHTML('beforeend',
+      `<option value="${sheet.task_id}">${escapeHtml(task?.title) || 'Linked task'}</option>`);
+  }
+  taskSelect.value = sheet.task_id || '';
+
+  const picker = document.getElementById('lh-skills-picker');
+  const select = document.getElementById('lh-skills') as HTMLSelectElement;
+  (sheet.skills || []).forEach(s => {
+    picker.querySelector(`.skill-tag[data-value="${s}"]`)?.classList.add('selected');
+    [...select.options].forEach(o => { if (o.value === s) o.selected = true; });
+  });
+}
+
+export function openLogHours() {
+  editingSheetId = null;
+  setHoursModalMode(null);
+  populateHoursForm(null);
+  openModal('modal-log-hours');
+}
+
+// Reopen a pending/rejected entry for editing. Approved entries never reach
+// here — the table hides the button and the DB trigger rejects the update.
+export function openEditHours(id) {
+  const sheet = liveTimesheets.find(s => s.id === id);
+  if (!sheet) { toast('That entry is no longer available.'); return; }
+  if (!canEditTimesheet(sheet, currentUser.id, currentUser.role)) {
+    toast('This entry is already approved and can no longer be changed.');
+    return;
+  }
+  editingSheetId = id;
+  setHoursModalMode(sheet);
+  populateHoursForm(sheet);
   openModal('modal-log-hours');
 }
 
@@ -214,21 +291,29 @@ export async function deleteSheet(id) {
 }
 
 export async function logHours() {
+  const editing  = editingSheetId ? liveTimesheets.find(s => s.id === editingSheetId) : null;
+  if (editingSheetId && !editing) { toast('That entry is no longer available.'); closeModal('modal-log-hours'); return; }
+
   const date     = document.getElementById('lh-date').value;
   const hours    = parseFloat(document.getElementById('lh-hours').value);
   const activity = document.getElementById('lh-activity').value.trim();
   if(!date||!hours||!activity) { toast('Please fill in required fields'); return; }
 
-  const existingEntries = liveTimesheets.filter(ts => ts.date === date && ts.intern_id === currentUser.id);
+  // An admin may be correcting someone else's entry — the cap applies to the
+  // intern who owns the hours, not to whoever is typing
+  const ownerId = editing ? editing.intern_id : currentUser.id;
+
+  // The entry being edited is left out, so its own hours are not counted twice
+  const existingEntries = sheetsForDate(liveTimesheets, date, ownerId, editingSheetId);
+  const existingHours = existingEntries.reduce((s, t) => s + t.hours, 0);
   if (existingEntries.length > 0) {
-    const existingHours = existingEntries.reduce((s, t) => s + t.hours, 0);
+    const who = editing && ownerId !== currentUser.id ? 'This intern already has' : 'You already have';
     const confirmed = confirm(
-      `⚠️ You already have ${existingHours}h logged for ${date}.\n\nDo you want to add another entry for the same date?`
+      `⚠️ ${who} ${existingHours}h logged for ${date}.\n\nDo you want to ${editing ? 'save this entry for' : 'add another entry for'} the same date?`
     );
     if (!confirmed) return;
   }
 
-  const existingHours = existingEntries.reduce((s, t) => s + t.hours, 0);
   const dailyErr = validateDailyHours(existingHours, hours, MAX_DAILY_HOURS);
   if (dailyErr) {
     toast('⚠️ ' + dailyErr);
@@ -236,33 +321,53 @@ export async function logHours() {
   }
 
   const logBtn = document.getElementById('log-hours-btn');
+  const btnLabel = editing ? 'Save Changes' : 'Save Entry';
   if (logBtn) { logBtn.disabled = true; logBtn.textContent = 'Saving…'; }
+  const restoreBtn = () => { if (logBtn) { logBtn.disabled = false; logBtn.textContent = btnLabel; } };
 
   const skillsEl = document.getElementById('lh-skills');
   const skills   = [...skillsEl.selectedOptions].map(o=>o.value);
   const taskId   = document.getElementById('lh-task').value || null;
 
-  const result = await createTimesheet({
-    intern_id:            currentUser.id,
+  const fields = {
     date,
     hours,
     task_id:              taskId,
     activity_description: activity,
     industry_category:    document.getElementById('lh-cat').value,
     skills,
-    status:               'pending'
-  });
+  };
 
-  if (!result) {
-    if (logBtn) { logBtn.disabled = false; logBtn.textContent = 'Save Entry'; }
-    return;
+  if (editing) {
+    // A rejected entry re-enters the queue once fixed; the reason no longer
+    // applies, so it is cleared with it (spec §4.1)
+    const result = await updateTimesheet(editingSheetId, {
+      ...fields,
+      status:           'pending',
+      rejection_reason: null,
+    });
+    if (!result) { restoreBtn(); toast('Could not save your changes. Please try again.'); return; }
+
+    logAudit('timesheet_edited', 'timesheet', editingSheetId, { date, hours, was: editing.status }, currentUser.id);
+    editingSheetId = null;
+    closeModal('modal-log-hours');
+    restoreBtn();
+    setHoursModalMode(null); // back to "Log Work Hours" for the next open
+    toast(editing.status === 'rejected' ? 'Entry updated — sent back for approval.' : 'Entry updated. Still pending approval.');
+  } else {
+    const result = await createTimesheet({
+      ...fields,
+      intern_id: currentUser.id,
+      status:    'pending',
+    });
+    if (!result) { restoreBtn(); return; }
+
+    logAudit('hours_logged', 'timesheet', result.id, { date, hours }, currentUser.id);
+    closeModal('modal-log-hours');
+    restoreBtn();
+    toast('Hours logged! Pending approval.');
   }
 
-  logAudit('hours_logged', 'timesheet', result.id, { date, hours }, currentUser.id);
-
-  closeModal('modal-log-hours');
-  if (logBtn) { logBtn.disabled = false; logBtn.textContent = 'Save Entry'; }
-  toast('Hours logged! Pending approval.');
   ['lh-date','lh-hours','lh-activity'].forEach(id => document.getElementById(id).value = '');
   resetSkillPicker('lh-skills-picker');
   await loadLiveTimesheets();
