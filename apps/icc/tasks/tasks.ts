@@ -48,19 +48,20 @@ export function isOverdue(t) {
 }
 
 function dueLabel(t) {
-  if (!t.due_date) return '<div class="kan-card-meta">No due date</div>';
+  if (!t.due_date) return '<span class="kan-card-meta">No due date</span>';
   return isOverdue(t)
-    ? `<div class="kan-card-meta kan-overdue">⚠ Overdue — was due ${formatDateShort(t.due_date)}</div>`
-    : `<div class="kan-card-meta">Due ${formatDateShort(t.due_date)}</div>`;
+    ? `<span class="kan-card-meta kan-overdue" title="Was due ${formatDateShort(t.due_date)}">⚠ Overdue · ${formatDateShort(t.due_date)}</span>`
+    : `<span class="kan-card-meta">Due ${formatDateShort(t.due_date)}</span>`;
 }
 
 function taskCard(t, i = 0) {
   return `
-    <div class="kan-card stagger-item" style="--i:${i}" data-action="open-task" data-id="${t.id}">
+    <div class="kan-card kan-card-${t.priority || 'low'} stagger-item" style="--i:${i}"
+         data-action="open-task" data-id="${t.id}" role="button" tabindex="0"
+         title="${escapeHtml(t.title)}">
       <div class="kan-card-title">${escapeHtml(t.title)}</div>
       <div class="kan-card-desc">${escapeHtml(t.description)}</div>
-      <div>${pBadge(t.priority)}</div>
-      ${dueLabel(t)}
+      <div class="kan-card-foot">${pBadge(t.priority)}${dueLabel(t)}</div>
     </div>`;
 }
 
@@ -92,13 +93,15 @@ export async function renderTasks() {
     board.innerHTML = KANBAN_COLS.map(col => {
       const colTasks = byStatus[col];
       const hiddenCount = colTasks.length - TASK_PREVIEW_COUNT;
-      return `<div class="kan-col">
+      return `<div class="kan-col" style="--kc:${STATUS_COLORS[col]}">
         <div class="kan-col-header">
-          <div class="kan-dot" style="background:${STATUS_COLORS[col]}"></div>
-          <span class="kan-col-title">${STATUS_LABELS[col]}</span>
+          <div class="kan-dot"></div>
+          <span class="kan-col-title" title="${STATUS_LABELS[col]}">${STATUS_LABELS[col]}</span>
           <span class="kan-count">${colTasks.length}</span>
         </div>
-        ${colTasks.slice(0, TASK_PREVIEW_COUNT).map((t, i) => taskCard(t, i)).join('')}
+        ${colTasks.length
+          ? colTasks.slice(0, TASK_PREVIEW_COUNT).map((t, i) => taskCard(t, i)).join('')
+          : '<div class="kan-empty">No tasks</div>'}
         ${hiddenCount > 0 ? `<button class="kan-more-btn" data-action="set-task-filter" data-filter="${col}">View more (${hiddenCount})</button>` : ''}
       </div>`;
     }).join('');

@@ -370,6 +370,16 @@ document.addEventListener('click', async (e) => {
   if (a === 'cal-today') { calGoToToday(); return; }
 });
 
+// Div-based controls (task cards) opt in with role="button" + tabindex — give
+// them the Enter/Space activation a real <button> would have.
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const el = e.target.closest?.('[data-action][role="button"]');
+  if (!el) return;
+  e.preventDefault();
+  el.click();
+});
+
 // ─── INITIALIZATION ───────────────────────────────────────────────────────────
 async function handleSignOut() {
   await signOut();
