@@ -2,6 +2,7 @@ import type { FinancialAccount, CashLedgerEntry, Project } from '@shared/types.t
 import { escapeHtml } from '@shared/utils/helpers.ts';
 import { formatCurrency } from '@shared/utils/formatUtils.ts';
 import { formatDateShort } from '@shared/utils/dateUtils.ts';
+import { APP_SETTINGS } from '@config/settings.ts';
 
 // ── Constants (from handout §3) ───────────────────────────────────────────────
 
@@ -11,9 +12,13 @@ export const ACCOUNT_TYPES: ReadonlyArray<{ value: FinancialAccount['type']; lab
   { value: 'ewallet', label: 'E-wallet' },
 ];
 
+// The DestineVents group: the "Team" categories carry over from the 2026
+// finance spreadsheet so the books stay recognisable to whoever kept them.
+// Team Fee deliberately sits in both directions — a fee earned goes in Cash In,
+// a fee paid to the team goes in Cash Out, exactly as the spreadsheet had it.
 export const LEDGER_CATEGORIES = {
-  Income:   ['Client Payment', 'Sales', 'Grant', 'Donation', 'Investment', 'Other Income'],
-  Expense:  ['Payroll', 'Marketing', 'Software', 'Utilities', 'Office', 'Travel', 'Equipment', 'Operations', 'Taxes', 'Miscellaneous'],
+  Income:   ['Client Payment', 'Team Fee', 'Affiliate Sales', 'Sales', 'Grant', 'Donation', 'Investment', 'Other Income'],
+  Expense:  ['Team Expenses', 'Team Fee', 'Affiliate Fee', 'Founder Expenses', 'Payroll', 'Marketing', 'Software', 'Utilities', 'Office', 'Travel', 'Equipment', 'Operations', 'Taxes', 'Miscellaneous'],
   Internal: ['Founder Capital', 'Founder Withdrawal', 'Transfer', 'Adjustment'],
 } as const;
 
@@ -59,6 +64,7 @@ export function ledgerRowHTML(
     <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(e.reference_no ?? '—')}</td>
     <td style="font-weight:500;color:var(--ink)">${escapeHtml(e.description)}${isLinked ? ` <span class="badge badge-pending" style="font-size:9px">${escapeHtml(e.module_source)}</span>` : ''}${e.attachment_url ? ` <a href="${escapeHtml(e.attachment_url)}" target="_blank" rel="noopener" title="View attachment" style="color:var(--gold);font-size:11px">&#128206;</a>` : ''}</td>
     <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(e.category ?? '—')}</td>
+    <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(e.company ?? '—')}</td>
     <td style="font-size:11px;color:var(--ink-3)">${accName}</td>
     <td class="amount-cell" style="color:var(--green)">${e.cash_in ? formatCurrency(e.cash_in) : '—'}</td>
     <td class="amount-cell" style="color:var(--red)">${e.cash_out ? formatCurrency(e.cash_out) : '—'}</td>
@@ -79,9 +85,20 @@ export function ledgerFormHTML(
   const acctOpts = activeAccounts.length
     ? activeAccounts.map(a => `<option value="${a.id}"${e.account_id === a.id ? ' selected' : ''}>${escapeHtml(a.name)} (${accountTypeLabel(a.type)})</option>`).join('')
     : '';
+  // A category can appear in two groups (Team Fee is both earned and paid), so
+  // only the first match is marked selected — two selected options in one
+  // single-choice select is invalid HTML.
+  let categoryMatched = false;
   const catOpts = Object.entries(LEDGER_CATEGORIES).map(([group, cats]) =>
-    `<optgroup label="${group}">${(cats as readonly string[]).map(c => `<option${c === e.category ? ' selected' : ''}>${escapeHtml(c)}</option>`).join('')}</optgroup>`
+    `<optgroup label="${group}">${(cats as readonly string[]).map(c => {
+      const selected = !categoryMatched && c === e.category;
+      if (selected) categoryMatched = true;
+      return `<option${selected ? ' selected' : ''}>${escapeHtml(c)}</option>`;
+    }).join('')}</optgroup>`
   ).join('');
+  const companyOpts = `<option value="">— No company —</option>` +
+    APP_SETTINGS.finance.companies
+      .map(c => `<option${e.company === c ? ' selected' : ''}>${escapeHtml(c)}</option>`).join('');
   const pmOpts = PAYMENT_METHODS.map(m => `<option${m === e.payment_method ? ' selected' : ''}>${m}</option>`).join('');
   const projOpts = `<option value="">— No project —</option>` +
     projects.map(p => `<option value="${p.id}"${e.project_id === p.id ? ' selected' : ''}>${escapeHtml(p.name)}</option>`).join('');
@@ -98,6 +115,7 @@ export function ledgerFormHTML(
     <div class="form-group"><div class="form-label">Category</div><select class="form-input" id="cl-category">${catOpts}</select></div>
     <div class="form-group"><div class="form-label">Account *</div><select class="form-input" id="cl-account">${acctOpts}</select></div>
     <div class="form-group"><div class="form-label">Payment Method</div><select class="form-input" id="cl-method">${pmOpts}</select></div>
+    <div class="form-group"><div class="form-label">Company</div><select class="form-input" id="cl-company">${companyOpts}</select></div>
     <div class="form-group"><div class="form-label">Project (optional)</div><select class="form-input" id="cl-project">${projOpts}</select></div>
     <div class="form-group"><div class="form-label">Cash In (₱)</div><input class="form-input" id="cl-in" type="number" min="0" step="0.01" value="${e.cash_in ?? 0}"/></div>
     <div class="form-group"><div class="form-label">Cash Out (₱)</div><input class="form-input" id="cl-out" type="number" min="0" step="0.01" value="${e.cash_out ?? 0}"/></div>

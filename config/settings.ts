@@ -16,6 +16,7 @@ export const APP_SETTINGS = {
     hourStep: 0.5,
   },
   finance: {
+    companies: ['DestineVents', 'Disenyo Digitals', 'AYA'],
     deductionRate: 0.15,
     birYear: 2026,
     ewtRates: ['0%', '2%', '5%', '10%', '15%'],

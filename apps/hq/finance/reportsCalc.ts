@@ -13,14 +13,20 @@ import { INTERNAL_CATEGORIES, cashPosition } from './ledgerCalc.ts';
 // expense. Gross Income = Revenue - Cost of Services; Net Profit = Gross Income
 // - Operating Expenses = Revenue - all expenses.
 export const COST_OF_SERVICES_CATEGORIES: ReadonlyArray<string> = [
-  'Payroll', 'Operations', 'Equipment',
+  'Payroll', 'Operations', 'Equipment', 'Team Fee', 'Team Expenses', 'Affiliate Fee',
 ];
 
 export const INCOME_CATEGORIES: ReadonlyArray<string> = [
-  'Client Payment', 'Sales', 'Grant', 'Donation', 'Investment', 'Other Income',
+  'Client Payment', 'Team Fee', 'Affiliate Sales',
+  'Sales', 'Grant', 'Donation', 'Investment', 'Other Income',
 ];
 
+// 'Team Fee' appears in both lists on purpose: the same category is used for a
+// fee earned (Cash In) and a fee paid to the team (Cash Out). isExpenseOnly
+// below is what keeps a dual-direction category counting as revenue when the
+// money came in.
 export const EXPENSE_CATEGORIES: ReadonlyArray<string> = [
+  'Team Expenses', 'Team Fee', 'Affiliate Fee', 'Founder Expenses',
   'Payroll', 'Marketing', 'Software', 'Utilities', 'Office', 'Travel',
   'Equipment', 'Operations', 'Taxes', 'Miscellaneous',
 ];
