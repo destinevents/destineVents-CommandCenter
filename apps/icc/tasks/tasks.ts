@@ -78,7 +78,8 @@ export async function renderTasks() {
   KANBAN_COLS.forEach(col => { byStatus[col] = []; });
   tasks.forEach(t => { byStatus[t.status]?.push(t); });
 
-  const tabs = ['all', 'on_hold', ...KANBAN_COLS.filter(c => c !== 'on_hold')];
+  // Same order as the columns below, so the pills read as a map of the board
+  const tabs = ['all', ...KANBAN_COLS];
   document.getElementById('task-filters').innerHTML = tabs.map(t => {
     const label = t === 'all' ? 'All' : STATUS_LABELS[t];
     const count = t === 'all' ? tasks.length : byStatus[t].length;
