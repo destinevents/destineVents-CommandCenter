@@ -430,10 +430,21 @@ export async function saveInvoice() {
 
 export async function handleDeleteInvoice(id: number) {
   if (!confirm('Delete this invoice? This cannot be undone.')) return;
-  // Clear the SOB link so it doesn't point to a deleted invoice
+  // Clear the SOB link first: statements_of_billing.linked_invoice_id carries a
+  // foreign key, so the database refuses to delete an invoice an SOB still
+  // points at. Walking the SOB back to Sent is a nicety on top of that, and it
+  // is only legal from some statuses — a Paid SOB cannot return to Sent. Asking
+  // for both at once meant the state machine rejected the whole update, the link
+  // survived, and the delete then failed with an error explaining none of it.
   const linkedSOB = _sobs.find(s => s.linked_invoice_id === id);
   if (linkedSOB) {
-    await updateSOB(linkedSOB.id, { linked_invoice_id: null, status: 'Sent' } as Partial<SOB>);
+    const patch: Partial<SOB> = { linked_invoice_id: null };
+    if (canTransition('sob', linkedSOB.status, 'Sent')) patch.status = 'Sent';
+    const unlinked = await updateSOB(linkedSOB.id, patch);
+    if (!unlinked) {
+      toast(`${linkedSOB.sob_num} still points at this invoice and could not be unlinked — open it and unlink or delete it first`, 'error');
+      return;
+    }
   }
   const ok = await deleteInvoice(id);
   if (!ok) { toast('Could not delete invoice', 'error'); return; }
