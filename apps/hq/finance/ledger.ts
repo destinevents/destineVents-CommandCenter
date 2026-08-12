@@ -18,6 +18,7 @@ import {
 } from './templates/ledger.ts';
 import { runningBalanceMap, accountBalance, cashPosition } from './ledgerCalc.ts';
 import { canManageFinance } from './financePermissions.ts';
+import { APP_SETTINGS } from '@config/settings.ts';
 import { loadFinance } from './finance.ts';
 import type { CashLedgerEntry, FinancialAccount } from '@shared/types.ts';
 
@@ -26,6 +27,7 @@ const gVal = (id: string) => (document.getElementById(id) as HTMLInputElement | 
 let _editingLedgerId: number | null = null;
 let _editingAccountId: number | null = null;
 let _ledgerAccountFilter = '';
+let _ledgerCompanyFilter = '';
 let _ledgerSearch = '';
 
 // ── Cash Ledger tab ───────────────────────────────────────────────────────────
@@ -49,12 +51,18 @@ function _ledgerToolbarHTML(hasFilters: boolean): string {
   const acctOpts = _accounts
     .map(a => `<option value="${a.id}"${_ledgerAccountFilter === String(a.id) ? ' selected' : ''}>${escapeHtml(a.name)}</option>`)
     .join('');
+  const companyOpts = APP_SETTINGS.finance.companies
+    .map(c => `<option${_ledgerCompanyFilter === c ? ' selected' : ''}>${escapeHtml(c)}</option>`)
+    .join('');
   return `<div class="page-actions" style="margin-bottom:12px;flex-wrap:wrap;gap:8px">
     <div style="display:flex;gap:8px;flex:1;flex-wrap:wrap;align-items:center">
       <input class="form-input" id="cl-search" placeholder="Search description, reference…"
         value="${escapeHtml(_ledgerSearch)}" oninput="setLedgerFilter()" style="width:220px"/>
       <select class="form-input" id="cl-account-filter" onchange="setLedgerFilter()" style="width:170px">
         <option value="">All Accounts</option>${acctOpts}
+      </select>
+      <select class="form-input" id="cl-company-filter" onchange="setLedgerFilter()" style="width:170px">
+        <option value="">All Companies</option>${companyOpts}
       </select>
       ${hasFilters ? `<button class="btn btn-ghost" onclick="clearLedgerFilters()" style="font-size:12px">Clear</button>` : ''}
     </div>
@@ -70,17 +78,18 @@ export function renderCashLedger(): void {
 
   let filtered = [..._ledger];
   if (_ledgerAccountFilter) filtered = filtered.filter(e => String(e.account_id) === _ledgerAccountFilter);
+  if (_ledgerCompanyFilter) filtered = filtered.filter(e => e.company === _ledgerCompanyFilter);
   if (_ledgerSearch) {
     const q = _ledgerSearch.toLowerCase();
     filtered = filtered.filter(e =>
       e.description.toLowerCase().includes(q) ||
       (e.reference_no ?? '').toLowerCase().includes(q));
   }
-  const hasFilters = !!(_ledgerAccountFilter || _ledgerSearch);
+  const hasFilters = !!(_ledgerAccountFilter || _ledgerCompanyFilter || _ledgerSearch);
 
   const rows = filtered.length
     ? filtered.map(e => ledgerRowHTML(e, balances.get(e.id) ?? NaN, _accounts)).join('')
-    : `<tr><td colspan="9"><div class="empty-state">${hasFilters ? 'No entries match filters' : 'No ledger entries yet — click “New Entry” to start.'}</div></td></tr>`;
+    : `<tr><td colspan="10"><div class="empty-state">${hasFilters ? 'No entries match filters' : 'No ledger entries yet — click “New Entry” to start.'}</div></td></tr>`;
 
   container.innerHTML =
     _ledgerStatsHTML() +
@@ -88,7 +97,7 @@ export function renderCashLedger(): void {
     <div style="border:1px solid var(--ink-4);overflow-x:auto">
       <table class="ledger-table">
         <thead><tr>
-          <th>Date</th><th>Ref #</th><th>Description</th><th>Category</th>
+          <th>Date</th><th>Ref #</th><th>Description</th><th>Category</th><th>Company</th>
           <th>Account</th><th>Cash In</th><th>Cash Out</th><th>Balance</th><th aria-label="Actions"></th>
         </tr></thead>
         <tbody>${rows}</tbody>
@@ -99,12 +108,14 @@ export function renderCashLedger(): void {
 export function setLedgerFilter(): void {
   _ledgerSearch = (document.getElementById('cl-search') as HTMLInputElement | null)?.value ?? '';
   _ledgerAccountFilter = (document.getElementById('cl-account-filter') as HTMLSelectElement | null)?.value ?? '';
+  _ledgerCompanyFilter = (document.getElementById('cl-company-filter') as HTMLSelectElement | null)?.value ?? '';
   renderCashLedger();
 }
 
 export function clearLedgerFilters(): void {
   _ledgerSearch = '';
   _ledgerAccountFilter = '';
+  _ledgerCompanyFilter = '';
   renderCashLedger();
 }
 
@@ -160,6 +171,7 @@ function _readLedgerForm(): Partial<CashLedgerEntry> | null {
     category: gVal('cl-category') || null,
     account_id,
     payment_method: gVal('cl-method') || null,
+    company: gVal('cl-company') || null,
     project_id: +gVal('cl-project') || null,
     cash_in,
     cash_out,

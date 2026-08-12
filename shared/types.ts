@@ -457,6 +457,7 @@ export interface CashLedgerEntry {
   reference_no: string | null;
   txn_date: string | null;
   description: string;
+  company: string | null;         // which business the cash belongs to
   project_id: number | null;
   category: string | null;
   module_source: string;          // Manual | Founder | AR | AP | Payroll

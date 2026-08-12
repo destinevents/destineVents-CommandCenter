@@ -16,7 +16,7 @@ const acct = (over: Partial<FinancialAccount> = {}): FinancialAccount => ({
 let _id = 1;
 const entry = (over: Partial<CashLedgerEntry> = {}): CashLedgerEntry => ({
   id: _id++, reference_no: null, txn_date: '2026-07-10', description: 'x',
-  project_id: null, category: null, module_source: 'Manual', payment_method: null,
+  company: null, project_id: null, category: null, module_source: 'Manual', payment_method: null,
   account_id: 1, cash_in: 0, cash_out: 0, created_by: null, attachment_url: null,
   notes: null, source_type: null, source_id: null, created_at: '', ...over,
 });
@@ -214,5 +214,29 @@ describe('reportsCalc — category rollups', () => {
     ];
     const rev = revenueByCategory(entries);
     expect(rev).toEqual([{ category: 'Client Payment', amount: 3000 }]);
+  });
+
+  // Carried over from the 2026 spreadsheet: 'Team Fee' is used both for a fee
+  // the team earned and a fee the team was paid. Which side of the ledger the
+  // amount sits on is what decides, not the category name.
+  it('counts Team Fee as revenue when it comes in and expense when it goes out', () => {
+    const entries = [
+      entry({ category: 'Team Fee', cash_in: 5000 }),
+      entry({ category: 'Team Fee', cash_out: 1000 }),
+    ];
+    expect(revenueByCategory(entries)).toEqual([{ category: 'Team Fee', amount: 5000 }]);
+    expect(expenseByCategory(entries)).toEqual([{ category: 'Team Fee', amount: 1000 }]);
+  });
+
+  it('treats the other spreadsheet categories as one-directional', () => {
+    const entries = [
+      entry({ category: 'Affiliate Sales', cash_in: 916 }),
+      entry({ category: 'Team Expenses', cash_out: 400 }),
+      entry({ category: 'Founder Expenses', cash_out: 500 }),
+      entry({ category: 'Affiliate Fee', cash_out: 500 }),
+    ];
+    expect(revenueByCategory(entries)).toEqual([{ category: 'Affiliate Sales', amount: 916 }]);
+    expect(expenseByCategory(entries).map(e => e.category).sort())
+      .toEqual(['Affiliate Fee', 'Founder Expenses', 'Team Expenses']);
   });
 });
