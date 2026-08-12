@@ -32,18 +32,27 @@ let _ledgerSearch = '';
 
 // ── Cash Ledger tab ───────────────────────────────────────────────────────────
 
+// One balance, not a card per account type. Which pot the money sits in is
+// still recorded and still filterable below — it just isn't four headline
+// figures, three of which usually read ₱0.
+//
+// When a single account is filtered, the headline follows the filter: showing
+// the balance of every account above a table listing only one of them reads as
+// a contradiction.
 function _ledgerStatsHTML(): string {
-  const pos = cashPosition(_ledger, _accounts);
-  const card = (label: string, value: number, color = '') =>
-    `<div class="stat-card">
-      <div class="stat-label">${label}</div>
-      <div class="stat-value" style="font-size:22px${color ? `;color:${color}` : ''}">${formatCurrency(value)}</div>
-    </div>`;
+  const filtered = _ledgerAccountFilter
+    ? _accounts.find(a => String(a.id) === _ledgerAccountFilter)
+    : null;
+  const label = filtered ? `${filtered.name} Balance` : 'Current Cash Balance';
+  const value = filtered
+    ? accountBalance(filtered.id, _ledger, _accounts)
+    : cashPosition(_ledger, _accounts).total;
+
   return `<div class="finance-stat-grid" style="margin-bottom:16px">
-    ${card('Current Cash Balance', pos.total, 'var(--green)')}
-    ${card('Cash on Hand', pos.byType.cash)}
-    ${card('Bank Balance', pos.byType.bank)}
-    ${card('E-wallet Balance', pos.byType.ewallet)}
+    <div class="stat-card">
+      <div class="stat-label">${escapeHtml(label)}</div>
+      <div class="stat-value" style="font-size:22px;color:var(--green)">${formatCurrency(value)}</div>
+    </div>
   </div>`;
 }
 

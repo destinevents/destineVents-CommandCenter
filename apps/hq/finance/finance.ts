@@ -286,11 +286,11 @@ function _dashboardGroupsHTML(summary: ReturnType<typeof calcFinanceSummary>): s
     `<div class="kpi-group"><div class="kpi-group-label">${label}</div><div class="finance-stat-grid">${cards}</div></div>`;
 
   return [
+    // One figure, not four. The per-type split is still computed and still
+    // available per account in the Cash Ledger's own filter — it was just noise
+    // at dashboard level, where the question is only "how much have we got".
     group('Cash Position',
-      card('Current Cash Balance', pos.total, 'var(--green)', `Across ${activeCount} account${activeCount !== 1 ? 's' : ''}`) +
-      card('Cash on Hand', pos.byType.cash) +
-      card('Bank Balance', pos.byType.bank) +
-      card('E-wallet Balance', pos.byType.ewallet)),
+      card('Current Cash Balance', pos.total, 'var(--green)', `Across ${activeCount} account${activeCount !== 1 ? 's' : ''}`)),
     group('Revenue',
       card('Revenue This Month', thisMonth.revenue, 'var(--green)') +
       card('Revenue This Year', thisYear.revenue, 'var(--green)')),
