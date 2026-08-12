@@ -145,9 +145,6 @@ function applyHQRoleAccess(role: UserRole) {
   document.querySelectorAll<HTMLElement>('.nav-item[data-page]').forEach(el => {
     el.style.display = allowed.includes(el.dataset['page'] ?? '') ? '' : 'none';
   });
-  document.querySelectorAll<HTMLElement>('.tab[data-page]').forEach(el => {
-    el.style.display = allowed.includes(el.dataset['page'] ?? '') ? '' : 'none';
-  });
   // Only admin can switch to the Intern portal
   const switchBtn = document.getElementById('nav-switch-intern');
   if (switchBtn) switchBtn.style.display = 'none';
@@ -286,9 +283,6 @@ function showPage(name: string) {
   document.querySelectorAll('.nav-item').forEach((n) => n.classList.remove('active'));
   const activeNav = document.querySelector(`.nav-item[data-page="${name}"]`);
   if (activeNav) activeNav.classList.add('active');
-  document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
-  const activeTab = document.querySelector(`.tab[data-page="${name}"]`);
-  if (activeTab) activeTab.classList.add('active');
 }
 
 function loadPage(name: string) {

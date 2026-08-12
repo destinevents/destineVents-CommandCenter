@@ -9,6 +9,18 @@ const ASSIGNABLE_ROLES: UserRole[] = [
   'supervisor', 'intern',
 ];
 
+// Badge colour per role, so the table can be scanned by colour before reading
+const ROLE_BADGE: Record<UserRole, string> = {
+  admin:               'completed',
+  finance_officer:     'active',
+  external_accountant: 'sent',
+  team_staff:          'proposal',
+  freelancer:          'draft',
+  supervisor:          'issued',
+  intern:              'lead',
+  pending:             'pending',
+};
+
 function formatDate(iso: string): string {
   if (!iso) return '—';
   return new Date(iso).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -20,9 +32,44 @@ function portalLabel(role: UserRole): string {
   return '—';
 }
 
+function initials(name: string, email: string): string {
+  const source = name.trim() || email.split('@')[0] || '?';
+  const parts = source.split(/[\s._-]+/).filter(Boolean);
+  const letters = parts.length > 1
+    ? parts[0][0] + parts[1][0]
+    : source.slice(0, 2);
+  return letters.toUpperCase();
+}
+
+function roleLabel(role: UserRole): string {
+  return ROLE_LABELS[role] ?? role;
+}
+
+function roleBadge(role: UserRole): string {
+  return `<span class="badge badge-${ROLE_BADGE[role] ?? 'lead'}" style="white-space:nowrap">${escapeHtml(roleLabel(role))}</span>`;
+}
+
+function portalTag(role: UserRole): string {
+  const label = portalLabel(role);
+  return label === '—'
+    ? '<span style="color:var(--ink-3)">—</span>'
+    : `<span class="portal-tag">${label}</span>`;
+}
+
+function userCell(u: InternUser): string {
+  return `
+    <div class="user-cell">
+      <div class="user-cell-avatar">${escapeHtml(initials(u.name, u.email))}</div>
+      <div>
+        <div class="user-cell-name">${escapeHtml(u.name) || '<span style="color:var(--ink-3)">Unnamed</span>'}</div>
+        <div class="user-cell-email">${escapeHtml(u.email)}</div>
+      </div>
+    </div>`;
+}
+
 function roleOptions(selectedRole: UserRole): string {
   return ASSIGNABLE_ROLES.map(r =>
-    `<option value="${r}"${r === selectedRole ? ' selected' : ''}>${ROLE_LABELS[r]}</option>`
+    `<option value="${r}"${r === selectedRole ? ' selected' : ''}>${roleLabel(r)}</option>`
   ).join('');
 }
 
@@ -31,70 +78,88 @@ function roleOptions(selectedRole: UserRole): string {
 // apostrophe cannot break out of the handler.
 const namesById = new Map<string, string>();
 
-const DANGER_BTN =
-  'padding:4px 12px;height:32px;font-size:12px;background:#fef2f2;color:#b91c1c;' +
-  'border:1px solid #fecaca;border-radius:6px;font-weight:600;cursor:pointer;font-family:inherit';
-
 function removeButton(id: string, label: string): string {
-  return `<button style="${DANGER_BTN}" onclick="removeUser('${id}')">${label}</button>`;
+  return `<button class="btn-danger-soft" onclick="removeUser('${id}')">${label}</button>`;
 }
 
 function renderPending(users: InternUser[]): string {
-  if (!users.length) {
-    return '<tr><td colspan="6" style="color:var(--ink-3);padding:16px 0">No pending users</td></tr>';
-  }
   return users.map(u => `
     <tr>
-      <td>${escapeHtml(u.name)}</td>
-      <td>${escapeHtml(u.email)}</td>
-      <td>${u.requested_role ? escapeHtml(ROLE_LABELS[u.requested_role] ?? u.requested_role) : '<span style="color:var(--ink-3)">—</span>'}</td>
-      <td>${formatDate(u.created_at)}</td>
+      <td>${userCell(u)}</td>
+      <td>${u.requested_role
+        ? roleBadge(u.requested_role)
+        : '<span style="color:var(--ink-3)">—</span>'}</td>
+      <td style="font-size:11px;color:var(--ink-3);white-space:nowrap">${formatDate(u.created_at)}</td>
       <td>
-        <div style="display:flex;gap:6px;align-items:center">
-          <select class="form-input" id="pending-role-${u.id}" style="padding:4px 8px;height:32px;font-size:12px;min-width:160px">
-            ${u.requested_role ? `<option value="${u.requested_role}" selected>${ROLE_LABELS[u.requested_role] ?? u.requested_role}</option>` : ''}
+        <div class="flex-gap">
+          <select class="form-input role-select" id="pending-role-${u.id}">
+            ${u.requested_role ? `<option value="${u.requested_role}" selected>${roleLabel(u.requested_role)}</option>` : ''}
             ${ASSIGNABLE_ROLES.filter(r => r !== u.requested_role).map(r =>
-              `<option value="${r}">${ROLE_LABELS[r]}</option>`
+              `<option value="${r}">${roleLabel(r)}</option>`
             ).join('')}
           </select>
-          <button class="btn btn-primary" style="padding:4px 12px;height:32px;font-size:12px"
+          <button class="btn btn-primary" style="padding:5px 14px;height:32px;font-size:12px"
             onclick="approveUser('${u.id}')">Approve</button>
         </div>
       </td>
-      <td>${removeButton(u.id, 'Reject')}</td>
+      <td style="text-align:right">${removeButton(u.id, 'Reject')}</td>
     </tr>`).join('');
 }
 
+// The role select doubles as the role display — a separate badge column would
+// print the same word twice on every row.
 function renderAll(users: InternUser[]): string {
   if (!users.length) {
-    return '<tr><td colspan="6" style="color:var(--ink-3);padding:16px 0">No users</td></tr>';
+    return '<tr><td colspan="4"><div class="empty-state">No users yet — approved sign-ups appear here</div></td></tr>';
   }
   return users.map(u => `
     <tr>
-      <td>${escapeHtml(u.name)}</td>
-      <td>${escapeHtml(u.email)}</td>
-      <td>${escapeHtml(ROLE_LABELS[u.role] ?? u.role)}</td>
-      <td>${portalLabel(u.role)}</td>
+      <td>${userCell(u)}</td>
+      <td>${portalTag(u.role)}</td>
       <td>
-        <div style="display:flex;gap:6px;align-items:center">
-          <select class="form-input" id="user-role-${u.id}" style="padding:4px 8px;height:32px;font-size:12px;min-width:180px"
-            onchange="changeUserRole('${u.id}')">
-            ${roleOptions(u.role)}
-          </select>
-        </div>
+        <select class="form-input role-select" id="user-role-${u.id}"
+          onchange="changeUserRole('${u.id}')">
+          ${roleOptions(u.role)}
+        </select>
       </td>
-      <td>${removeButton(u.id, 'Remove')}</td>
+      <td style="text-align:right">${removeButton(u.id, 'Remove')}</td>
     </tr>`).join('');
+}
+
+function plural(n: number, word: string): string {
+  return `${n} ${word}${n === 1 ? '' : 's'}`;
+}
+
+function renderSummary(activeCount: number, pendingCount: number) {
+  const summary = document.getElementById('users-summary');
+  if (summary) {
+    summary.textContent = pendingCount
+      ? `${plural(activeCount, 'user')} · ${pendingCount} awaiting approval`
+      : plural(activeCount, 'user');
+  }
+  const allCount = document.getElementById('users-all-count');
+  if (allCount) allCount.textContent = plural(activeCount, 'account');
 }
 
 export async function loadUsers() {
   const [pending, all] = await Promise.all([fetchPendingUsers(), fetchAllUsers()]);
   namesById.clear();
   [...pending, ...all].forEach(u => namesById.set(u.id, u.name));
+
+  // The pending block is hidden outright when nobody is waiting — an empty
+  // table of headers reads as a broken section.
+  const pendingSection = document.getElementById('users-pending-section');
+  if (pendingSection) pendingSection.style.display = pending.length ? '' : 'none';
+  const pendingCount = document.getElementById('users-pending-count');
+  if (pendingCount) pendingCount.textContent = String(pending.length);
   const pendingBody = document.getElementById('users-pending-body');
-  const allBody = document.getElementById('users-all-body');
   if (pendingBody) pendingBody.innerHTML = renderPending(pending);
-  if (allBody) allBody.innerHTML = renderAll(all.filter(u => u.role !== 'pending' && u.role !== 'admin'));
+
+  const active = all.filter(u => u.role !== 'pending' && u.role !== 'admin');
+  const allBody = document.getElementById('users-all-body');
+  if (allBody) allBody.innerHTML = renderAll(active);
+
+  renderSummary(active.length, pending.length);
 }
 
 export async function removeUser(id: string) {
@@ -121,7 +186,7 @@ export async function approveUser(id: string) {
   const role = select.value as UserRole;
   const ok = await updateUserRole(id, role);
   if (ok) {
-    toast(`User approved as ${ROLE_LABELS[role] ?? role}`, 'success');
+    toast(`User approved as ${roleLabel(role)}`, 'success');
     await loadUsers();
   } else {
     toast('Failed to approve user. Please try again.', 'error');
@@ -134,7 +199,7 @@ export async function changeUserRole(id: string) {
   const role = select.value as UserRole;
   const ok = await updateUserRole(id, role);
   if (ok) {
-    toast(`Role updated to ${ROLE_LABELS[role] ?? role}`, 'success');
+    toast(`Role updated to ${roleLabel(role)}`, 'success');
     await loadUsers();
   } else {
     toast('Failed to update role. Please try again.', 'error');

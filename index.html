@@ -175,17 +175,10 @@
 <!-- MAIN -->
 <main class="main" role="main">
 
-  <!-- TOPBAR -->
+  <!-- TOPBAR — sidebar is the only navigation; this strip carries the mobile
+       menu button, the date and the signed-in avatar -->
   <div class="topbar">
     <button id="hq-menu-btn" onclick="toggleHqNav()" aria-label="Open menu">☰</button>
-    <div class="tabs">
-      <div class="tab active" data-page="dashboard" onclick="showPage('dashboard')">Dashboard</div>
-      <div class="tab" data-page="projects" onclick="showPage('projects')">Projects</div>
-      <div class="tab" data-page="finance" onclick="showPage('finance')">Finance</div>
-      <div class="tab" data-page="events" onclick="showPage('events')">Events</div>
-      <div class="tab" data-page="ai" onclick="showPage('ai')">AI Assistant</div>
-      <div class="tab" data-page="impact" onclick="showPage('impact')">Impact</div>
-    </div>
     <div class="topbar-meta">
       <div class="topbar-date" id="topbar-date"></div>
       <div class="topbar-avatar" id="topbar-avatar">DV</div>
@@ -614,23 +607,40 @@
 
   <div class="page" id="page-users">
     <div class="page-eyebrow">admin</div>
-    <div class="page-title">Users</div>
-    <div id="users-pending-section">
-      <h3 style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);margin-bottom:12px">Pending Approval</h3>
-      <div class="card" style="margin-bottom:24px">
-        <table class="data-table" id="users-pending-table">
-          <thead><tr><th>Name</th><th>Email</th><th>Requested Role</th><th>Signed Up</th><th>Action</th><th>Remove</th></tr></thead>
-          <tbody id="users-pending-body"><tr><td colspan="6" style="color:var(--ink-3)">Loading…</td></tr></tbody>
-        </table>
+    <div class="page-title" style="margin-bottom:8px">Users</div>
+    <div class="page-actions">
+      <div id="users-summary" style="font-size:11px;color:var(--ink-3)"></div>
+      <div class="flex-gap">
+        <input class="form-input" placeholder="Search name or email…" style="width:200px;padding:6px 10px;font-size:12px" oninput="filterTable(this,'users-all-body')"/>
       </div>
     </div>
-    <h3 style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);margin-bottom:12px">All Users</h3>
-    <div class="card">
-      <table class="data-table" id="users-all-table">
-        <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Portal</th><th>Change Role</th><th>Remove</th></tr></thead>
-        <tbody id="users-all-body"><tr><td colspan="6" style="color:var(--ink-3)">Loading…</td></tr></tbody>
-      </table>
-    </div>
+
+    <!-- Pending approval — hidden entirely when the queue is empty -->
+    <section id="users-pending-section" style="display:none;margin-bottom:28px">
+      <div class="users-section-head">
+        <div class="users-section-title">Pending approval</div>
+        <span class="badge badge-pending" id="users-pending-count">0</span>
+      </div>
+      <div class="users-table-wrap">
+        <table class="project-table users-table">
+          <thead><tr><th>Name</th><th>Requested role</th><th>Signed up</th><th>Approve as</th><th></th></tr></thead>
+          <tbody id="users-pending-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <div class="users-section-head">
+        <div class="users-section-title">All users</div>
+        <span class="users-section-count" id="users-all-count"></span>
+      </div>
+      <div class="users-table-wrap">
+        <table class="project-table users-table">
+          <thead><tr><th>Name</th><th>Portal</th><th>Role</th><th></th></tr></thead>
+          <tbody id="users-all-body"><tr><td colspan="4"><div class="empty-state">Loading…</div></td></tr></tbody>
+        </table>
+      </div>
+    </section>
   </div>
 
 </main>
