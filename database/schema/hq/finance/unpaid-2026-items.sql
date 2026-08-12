@@ -18,6 +18,15 @@
 -- Nothing is written off. None of these is confirmed uncollectible, and
 -- cancelling now would hide them; cancelling later is one dropdown.
 
+-- ── 0. Columns these inserts depend on ────────────────────────────────────────
+-- invoices.notes and bills.remarks are written by the app but were never in a
+-- migration — the app only sends them when someone actually types something, so
+-- a missing column would go unnoticed there while failing hard here. The SQL
+-- editor runs a paste as one transaction, so one missing column silently takes
+-- the whole file down with it.
+alter table invoices add column if not exists notes   text;
+alter table bills    add column if not exists remarks text;
+
 -- ── Receivables — money owed TO DestineVents ──────────────────────────────────
 -- Numbers continue from the highest OR-2026-NNN already in the table, so the
 -- app's own auto-numbering (nextDocNumber) keeps flowing from there.
