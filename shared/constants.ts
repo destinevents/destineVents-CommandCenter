@@ -17,7 +17,9 @@ export const OUTPUT_ICONS: Record<string, string> = { code:"💻", design:"🎨"
 // in sync with OUTPUT_ICONS and the intern_tasks.output_type DB check.
 export const OUTPUT_TYPES: Record<string, string> = { code:"Code", design:"Design", video:"Video", document:"Document", automation:"Automation", landing_page:"Landing Page" };
 
-export const KANBAN_COLS = ["assigned","acknowledged","in_progress","on_hold","completed","reviewed"];
+// Board order follows the task's normal path start-to-finish; on_hold is a
+// detour off that path, so it sits at the end instead of interrupting it.
+export const KANBAN_COLS = ["assigned","acknowledged","in_progress","completed","reviewed","on_hold"];
 
 // Owner-decided caps (July 4 2026): 9h max per day (spec draft said 8, boss
 // said 9); per-entry max 10 lives in the intern_timesheets DB check constraint.
