@@ -181,7 +181,13 @@ function enterApp(email: string | undefined, name: string, role: UserRole = 'adm
   setUserRole(role);
   setupRealtime();
   applyHQRoleAccess(role);
-  showPage('dashboard');
+
+  const requested = pageFromHash();
+  showPage(canOpenPage(requested, role) ? requested : 'dashboard');
+  window.addEventListener('hashchange', () => {
+    const next = pageFromHash();
+    if (next !== _currentPage && canOpenPage(next, role)) showPage(next);
+  });
 }
 
 function setupRealtime() {
@@ -272,14 +278,41 @@ async function handleSignOut() {
   window.location.href = 'login.html';
 }
 
+// ─── ROUTING ───
+// The open page lives in the URL hash (#finance), so a refresh — or a shared
+// link — comes back to where you were instead of resetting to the dashboard.
+
+let _currentPage = '';
+
+function pageFromHash(): string {
+  try {
+    return decodeURIComponent(window.location.hash.slice(1)).trim();
+  } catch {
+    return '';
+  }
+}
+
+// A hash is user-supplied: it must name a real page, and one this role is
+// allowed to see, before we open it.
+function canOpenPage(name: string, role: UserRole): boolean {
+  if (!name || !document.getElementById('page-' + name)) return false;
+  if (role === 'admin') return true;
+  return (HQ_ALLOWED_PAGES[role] ?? []).includes(name);
+}
+
 function showPage(name: string) {
   toggleHqNav(false);
-  document.querySelectorAll('.page').forEach((p) => p.classList.remove('active'));
   const page = document.getElementById('page-' + name);
-  if (page) {
-    page.classList.add('active');
-    loadPage(name);
-  }
+  if (!page) return;
+
+  document.querySelectorAll('.page').forEach((p) => p.classList.remove('active'));
+  page.classList.add('active');
+  _currentPage = name;
+  // Assignment (not replaceState) so browser back/forward walks the pages too.
+  // The hashchange listener below no-ops when the hash already matches.
+  if (pageFromHash() !== name) window.location.hash = name;
+  loadPage(name);
+
   document.querySelectorAll('.nav-item').forEach((n) => n.classList.remove('active'));
   const activeNav = document.querySelector(`.nav-item[data-page="${name}"]`);
   if (activeNav) activeNav.classList.add('active');
