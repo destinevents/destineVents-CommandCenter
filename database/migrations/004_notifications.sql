@@ -1,4 +1,4 @@
--- NOTIFICATIONS.SQL
+-- 004_NOTIFICATIONS.SQL
 -- Run ONCE in Supabase → SQL Editor (safe to re-run; no rollback inside —
 -- the editor executes a pasted script as one transaction).
 --

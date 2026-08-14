@@ -97,7 +97,7 @@ alter table payroll_runs enable row level security;
 alter table documents    enable row level security;
 
 -- Admin-only access — interns/supervisors should not query HQ tables
--- Uses public.current_user_role() (defined in intern-schema.sql — run that
+-- Uses public.current_user_role() (defined in 002_icc_tables.sql — run that
 -- first). A raw subquery on intern_users here would hit that table's own
 -- self-referencing policies and raise "infinite recursion detected".
 drop policy if exists "auth_all"   on clients;
@@ -154,5 +154,5 @@ alter publication supabase_realtime add table payroll_runs;
 alter publication supabase_realtime add table documents;
 
 -- ─── STORAGE BUCKETS ────────────────────────────────────────────────────────
--- See database/schema/storage-buckets.sql — run that file in the SQL Editor.
+-- See database/migrations/008_storage_buckets.sql — run that file in the SQL Editor.
 -- Creates: documents, signed-agreements, avatars (all private, RLS-enforced).

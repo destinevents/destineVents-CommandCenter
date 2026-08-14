@@ -17,7 +17,7 @@ drop policy if exists "auth_all"   on clients;
 drop policy if exists "admin_only" on clients;
 
 -- Admin-only: interns/supervisors must not query HQ tables.
--- Uses public.current_user_role() (defined in icc/intern-schema.sql — run that first).
+-- Uses public.current_user_role() (defined in migrations/002_icc_tables.sql — run that first).
 create policy "admin_only" on clients for all to authenticated
   using (public.current_user_role() = 'admin')
   with check (public.current_user_role() = 'admin');

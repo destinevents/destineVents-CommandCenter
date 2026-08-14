@@ -1,4 +1,4 @@
--- FIX-RLS-RECURSION.SQL
+-- 003_RLS_HELPERS.SQL (formerly fix-rls-recursion.sql)
 -- Run ONCE in Supabase → SQL Editor (safe to re-run).
 --
 -- Problem: policies on intern_users subqueried intern_users itself, which

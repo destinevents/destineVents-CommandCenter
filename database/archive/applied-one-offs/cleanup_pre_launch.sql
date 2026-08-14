@@ -2,7 +2,7 @@
 -- Wipes TEST DATA before seeding the real timesheet history for the Jul 7 launch.
 --
 -- Run order for launch: 1) everyone signs up → 2) THIS script →
--- 3) seed-timesheet-history.sql. Running the seed before this cleanup would
+-- 3) seeds/seed_timesheet_history.sql. Running the seed before this cleanup would
 -- let leftover test entries on Jun 20 – Jul 1 dates block the real hours
 -- (the seed skips intern+date combos that already have an entry).
 --

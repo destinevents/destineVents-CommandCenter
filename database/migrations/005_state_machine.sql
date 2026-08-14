@@ -1,4 +1,4 @@
--- ENFORCE-STATE-RULES.SQL
+-- 005_STATE_MACHINE.SQL (formerly enforce-state-rules.sql)
 -- Run ONCE in Supabase → SQL Editor (safe to re-run; no rollback inside).
 --
 -- Implements the handover spec's "non-negotiable" rules at the DATABASE

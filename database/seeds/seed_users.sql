@@ -1,5 +1,5 @@
--- SETUP-USERS.SQL
--- Run once in Supabase SQL Editor after intern-schema.sql
+-- SEED_USERS.SQL
+-- Run once in Supabase SQL Editor after migrations/002_icc_tables.sql
 -- Seeds intern_users with existing auth.users and updates JWT metadata
 
 -- 1. Update Jenn's JWT metadata to include role and full_name

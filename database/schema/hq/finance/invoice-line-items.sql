@@ -1,5 +1,6 @@
 -- Invoice line items + payment recording fields
--- Run in Supabase SQL Editor after supabase-setup.sql and cross-module-links.sql.
+-- Run in Supabase SQL Editor after migrations 001_hq_tables.sql and
+-- 007_cross_module_links.sql.
 
 CREATE TABLE IF NOT EXISTS invoice_line_items (
   id          bigint      PRIMARY KEY GENERATED ALWAYS AS IDENTITY,

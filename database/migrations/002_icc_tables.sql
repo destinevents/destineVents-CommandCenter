@@ -3,7 +3,7 @@
 -- Same project as HQ tables (clients, proposals, etc.)
 --
 -- NOT SELF-SUFFICIENT: after this file, also run (in order)
--- fix-rls-recursion.sql, notifications.sql, and enforce-state-rules.sql —
+-- 003_rls_helpers.sql, 004_notifications.sql, and 005_state_machine.sql —
 -- see README "Database Setup". Without them there are no role helper
 -- functions, no notification system, and no state-machine enforcement.
 
@@ -75,7 +75,7 @@ alter table intern_audit_logs  enable row level security;
 -- A policy on intern_users cannot subquery intern_users directly — Postgres
 -- raises "infinite recursion detected in policy". security definer bypasses
 -- RLS inside the function body, breaking the cycle. Used by every role check
--- below and by supabase-setup.sql's admin_only policies.
+-- below and by 001_hq_tables.sql's admin_only policies.
 create or replace function public.current_user_role()
 returns text
 language sql security definer stable
