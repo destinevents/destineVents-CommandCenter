@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS document_activity_logs (
   doc_type     text        NOT NULL,  -- 'sob' | 'invoice' | 'bill' | 'payroll' | 'po' | 'quotation' | 'contract'
   doc_id       bigint      NOT NULL,
   doc_number   text,                  -- human-readable number e.g. "SOB-2026-001"
-  action       text        NOT NULL,  -- 'created' | 'sent' | 'approved' | 'rejected' | 'paid' | 'downloaded' | 'archived' | 'cancelled'
+  action       text        NOT NULL,  -- 'created' | 'sent' | 'approved' | 'rejected' | 'paid' | 'downloaded' | 'archived' | 'cancelled' | 'deleted'
   performed_by text,                  -- display name of the user who triggered the action
   notes        text,                  -- optional freeform context
   created_at   timestamptz NOT NULL DEFAULT now()

@@ -7,6 +7,7 @@ import { toast, openModal, closeModal } from '@hq/core/ui.ts';
 import { _budgets, _ledger } from '@hq/core/state.ts';
 import { createBudget, updateBudget, deleteBudget } from './budgetService.ts';
 import { logDocActivity } from '@shared/services/documents/activityLogService.ts';
+import { getCurrentUser } from '@shared/core/authService.ts';
 import {
   budgetVsActual, availableYears, EXPENSE_CATEGORIES, type BudgetLine,
 } from './reportsCalc.ts';
@@ -133,17 +134,20 @@ export async function saveBudget(): Promise<void> {
     notes: gVal('bud-notes').trim() || null,
   };
   try {
+    // Who made the change, same as every other finance module records.
+    const user = await getCurrentUser();
+    const actor = user?.name ?? user?.email ?? null;
     if (_editingBudgetId !== null) {
       const ok = await updateBudget(_editingBudgetId, payload);
       if (!ok) { toast('Could not update budget', 'error'); return; }
-      await logDocActivity('budget', _editingBudgetId, category, 'updated', null);
+      await logDocActivity('budget', _editingBudgetId, category, 'updated', actor);
       toast('Budget updated', 'success');
     } else {
       const dup = _findBudget(category);
       if (dup) { toast('That category already has a budget for this period — edit it instead', 'error'); return; }
       const result = await createBudget(payload);
       if (!result) { toast('Could not save budget. Please try again.', 'error'); return; }
-      await logDocActivity('budget', result.id, category, 'created', null);
+      await logDocActivity('budget', result.id, category, 'created', actor);
       toast('Budget line added', 'success');
     }
     closeModal();
@@ -158,8 +162,11 @@ export async function handleDeleteBudget(id: number): Promise<void> {
   if (!canManageFinance()) { toast('You do not have permission to edit budgets', 'error'); return; }
   if (!confirm('Delete this budget line?')) return;
   try {
+    const b = _budgets.find(x => x.id === id);
     const ok = await deleteBudget(id);
     if (!ok) { toast('Could not delete budget', 'error'); return; }
+    const user = await getCurrentUser();
+    await logDocActivity('budget', id, b?.category ?? null, 'deleted', user?.name ?? user?.email ?? null);
     toast('Budget line deleted', 'success');
     await loadFinance();
   } catch (error) {

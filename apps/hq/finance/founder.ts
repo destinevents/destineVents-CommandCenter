@@ -252,7 +252,8 @@ export async function handleDeleteFounderEntry(id: number): Promise<void> {
         toast('Founder entry removed, but its Cash Ledger row could not be deleted — please remove it in Supabase', 'error');
       }
     }
-    await logDocActivity('founder', id, f.reference_no ?? null, 'archived', null);
+    const user = await getCurrentUser();
+    await logDocActivity('founder', id, f.reference_no ?? null, 'deleted', user?.name ?? user?.email ?? null);
     toast('Founder entry deleted', 'success');
     await loadFinance();
   } catch (error) {
