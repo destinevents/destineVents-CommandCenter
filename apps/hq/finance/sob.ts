@@ -2,6 +2,7 @@ import { formatCurrency } from '@shared/utils/formatUtils.ts';
 import { formatDateShort } from '@shared/utils/dateUtils.ts';
 import { escapeHtml, statusClass } from '@shared/utils/helpers.ts';
 import { validateRequired } from '@shared/utils/validators.ts';
+import { isFilledLineItem, itemsMissingDescription } from '@shared/documents/lineItems.ts';
 import { APP_SETTINGS } from '@config/settings.ts';
 import {
   fetchSOBs, fetchSOBLineItems, createSOB, updateSOB, deleteSOB, upsertSOBLineItems,
@@ -275,13 +276,28 @@ export async function saveSOB() {
     const quantity    = +(row.querySelector('.sob-li-qty')   as HTMLInputElement).value || 1;
     const unit_price  = +(row.querySelector('.sob-li-price') as HTMLInputElement).value || 0;
     const vat_rate    = +(row.querySelector('.sob-li-vat')   as HTMLInputElement).value || 0;
-    if (description) lineItems.push({ description, quantity, unit_price, vat_rate });
+    // Keep a priced row even with no wording yet — dropping it here is what let
+    // a statement bill a client ₱0. The check below names what is missing.
+    const item = { description, quantity, unit_price, vat_rate };
+    if (isFilledLineItem(item)) lineItems.push(item);
   });
+
+  if (itemsMissingDescription(lineItems).length > 0) {
+    toast('Every line item needs a description — fill it in, or clear the row', 'error');
+    return;
+  }
 
   const subtotal  = lineItems.reduce((sum, li) => sum + li.quantity * li.unit_price, 0);
   const vatAmount = lineItems.reduce((sum, li) => sum + li.quantity * li.unit_price * li.vat_rate / 100, 0);
   const discount  = +(document.getElementById('sob-discount') as HTMLInputElement).value || 0;
   const total     = subtotal + vatAmount - discount;
+
+  // A statement of billing is what the client is asked to pay. Sending one for
+  // ₱0 used to be silent.
+  if (total <= 0) {
+    toast('Add a line item with a quantity and unit price — this statement would bill ₱0', 'error');
+    return;
+  }
 
   const projVal = (document.getElementById('sob-project') as HTMLSelectElement).value;
   const payload: Partial<SOB> = {

@@ -59,15 +59,6 @@ export function proposalValue(p: Proposal): number {
   return p.total_amount || p.value || 0;
 }
 
-// A line item counts as filled in if the person put anything on it at all —
-// a description, or a figure. The save used to keep only rows with a
-// description, so a row carrying a quantity and a unit price but no wording was
-// thrown away silently: the quotation totalled 0, saved without complaint, and
-// showed ₱0 in the table and on the printed PDF.
-export function isFilledLineItem(item: ProposalLineItem): boolean {
-  return !!item.description.trim() || item.quantity * item.unit_price > 0;
-}
-
 // What a quotation is worth once saved. Line items win; an older quotation with
 // no line items keeps the figure already on the record rather than dropping to
 // zero when someone opens and re-saves it.

@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { isFilledLineItem, resolveProposalValue } from './proposalService.ts';
+import { resolveProposalValue } from './proposalService.ts';
+import { isFilledLineItem, itemsMissingDescription } from '@shared/documents/lineItems.ts';
 
-describe('proposalService — isFilledLineItem', () => {
+describe('lineItems — isFilledLineItem', () => {
   const item = (over = {}) => ({ description: '', quantity: 0, unit_price: 0, vat_rate: 0, ...over });
 
   it('keeps a row that has a description', () => {
@@ -21,6 +22,19 @@ describe('proposalService — isFilledLineItem', () => {
 
   it('drops a row with a quantity but no price', () => {
     expect(isFilledLineItem(item({ quantity: 3 }))).toBe(false);
+  });
+});
+
+describe('lineItems — itemsMissingDescription', () => {
+  const item = (over = {}) => ({ description: '', quantity: 0, unit_price: 0, vat_rate: 0, ...over });
+
+  it('names the priced rows that still have no wording', () => {
+    const rows = [item({ description: 'Venue', quantity: 1, unit_price: 100 }), item({ quantity: 2, unit_price: 500 })];
+    expect(itemsMissingDescription(rows)).toHaveLength(1);
+  });
+
+  it('is empty when every row is described', () => {
+    expect(itemsMissingDescription([item({ description: 'Venue' })])).toHaveLength(0);
   });
 });
 

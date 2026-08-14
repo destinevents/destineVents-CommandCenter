@@ -128,6 +128,16 @@ export async function openProjectDetail(id: number) {
 export function convertProposalToProject(proposalId: number) {
   const p = _proposals.find(x => x.id === proposalId);
   if (!p) return;
+
+  // The button stays on a Won quotation forever, so converting twice used to
+  // make a second project from the same job — double-counting it in the
+  // pipeline and the project list, with nothing to show they were the same.
+  const already = _projects.find(x => x.proposal_id === proposalId);
+  if (already) {
+    toast(`${p.name} is already the project “${already.name}”`, 'error');
+    return;
+  }
+
   _editingProjectId = null;
   _convertingProposalId = proposalId;
 

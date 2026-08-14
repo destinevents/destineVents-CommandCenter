@@ -10,8 +10,9 @@ import { canTransition } from '@shared/documents/docTransitions.ts';
 import {
   fetchProposals, createProposal, updateProposal, deleteProposal, calcWinRate,
   fetchProposalLineItems, upsertProposalLineItems, proposalValue,
-  isFilledLineItem, resolveProposalValue,
+  resolveProposalValue,
 } from './proposalService.ts';
+import { isFilledLineItem } from '@shared/documents/lineItems.ts';
 import { fetchClients } from '@hq/clients/clientService.ts';
 import { _clients, _proposals, setClients, setProposals } from '@hq/core/state.ts';
 import { toast, openModal, closeModal } from '@hq/core/ui.ts';
