@@ -1,5 +1,6 @@
 import { validateRequired } from '@shared/utils/validators.ts';
 import { escapeHtml } from '@shared/utils/helpers.ts';
+import { formatCurrency } from '@shared/utils/formatUtils.ts';
 import { APP_SETTINGS } from '@config/settings.ts';
 import { nextDocNumber } from '@shared/services/documents/docNumberService.ts';
 import { logDocActivity } from '@shared/services/documents/activityLogService.ts';
@@ -75,9 +76,16 @@ export async function saveProposal() {
   const totalAmount = subtotal + vatAmount;
 
   // A priced row with no wording is kept now rather than dropped, so say what
-  // is missing instead of saving a quotation the client cannot read.
-  if (rows.some(r => !r.description.trim())) {
-    toast('Every line item needs a description — fill it in, or clear the row', 'error');
+  // is missing instead of saving a quotation the client cannot read. Name the
+  // row and its figure — "one of them is blank" is not something you can act on
+  // when the rows all look filled in.
+  const nameless = rows.find(r => !r.description.trim());
+  if (nameless) {
+    const where = nameless.rowNumber ? `Line ${nameless.rowNumber}` : 'A line item';
+    toast(
+      `${where} has ${formatCurrency(nameless.quantity * nameless.unit_price)} but no description — add one, or press × to remove the row`,
+      'error',
+    );
     return;
   }
 
@@ -130,13 +138,18 @@ export async function saveProposal() {
   loadProposals();
 }
 
-function _collectQuoRows(): ProposalLineItem[] {
+// rowNumber is the row's position on screen, counting from 1, so an error can
+// point at the row the person is actually looking at.
+type CollectedQuoRow = ProposalLineItem & { rowNumber: number };
+
+function _collectQuoRows(): CollectedQuoRow[] {
   return Array.from(document.querySelectorAll<HTMLTableRowElement>('#quo-line-rows .quo-li-row'))
-    .map(row => ({
-      description: (row.querySelector('.quo-li-desc')  as HTMLInputElement).value.trim(),
-      quantity:    parseFloat((row.querySelector('.quo-li-qty')   as HTMLInputElement).value) || 0,
-      unit_price:  parseFloat((row.querySelector('.quo-li-price') as HTMLInputElement).value) || 0,
-      vat_rate:    parseFloat((row.querySelector('.quo-li-vat')   as HTMLInputElement).value) || 0,
+    .map((row, i) => ({
+      rowNumber:   i + 1,
+      description: (row.querySelector('.quo-li-desc')  as HTMLInputElement | null)?.value.trim() ?? '',
+      quantity:    parseFloat((row.querySelector('.quo-li-qty')   as HTMLInputElement | null)?.value ?? '') || 0,
+      unit_price:  parseFloat((row.querySelector('.quo-li-price') as HTMLInputElement | null)?.value ?? '') || 0,
+      vat_rate:    parseFloat((row.querySelector('.quo-li-vat')   as HTMLInputElement | null)?.value ?? '') || 0,
     }))
     .filter(isFilledLineItem);
 }
