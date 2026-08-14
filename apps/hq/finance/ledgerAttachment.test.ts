@@ -55,4 +55,24 @@ describe('storagePathFromAttachment', () => {
   it('returns null when the marker is present but the path is empty', () => {
     expect(storagePathFromAttachment('https://x.supabase.co/storage/v1/object/sign/?token=t')).toBe(null);
   });
+
+  describe('traversal segments are refused', () => {
+    it('rejects a bare path that climbs out', () => {
+      expect(storagePathFromAttachment('ledger/../../secret.pdf')).toBe(null);
+    });
+
+    it('rejects a URL that climbs out', () => {
+      expect(storagePathFromAttachment('https://x.supabase.co/storage/v1/object/sign/receipts/../private/x.pdf?token=t'))
+        .toBe(null);
+    });
+
+    it('rejects a percent-encoded climb, which decoding would otherwise reveal', () => {
+      expect(storagePathFromAttachment('https://x.supabase.co/storage/v1/object/sign/receipts/%2e%2e%2fx.pdf?token=t'))
+        .toBe(null);
+    });
+
+    it('still allows dots inside a filename', () => {
+      expect(storagePathFromAttachment('ledger/receipt..final.pdf')).toBe('ledger/receipt..final.pdf');
+    });
+  });
 });

@@ -33,7 +33,7 @@ export function storagePathFromAttachment(stored: string | null | undefined): st
   if (!/^https?:\/\//i.test(value)) {
     // Already a path. Tolerate a stray leading slash or bucket prefix.
     const path = value.replace(/^\/+/, '');
-    return stripBucket(path) || null;
+    return safePath(stripBucket(path));
   }
 
   const marker = URL_MARKERS.find(m => value.includes(m));
@@ -49,7 +49,17 @@ export function storagePathFromAttachment(stored: string | null | undefined): st
   } catch {
     decoded = withoutQuery;
   }
-  return stripBucket(decoded) || null;
+  return safePath(stripBucket(decoded));
+}
+
+// Refuse anything with a traversal segment. The bucket is already scoped by
+// `.from(RECEIPTS_BUCKET)` and storage keys are opaque rather than filesystem
+// paths, so this is defence in depth rather than a hole being closed — but the
+// value passes through decodeURIComponent, which can turn %2e%2e%2f into "..",
+// and signing an object nobody meant to share is not worth the risk.
+function safePath(path: string): string | null {
+  if (!path) return null;
+  return path.split('/').includes('..') ? null : path;
 }
 
 // Drop a leading "receipts/" — the bucket is addressed separately by
