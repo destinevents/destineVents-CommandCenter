@@ -205,19 +205,29 @@ async function _uploadLedgerAttachment(file: File): Promise<string | null> {
 // Open a receipt in a new tab, signing it fresh on the way. The blank tab is
 // opened first, synchronously — a window.open after an await is treated as a
 // popup and blocked.
+//
+// Note the missing 'noopener': passing it makes window.open return null by
+// spec, which would leave an orphan blank tab and send this tab to the file
+// instead. The opener is severed by hand below, which is the same protection.
 export async function openLedgerAttachment(id: number): Promise<void> {
   const entry = _ledger.find(e => e.id === id);
   if (!entry?.attachment_url) { toast('No attachment on this entry', 'error'); return; }
 
-  const tab = window.open('', '_blank', 'noopener');
+  const tab = window.open('', '_blank');
   const url = await signAttachment(entry.attachment_url);
   if (!url) {
     tab?.close();
     toast('Could not open the receipt — it may have been removed from storage', 'error');
     return;
   }
-  if (tab) tab.location.href = url;
-  else window.location.href = url; // popup blocked — fall back to this tab
+  if (tab) {
+    tab.opener = null;
+    tab.location.href = url;
+  } else {
+    // Popups blocked. Say so rather than navigating away from HQ and losing
+    // whatever the person was in the middle of.
+    toast('Allow pop-ups for this site to view receipts', 'error');
+  }
 }
 
 export async function saveLedgerEntry(): Promise<void> {

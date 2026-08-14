@@ -62,7 +62,7 @@ export function ledgerRowHTML(
   return `<tr>
     <td style="font-size:11px;color:var(--ink-3)">${displayDate(e.txn_date)}</td>
     <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(e.reference_no ?? '—')}</td>
-    <td style="font-weight:500;color:var(--ink)">${escapeHtml(e.description)}${isLinked ? ` <span class="badge badge-pending" style="font-size:9px">${escapeHtml(e.module_source)}</span>` : ''}${e.attachment_url ? ` <button type="button" class="btn-link-icon" title="View attachment" aria-label="View attachment" onclick="openLedgerAttachment(${e.id})" style="background:none;border:none;padding:0;cursor:pointer;color:var(--gold);font-size:11px">&#128206;</button>` : ''}</td>
+    <td style="font-weight:500;color:var(--ink)">${escapeHtml(e.description)}${isLinked ? ` <span class="badge badge-pending" style="font-size:9px">${escapeHtml(e.module_source)}</span>` : ''}${e.attachment_url ? ` <button type="button" title="View attachment" aria-label="View attachment" onclick="openLedgerAttachment(${e.id})" style="background:none;border:none;padding:0;cursor:pointer;color:var(--gold);font-size:11px">&#128206;</button>` : ''}</td>
     <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(e.category ?? '—')}</td>
     <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(e.company ?? '—')}</td>
     <td style="font-size:11px;color:var(--ink-3)">${accName}</td>
