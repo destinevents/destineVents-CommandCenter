@@ -1,5 +1,7 @@
 // @ts-nocheck
 import { createPager, attachFilterToolbar, escapeHtml, badge, avatarEl, skillPillGreen } from '@shared/utils/helpers.ts';
+import { activityText } from '@shared/components/activityText.ts';
+import { activityToText } from '@shared/utils/activityFormat.ts';
 import { renderStatCards } from '@shared/components/statCard.ts';
 import { renderFilterTabs } from '@shared/components/filterTabs.ts';
 import { renderSkillPicker, resetSkillPicker } from '../tasks/skillPicker.ts';
@@ -80,7 +82,7 @@ export async function renderTimesheets() {
       ${isAdmin?`<td><div class="flex-gap-8">${avatarEl(intern?.avatar||'?',24)}<span class="text-bold">${escapeHtml(intern?.name)||'—'}</span></div></td>`:''}
       <td style="white-space:nowrap;color:#374151">${ts.date}</td>
       <td style="color:#374151">${escapeHtml(task?.title)||'<span class="no-task-flag" title="Entry is not linked to a task">⚠ no task</span>'}</td>
-      <td class="truncate text-ink">${escapeHtml(ts.activity_description)}</td>
+      <td class="text-ink">${activityText(ts.activity_description, { lines: 3, className: 'activity-text--cell' })}</td>
       <td class="hours-display">${ts.hours}h</td>
       <td class="text-muted">${ts.industry_category}</td>
       <td>${skillHtml}</td>
@@ -209,7 +211,7 @@ export function exportTimesheetCSV() {
       ...(isAdmin ? [`"${(intern?.name || '—').replace(/"/g, '""')}"`] : []),
       `"${ts.date}"`,
       `"${(task?.title || '—').replace(/"/g, '""')}"`,
-      `"${(ts.activity_description || '').replace(/"/g, '""')}"`,
+      `"${activityToText(ts.activity_description).replace(/"/g, '""')}"`,
       ts.hours,
       `"${ts.industry_category}"`,
       `"${(ts.skills || []).join('; ')}"`,

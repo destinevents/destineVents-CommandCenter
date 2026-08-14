@@ -2,6 +2,9 @@
 import { sb } from '@shared/core/supabase';
 import { fetchAuditLogs } from '../audit/auditService.ts';
 import { escapeHtml, avatarEl, skillPill, skillPillGreen } from '@shared/utils/helpers.ts';
+import { activityText } from '@shared/components/activityText.ts';
+import { activityToText } from '@shared/utils/activityFormat.ts';
+import { buildTimesheetReportHTML } from './timesheetReport.ts';
 import { formatDateShort, formatTime } from '@shared/utils/dateUtils.ts';
 import { liveUsers, liveTasks, liveTimesheets, pendingApprovals, currentUser } from '../core/state.ts';
 import { toast, openModal, closeModal } from '../core/ui.ts';
@@ -163,7 +166,7 @@ export async function renderApprovals() {
           <div>
             <div style="font-weight:700;font-size:14px;color:#1a1a1a">${escapeHtml(intern?.name) || '—'}</div>
             <div style="font-size:11px;color:var(--faint)">${intern?.school || ''} · ${ts.date}</div>
-            <div style="font-size:13px;color:#374151;margin-top:6px;max-width:380px">${escapeHtml(ts.activity_description)}</div>
+            <div style="margin-top:8px">${activityText(ts.activity_description, { lines: 5, className: 'activity-text--card' })}</div>
             ${task ? `<div class="task-link-tag">📋 ${escapeHtml(task.title)}</div>` : ''}
             <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px">${(ts.skills || []).map(skillPillGreen).join('')}</div>
           </div>
@@ -305,10 +308,21 @@ export function exportExcel(uid) {
     return;
   }
   const sheets = liveTimesheets.filter((t) => t.intern_id === uid && t.status === 'approved');
+  // Quoted CSV fields may span lines, so the activity keeps its bullet layout
+  // instead of being flattened into one run-on cell.
+  const cell = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
   let csv = 'Date,Task,Activity,Hours,Category,Skills,Status\n';
   sheets.forEach((ts) => {
     const task = liveTasks.find((t) => t.id === ts.task_id);
-    csv += `"${ts.date}","${escapeHtml(task?.title) || '—'}","${escapeHtml(ts.activity_description)}",${ts.hours},"${ts.industry_category}","${(ts.skills || []).join('; ')}","${ts.status}"\n`;
+    csv += [
+      cell(ts.date),
+      cell(task?.title || '—'),
+      cell(activityToText(ts.activity_description)),
+      ts.hours,
+      cell(ts.industry_category),
+      cell((ts.skills || []).join('; ')),
+      cell(ts.status),
+    ].join(',') + '\n';
   });
   const blob = new Blob([csv], { type: 'text/csv' });
   const a = document.createElement('a');
@@ -325,55 +339,18 @@ export function exportPDF(uid) {
     toast('Intern not found — please refresh.');
     return;
   }
-  const supervisor = liveUsers.find((u) => u.role === 'supervisor') || { name: 'Supervisor' };
   const sheets = liveTimesheets.filter((t) => t.intern_id === uid && t.status === 'approved');
-  const totalH = sheets.reduce((s, t) => s + t.hours, 0);
-  const topSkills = topSkillsFor(sheets, 5);
-  const rows = sheets
-    .map((ts) => {
-      const task = liveTasks.find((t) => t.id === ts.task_id);
-      return `<tr><td>${escapeHtml(ts.date)}</td><td>${escapeHtml(task?.title) || '—'}</td><td>${escapeHtml(ts.activity_description)}</td><td>${ts.hours}h</td><td>${escapeHtml(ts.industry_category)}</td></tr>`;
-    })
-    .join('');
-  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
-    body{font-family:'DM Sans',sans-serif;padding:40px;color:#1a1a1a;max-width:800px;margin:0 auto}
-    h1{color:#252f27;font-size:22px;margin-bottom:4px} .sub{color:#6b7280;font-size:13px}
-    .divider{border:none;border-top:2px solid #C9A84C;margin:20px 0}
-    .meta-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:24px}
-    .meta-box{background:#f9fafb;border-radius:8px;padding:12px;text-align:center}
-    .meta-box .v{font-size:20px;font-weight:800;color:#252f27}.meta-box .l{font-size:11px;color:#6b7280;margin-top:2px}
-    table{width:100%;border-collapse:collapse;font-size:12px}
-    th{background:#252f27;color:#F5ECD7;padding:9px 12px;text-align:left;font-size:11px;text-transform:uppercase}
-    td{padding:9px 12px;border-bottom:1px solid #f3f4f6} tr:nth-child(even) td{background:#fafafa}
-    .sig-section{margin-top:40px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px}
-    .sig-box{border-top:2px solid #e5e7eb;padding-top:8px;font-size:11px;color:#6b7280}
-    .skills-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
-    .sp{background:#eef2ff;color:#6366f1;border-radius:999px;padding:2px 8px;font-size:11px;font-weight:600}
-  </style></head><body>
-    <h1>Internship Timesheet Report</h1>
-    <div class="sub">Disenyo Digitals Collective OPC · Baguio City, Philippines</div>
-    <hr class="divider"/>
-    <div class="meta-grid">
-      <div class="meta-box"><div class="v">${escapeHtml(intern.name)}</div><div class="l">Intern Name</div></div>
-      <div class="meta-box"><div class="v">${escapeHtml(intern.program)}</div><div class="l">Program</div></div>
-      <div class="meta-box"><div class="v">${escapeHtml(intern.school)}</div><div class="l">School</div></div>
-    </div>
-    <div class="meta-grid">
-      <div class="meta-box"><div class="v">${totalH}h</div><div class="l">Total Approved Hours</div></div>
-      <div class="meta-box"><div class="v">${sheets.length}</div><div class="l">Approved Entries</div></div>
-      <div class="meta-box"><div class="v">${new Date().toLocaleDateString('en-PH')}</div><div class="l">Report Date</div></div>
-    </div>
-    <h3 style="margin:0 0 8px;font-size:14px;color:#252f27">Top Skills Demonstrated</h3>
-    <div class="skills-row">${topSkills.map((s) => `<span class="sp">${s}</span>`).join('')}</div>
-    <hr class="divider"/>
-    <table><thead><tr><th>Date</th><th>Task</th><th>Activity</th><th>Hours</th><th>Category</th></tr></thead>
-    <tbody>${rows}</tbody></table>
-    <div class="sig-section">
-      <div class="sig-box"><strong>Intern Signature</strong><br/>${escapeHtml(intern.name)}<br/><br/><br/>___________________</div>
-      <div class="sig-box"><strong>Supervisor Signature</strong><br/>${escapeHtml(supervisor.name)}<br/><br/><br/>___________________</div>
-      <div class="sig-box"><strong>Company Seal</strong><br/>Disenyo Digitals<br/>Collective OPC<br/><br/>___________________</div>
-    </div>
-  </body></html>`;
+  const taskById = new Map(liveTasks.map((t) => [t.id, t]));
+
+  const html = buildTimesheetReportHTML({
+    intern,
+    supervisor: liveUsers.find((u) => u.role === 'supervisor') || { name: 'Supervisor' },
+    sheets,
+    taskTitleFor: (ts) => taskById.get(ts.task_id)?.title,
+    topSkills: topSkillsFor(sheets, 5),
+    reportDate: new Date().toLocaleDateString('en-PH'),
+  });
+
   const w = window.open('', '_blank');
   if (!w) {
     toast('Pop-up blocked — please allow pop-ups for this site.');

@@ -1,0 +1,90 @@
+/* Formatted intern activity reports — headings, bullets and paragraphs, with a
+   "Show more" clamp for long entries. Markup comes from
+   shared/components/activityText.ts. */
+
+.activity-text {
+  --act-lines: 4;
+  --act-line-height: 1.55;
+  font-size: 13px;
+  line-height: var(--act-line-height);
+  color: #374151;
+}
+
+.activity-text--card { max-width: min(520px, 100%); }
+.activity-text--cell { max-width: 340px; min-width: 200px; }
+
+.activity-body > *:first-child { margin-top: 0; }
+.activity-body > *:last-child  { margin-bottom: 0; }
+
+/* Collapsed: clamp to N lines and fade the cut-off edge so it reads as "more
+   below" rather than a sentence that stops mid-word. */
+.activity-text[data-collapsed='true'] .activity-body {
+  max-height: calc(var(--act-lines) * var(--act-line-height) * 1em);
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, #000 60%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 60%, transparent 100%);
+}
+
+.act-heading {
+  font-weight: 700;
+  color: #252f27;
+  margin: 10px 0 4px;
+}
+
+.act-para {
+  margin: 0 0 6px;
+  white-space: pre-wrap; /* keeps the intern's own line breaks */
+}
+
+.act-list {
+  margin: 0 0 6px;
+  padding-left: 18px;
+  list-style: disc;
+}
+
+.act-item { margin: 0 0 3px; }
+.act-item--1 { margin-left: 16px; list-style: circle; }
+.act-item--2 { margin-left: 32px; list-style: square; }
+
+.activity-toggle {
+  margin-top: 5px;
+  padding: 0;
+  background: none;
+  border: none;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--indigo, #6366f1);
+  cursor: pointer;
+}
+
+.activity-toggle:hover { text-decoration: underline; }
+
+.activity-toggle:focus-visible {
+  outline: 2px solid var(--indigo, #6366f1);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* Table cells: a touch tighter, and the row must be free to grow when the
+   entry is expanded. Block margins are trimmed here so the clamp shows the
+   number of lines it promises rather than spending them on spacing. */
+td .activity-text {
+  --act-line-height: 1.45;
+  font-size: 12.5px;
+  white-space: normal;
+}
+
+td .activity-text .act-heading { margin: 6px 0 2px; }
+td .activity-text .act-para,
+td .activity-text .act-list { margin-bottom: 3px; }
+
+@media print {
+  .activity-toggle { display: none; }
+  .activity-text[data-collapsed='true'] .activity-body {
+    max-height: none;
+    overflow: visible;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}

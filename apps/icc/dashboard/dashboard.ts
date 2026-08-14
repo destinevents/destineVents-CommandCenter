@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { renderStatCards } from '@shared/components/statCard.ts';
 import { escapeHtml, badge } from '@shared/utils/helpers.ts';
+import { activityText } from '@shared/components/activityText.ts';
 import { formatDateShort } from '@shared/utils/dateUtils.ts';
 import { currentUser, myTasks, mySheets, pendingApprovals } from '../core/state.ts';
 import { isOverdue } from '../tasks/tasks.ts';
@@ -77,7 +78,7 @@ export async function renderDashboard() {
   document.getElementById('dash-sheets-body').innerHTML = recentSheets.map(ts=>{
     return `<tr>
       <td style="color:#374151;white-space:nowrap">${ts.date}</td>
-      <td class="truncate text-ink">${escapeHtml(ts.activity_description)}</td>
+      <td class="text-ink">${activityText(ts.activity_description, { lines: 2, className: 'activity-text--cell' })}</td>
       <td class="hours-display">${ts.hours}h</td>
       <td class="text-muted">${ts.industry_category}</td>
       <td>${badge(ts.status)}</td>

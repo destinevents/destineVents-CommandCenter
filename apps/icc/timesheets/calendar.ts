@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { escapeHtml, badge } from '@shared/utils/helpers.ts';
+import { activityText } from '@shared/components/activityText.ts';
 import { liveTasks, liveTimesheets } from '../core/state.ts';
 import { openModal } from '../core/ui.ts';
 
@@ -150,7 +151,7 @@ function _attachCalendarEvents(entriesMap) {
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
             <div>
               <div class="text-bold text-ink">${escapeHtml(task?.title || '—')}</div>
-              <div class="text-xs text-muted mt-2">${escapeHtml(ts.activity_description || '')}</div>
+              <div class="mt-2">${activityText(ts.activity_description, { lines: 4 })}</div>
               <div class="text-xs text-faint mt-2">${ts.industry_category || ''}</div>
             </div>
             <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">

@@ -5,6 +5,7 @@
 // (never at top level), which keeps the circular edges TDZ-safe.
 import { logger } from '@shared/utils/logger.ts';
 import { populateOutputTypeSelect } from '@shared/utils/helpers.ts';
+import { toggleActivityText } from '@shared/components/activityText.ts';
 import { sb } from '@shared/core/supabase';
 import { getCurrentUser, signOut } from '@shared/core/authService.ts';
 import {
@@ -362,6 +363,10 @@ document.addEventListener('click', async (e) => {
   }
   if (a === 'output-load-more') {
     outputPager.loadMore();
+    return;
+  }
+  if (a === 'toggle-activity') {
+    toggleActivityText(el);
     return;
   }
   if (a === 'cal-prev') { calPrev(); return; }
