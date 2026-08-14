@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { storagePathFromAttachment } from './ledgerAttachment.ts';
+import { storagePathFromAttachment } from './receiptAttachment.ts';
 
 describe('storagePathFromAttachment', () => {
   it('returns null for empty values', () => {
@@ -17,8 +17,11 @@ describe('storagePathFromAttachment', () => {
     expect(storagePathFromAttachment('/ledger/abc-123.jpg')).toBe('ledger/abc-123.jpg');
   });
 
-  it('drops a redundant bucket prefix', () => {
-    expect(storagePathFromAttachment('receipts/ledger/abc.pdf')).toBe('ledger/abc.pdf');
+  // Payables writes its files to a folder that is itself called "receipts",
+  // inside the receipts bucket. A stored path is already bucket-relative, so
+  // stripping that prefix here would point at a different object entirely.
+  it('leaves a bare path alone, including Payables own receipts/ folder', () => {
+    expect(storagePathFromAttachment('receipts/abc.pdf')).toBe('receipts/abc.pdf');
   });
 
   // The whole point of the fix: receipts filed before this change still open.
@@ -44,8 +47,11 @@ describe('storagePathFromAttachment', () => {
     expect(storagePathFromAttachment(url)).toBe('ledger/OR receipt 1.pdf');
   });
 
-  it('keeps a folder that happens to be named after the bucket', () => {
-    expect(storagePathFromAttachment('receipts/receipts/x.jpg')).toBe('receipts/x.jpg');
+  // A Payables receipt as it was stored before this change: the bucket appears
+  // once because the URL carries it, and once because the folder is named that.
+  it('recovers a Payables path from its legacy URL, keeping the folder', () => {
+    const url = 'https://x.supabase.co/storage/v1/object/sign/receipts/receipts/9a-1.pdf?token=t';
+    expect(storagePathFromAttachment(url)).toBe('receipts/9a-1.pdf');
   });
 
   it('returns null for a URL that is not a storage object', () => {

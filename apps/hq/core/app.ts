@@ -52,7 +52,7 @@ import {
   openRecordPayment, openRecordPaymentBpi, saveRecordPayment, issueInvoice,
   addInvoiceRow, recalcInvoice, togglePaymentFields,
   openAddBill, openEditBill, handleDeleteBill, saveBill,
-  openUploadReceipt,
+  openUploadReceipt, openBillReceipt,
   submitBillForApproval, approveBill, saveApproveBill, rejectBill,
   markBillPaid, archiveBill, printExpenseVoucher,
   setApFilter, clearApFilters, setApBillPage,
@@ -509,7 +509,7 @@ declare global {
     showReceivablesTab: typeof showReceivablesTab; showAnalysisTab: typeof showAnalysisTab;
     openAddBill: typeof openAddBill; saveBill: typeof saveBill;
     openEditBill: typeof openEditBill; handleDeleteBill: typeof handleDeleteBill;
-    openUploadReceipt: typeof openUploadReceipt;
+    openUploadReceipt: typeof openUploadReceipt; openBillReceipt: typeof openBillReceipt;
     submitBillForApproval: typeof submitBillForApproval;
     approveBill: typeof approveBill; saveApproveBill: typeof saveApproveBill;
     rejectBill: typeof rejectBill; markBillPaid: typeof markBillPaid;
@@ -609,7 +609,7 @@ Object.assign(window, {
   togglePaidInvoices, setInvoicePage, setORPage,
   showReceivablesTab, showAnalysisTab,
   openAddBill, openEditBill, handleDeleteBill, saveBill,
-  openUploadReceipt,
+  openUploadReceipt, openBillReceipt,
   submitBillForApproval, approveBill, saveApproveBill, rejectBill,
   markBillPaid, archiveBill, printExpenseVoucher,
   setApFilter, clearApFilters, setApBillPage,

@@ -76,7 +76,7 @@ export function apRowHTML(b: Bill, projects: Project[]): string {
 
   return `<tr>
     <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(b.expense_number ?? '—')}</td>
-    <td style="font-weight:500;color:var(--ink)">${vendor}${b.receipt_url ? ` <a href="${escapeHtml(b.receipt_url)}" target="_blank" rel="noopener noreferrer" title="View receipt" style="color:var(--green);font-size:10px;text-decoration:none">📎</a>` : ''}</td>
+    <td style="font-weight:500;color:var(--ink)">${vendor}${b.receipt_url ? ` <button type="button" title="View receipt" aria-label="View receipt" onclick="openBillReceipt(${b.id})" style="background:none;border:none;padding:0;cursor:pointer;color:var(--green);font-size:10px">&#128206;</button>` : ''}</td>
     <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(b.category ?? '—')}</td>
     <td style="font-size:11px;color:var(--ink-3)">${projName}</td>
     <td style="font-size:11px;color:var(--ink-3)">${displayDate(b.date)}</td>

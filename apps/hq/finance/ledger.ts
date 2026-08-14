@@ -17,7 +17,7 @@ import {
   ledgerRowHTML, ledgerFormHTML, accountRowHTML, accountFormHTML,
 } from './templates/ledger.ts';
 import { runningBalanceMap, accountBalance, cashPosition } from './ledgerCalc.ts';
-import { RECEIPTS_BUCKET, signAttachment } from './ledgerAttachment.ts';
+import { RECEIPTS_BUCKET, signAttachment } from './receiptAttachment.ts';
 import { canManageFinance } from './financePermissions.ts';
 import { APP_SETTINGS } from '@config/settings.ts';
 import { loadFinance } from './finance.ts';
@@ -191,7 +191,7 @@ function _readLedgerForm(): Partial<CashLedgerEntry> | null {
 
 // Upload an optional ledger attachment to the shared receipts bucket; returns
 // the object's path, or null on failure (upload issues never block saving the
-// entry). The path is what gets stored — see ledgerAttachment.ts for why a
+// entry). The path is what gets stored — see receiptAttachment.ts for why a
 // signed URL must not be.
 async function _uploadLedgerAttachment(file: File): Promise<string | null> {
   if (file.size > 5 * 1024 * 1024) { toast('Attachment must be under 5 MB', 'error'); return null; }

@@ -15,6 +15,7 @@ import { createBill, updateBill, deleteBill, billPaidDate } from '@hq/finance/fi
 import { sb } from '@shared/core/supabase';
 import { _bills, _projects, _accounts } from '@hq/core/state.ts';
 import { reverseSourceFromLedger, syncSourceLedger } from '../ledgerPosting.ts';
+import { RECEIPTS_BUCKET, signAttachment, storagePathFromAttachment } from '../receiptAttachment.ts';
 import { localISODate } from '@shared/utils/dateUtils.ts';
 import { toast, openModal, closeModal } from '@hq/core/ui.ts';
 import type { Bill } from '@shared/types.ts';
@@ -175,7 +176,9 @@ export function renderAP(bills: Bill[]) {
 
 // ── Receipt storage helpers ───────────────────────────────────────────────────
 
-const RECEIPT_TTL_SECONDS = 60 * 60 * 24 * 90; // 90 days
+// An expense receipt is what substantiates a deduction, so it has to stay
+// readable for years. The object's path is stored and signed fresh on click —
+// see receiptAttachment.ts for why a stored signed URL must not be.
 
 async function uploadReceiptFile(file: File): Promise<string | null> {
   if (file.size > 5 * 1024 * 1024) {
@@ -184,21 +187,45 @@ async function uploadReceiptFile(file: File): Promise<string | null> {
   }
   const ext  = (file.name.split('.').pop() ?? 'bin').slice(0, 10);
   const path = `receipts/${crypto.randomUUID()}.${ext}`;
-  const { error } = await sb.storage.from('receipts').upload(path, file, { upsert: false });
+  const { error } = await sb.storage.from(RECEIPTS_BUCKET).upload(path, file, { upsert: false });
   if (error) {
     toast('Receipt upload failed', 'error');
     return null;
   }
-  const { data } = await sb.storage.from('receipts').createSignedUrl(path, RECEIPT_TTL_SECONDS);
-  return data?.signedUrl ?? null;
+  return path;
 }
 
-async function deleteReceiptFile(url: string | null | undefined): Promise<void> {
-  if (!url) return;
+// Handles both shapes: a bare path (stored since the expiry fix) and the full
+// signed URL rows written before it.
+async function deleteReceiptFile(stored: string | null | undefined): Promise<void> {
+  if (!stored) return;
   try {
-    const match = url.match(/\/object\/(?:sign|public)\/receipts\/([^?#]+)/);
-    if (match?.[1]) await sb.storage.from('receipts').remove([match[1]]);
+    const path = storagePathFromAttachment(stored);
+    if (path) await sb.storage.from(RECEIPTS_BUCKET).remove([path]);
   } catch { /* non-critical: orphaned file is preferable to a blocking error */ }
+}
+
+// Open a bill's receipt in a new tab, signing it fresh on the way. The blank
+// tab is opened synchronously — a window.open after an await is blocked as a
+// popup. 'noopener' is deliberately not passed: it makes window.open return
+// null, which would strand the click.
+export async function openBillReceipt(id: number): Promise<void> {
+  const bill = _bills.find(b => b.id === id);
+  if (!bill?.receipt_url) { toast('No receipt on this expense', 'error'); return; }
+
+  const tab = window.open('', '_blank');
+  const url = await signAttachment(bill.receipt_url);
+  if (!url) {
+    tab?.close();
+    toast('Could not open the receipt — it may have been removed from storage', 'error');
+    return;
+  }
+  if (tab) {
+    tab.opener = null;
+    tab.location.href = url;
+  } else {
+    toast('Allow pop-ups for this site to view receipts', 'error');
+  }
 }
 
 export function openAddBill() {
@@ -303,7 +330,7 @@ export function openUploadReceipt(id: number) {
     `Upload Receipt — ${escapeHtml(b.vendor ?? b.payee ?? '')}`,
     `<div style="margin-bottom:12px;font-size:11px;color:var(--ink-3)">
        ${b.receipt_url
-         ? `Current receipt: <a href="${escapeHtml(b.receipt_url)}" target="_blank" rel="noopener noreferrer" style="color:var(--blue)">View</a> · Upload a new file to replace it.`
+         ? `Current receipt: <button type="button" onclick="openBillReceipt(${b.id})" style="background:none;border:none;padding:0;cursor:pointer;color:var(--blue);font:inherit;text-decoration:underline">View</button> · Upload a new file to replace it.`
          : 'No receipt attached yet.'}
      </div>
      <div class="form-group">

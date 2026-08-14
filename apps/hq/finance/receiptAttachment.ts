@@ -1,9 +1,10 @@
-// Ledger receipt attachments.
+// Receipt attachments, shared by the Cash Ledger and Payables.
 //
 // Attachments used to be stored as a signed URL with a 90-day life, so a
 // receipt filed today became an unopenable link about three months later —
 // silently, long after anyone was looking. BIR record-keeping needs these
-// readable for years.
+// readable for years, and an expense receipt is what substantiates a
+// deduction.
 //
 // What is stored now is the object's path inside the receipts bucket. A fresh
 // signed URL is minted at the moment someone clicks, and only has to live long
@@ -31,9 +32,10 @@ export function storagePathFromAttachment(stored: string | null | undefined): st
   if (!value) return null;
 
   if (!/^https?:\/\//i.test(value)) {
-    // Already a path. Tolerate a stray leading slash or bucket prefix.
-    const path = value.replace(/^\/+/, '');
-    return safePath(stripBucket(path));
+    // Already a bucket-relative path, so the bucket must NOT be stripped here:
+    // Payables stores its files under a folder that is itself called
+    // "receipts", and stripping that would point at the wrong object.
+    return safePath(value.replace(/^\/+/, ''));
   }
 
   const marker = URL_MARKERS.find(m => value.includes(m));
@@ -62,9 +64,10 @@ function safePath(path: string): string | null {
   return path.split('/').includes('..') ? null : path;
 }
 
-// Drop a leading "receipts/" — the bucket is addressed separately by
-// `.from(RECEIPTS_BUCKET)`, so it must not appear in the path as well. Only the
-// first segment is removed, in case a folder shares the bucket's name.
+// Drop the bucket segment a storage URL carries — `.from(RECEIPTS_BUCKET)`
+// addresses the bucket separately, so it must not appear in the path as well.
+// Only the first segment goes, which is what leaves Payables' own "receipts"
+// folder intact: ".../sign/receipts/receipts/x.pdf" resolves to "receipts/x.pdf".
 function stripBucket(path: string): string {
   const prefix = `${RECEIPTS_BUCKET}/`;
   return path.startsWith(prefix) ? path.slice(prefix.length) : path;

@@ -46,7 +46,7 @@ import {
   renderAP,
   setApFilter, clearApFilters, setApBillPage,
   openAddBill, openEditBill, saveBill, handleDeleteBill,
-  openUploadReceipt, submitBillForApproval,
+  openUploadReceipt, openBillReceipt, submitBillForApproval,
   approveBill, saveApproveBill, rejectBill,
   markBillPaid, archiveBill, printExpenseVoucher,
 } from './ap/ap.ts';
@@ -98,7 +98,7 @@ export {
   renderAP,
   setApFilter, clearApFilters, setApBillPage,
   openAddBill, openEditBill, saveBill, handleDeleteBill,
-  openUploadReceipt, submitBillForApproval,
+  openUploadReceipt, openBillReceipt, submitBillForApproval,
   approveBill, saveApproveBill, rejectBill,
   markBillPaid, archiveBill, printExpenseVoucher,
   renderPO,
