@@ -127,7 +127,7 @@ export async function saveProposal() {
     await upsertProposalLineItems(_editingProposalId, rows);
     toast('Quotation updated', 'success');
     await logDocActivity('quotation', _editingProposalId, quoNum, 'updated', actor);
-    await _offerToUpdateLinkedProject(_editingProposalId, resolvedValue, actor);
+    await _syncLinkedProjectValue(_editingProposalId, resolvedValue, actor);
   } else {
     const result = await createProposal(payload);
     if (!result) { toast('Could not add quotation. Please try again.', 'error'); return; }
@@ -140,14 +140,14 @@ export async function saveProposal() {
   loadProposals();
 }
 
-// Converting a Won quotation copies its value into the new project once, and
-// the two have never spoken since — so correcting a quotation left its project
-// showing the old figure, and the Proposals and Projects pages disagreed with
-// no sign which was right.
+// A quotation and the project it became must show the same figure. Converting
+// copied the value across once and the two never spoke again, so correcting one
+// left the other on the old number with nothing to show which was right.
 //
-// The project is not overwritten silently: its value may have been changed on
-// purpose when the scope moved. Ask, and say both figures.
-async function _offerToUpdateLinkedProject(
+// This is the quotation -> project direction; projects.ts has the mirror. Both
+// write through the service rather than calling each other's save, so there is
+// no loop.
+async function _syncLinkedProjectValue(
   proposalId: number,
   newValue: number,
   actor: string | null,
@@ -155,18 +155,12 @@ async function _offerToUpdateLinkedProject(
   const project = _projects.find(p => p.proposal_id === proposalId);
   if (!project || project.value === newValue) return;
 
-  const proceed = confirm(
-    `The project “${project.name}” still shows ${formatCurrency(project.value)}.\n\n` +
-    `Update it to ${formatCurrency(newValue)} to match this quotation?`,
-  );
-  if (!proceed) return;
-
   const ok = await updateProject(project.id, {
     value: newValue,
     updated_at: new Date().toISOString(),
   });
   if (!ok) { toast('Quotation saved, but the project value could not be updated', 'error'); return; }
-  toast(`${project.name} updated to ${formatCurrency(newValue)}`, 'success');
+  toast(`Project “${project.name}” updated to ${formatCurrency(newValue)} to match`, 'success');
   await logDocActivity('quotation', proposalId, null, 'updated', actor);
   setProjects(await fetchProjects());
 }

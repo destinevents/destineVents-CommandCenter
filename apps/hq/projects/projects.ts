@@ -5,9 +5,9 @@ import {
   fetchProjects, createProject, updateProject, deleteProject,
 } from '@hq/projects/projectService.ts';
 import { fetchClients, createClient, findClientByName } from '@hq/clients/clientService.ts';
-import { fetchProposals, proposalValue } from '@hq/proposals/proposalService.ts';
+import { fetchProposals, proposalValue, updateProposal } from '@hq/proposals/proposalService.ts';
 import { fetchInvoices } from '@hq/finance/financeService.ts';
-import { _clients, _proposals, _projects, setClients, setProjects } from '@hq/core/state.ts';
+import { _clients, _proposals, _projects, setClients, setProjects, setProposals } from '@hq/core/state.ts';
 import { toast, openModal, closeModal } from '@hq/core/ui.ts';
 import type { Project } from '@shared/types.ts';
 import {
@@ -80,6 +80,7 @@ export async function saveProject() {
     const ok = await updateProject(_editingProjectId, payload);
     if (!ok) { showProjectError('Could not update project. Please try again.'); return; }
     toast('Project updated', 'success');
+    await _syncLinkedProposalValue(_editingProjectId, payload.value);
   } else {
     const result = await createProject({
       ...payload,
@@ -94,6 +95,35 @@ export async function saveProject() {
   _convertingProposalId = null;
   closeModal();
   loadProjects();
+}
+
+// The mirror of _syncLinkedProjectValue in proposals.ts: a project and the
+// quotation it came from must show the same figure, whichever side was edited.
+//
+// One exception, and it is deliberate. A quotation built from line items owns
+// its total — subtotal plus VAT — so writing a different number straight onto
+// it would leave the figure disagreeing with the lines printed beneath it on
+// the client's PDF. In that case say so and change nothing, rather than quietly
+// producing a document that contradicts itself.
+async function _syncLinkedProposalValue(projectId: number, newValue: number): Promise<void> {
+  const project = _projects.find(p => p.id === projectId);
+  if (!project?.proposal_id) return;
+
+  const proposal = _proposals.find(p => p.id === project.proposal_id);
+  if (!proposal || proposal.value === newValue) return;
+
+  if (proposal.total_amount) {
+    toast(
+      `Quotation ${proposal.quo_number ?? proposal.name} is itemised — edit its line items to change its total`,
+      'error',
+    );
+    return;
+  }
+
+  const ok = await updateProposal(proposal.id, { value: newValue });
+  if (!ok) { toast('Project saved, but the quotation value could not be updated', 'error'); return; }
+  toast(`Quotation “${proposal.name}” updated to ${formatCurrency(newValue)} to match`, 'success');
+  setProposals(await fetchProposals());
 }
 
 export async function handleDeleteProject(id: number) {
