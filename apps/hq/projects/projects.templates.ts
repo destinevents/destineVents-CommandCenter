@@ -76,6 +76,9 @@ export function newClientBannerHTML(clientName: string): string {
 export function projectDetailHTML(p: Project, proposals: Proposal[], invoices: Invoice[]): string {
   const match  = (n: string | null | undefined) => n?.toLowerCase() === (p.client || '').toLowerCase();
   const pProps = proposals.filter(x => match(x.client));
+  // The proposal this project was actually converted from, as opposed to the
+  // list below, which is every proposal sharing the client's name.
+  const origin = p.proposal_id ? proposals.find(x => x.id === p.proposal_id) ?? null : null;
   const pInvs  = invoices.filter(i => match(i.client));
   const paid   = pInvs.filter(i => i.status === 'Paid').reduce((s, i) => s + (i.amount || 0), 0);
   const owed   = pInvs.filter(i => i.status !== 'Paid').reduce((s, i) => s + (i.amount || 0), 0);
@@ -85,6 +88,7 @@ export function projectDetailHTML(p: Project, proposals: Proposal[], invoices: I
       <span class="badge badge-${statusClass(p.status)}">${escapeHtml(p.status)}</span>
       <span style="font-size:11px;color:var(--ink-3);margin-left:8px">${escapeHtml(p.category || '—')} · ${escapeHtml(p.brand || '—')}</span>
       ${p.client ? `<span style="font-size:11px;color:var(--ink-3);margin-left:8px">· ${escapeHtml(p.client)}</span>` : ''}
+      ${origin ? `<span style="font-size:11px;color:var(--ink-3);margin-left:8px" title="This project was created from that quotation">· won from ${escapeHtml(origin.name)}</span>` : ''}
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px">
       <div class="stat-card" style="padding:10px 12px"><div class="stat-label">Project Value</div><div style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:700">${formatCurrency(p.value)}</div></div>
@@ -96,7 +100,7 @@ export function projectDetailHTML(p: Project, proposals: Proposal[], invoices: I
     ${pProps.length ? pProps.map(x => `
       <div class="activity-item">
         <div class="activity-dot ${activityDot(x.status)}"></div>
-        <div style="flex:1"><div class="activity-text">${escapeHtml(x.name)}</div></div>
+        <div style="flex:1"><div class="activity-text">${escapeHtml(x.name)}${x.id === p.proposal_id ? ` <span style="font-size:10px;color:var(--green)">· won this project</span>` : ''}</div></div>
         <div style="display:flex;align-items:center;gap:8px">
           <span style="font-family:'Cormorant Garamond',serif;font-size:13px">${formatCurrency(x.value)}</span>
           <span class="badge badge-${statusClass(x.status)}">${escapeHtml(x.status)}</span>

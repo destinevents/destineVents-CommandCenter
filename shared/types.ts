@@ -382,6 +382,7 @@ export interface Project {
   id: number;
   name: string;
   code: string | null;            // human code, auto PRJ-YYYY-NNN when blank
+  proposal_id: number | null;     // the proposal this was converted from, if any
   client: string | null;
   brand: string | null;
   category: string | null;
