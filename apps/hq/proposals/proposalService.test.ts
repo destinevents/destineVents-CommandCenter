@@ -1,4 +1,44 @@
 import { describe, it, expect } from 'vitest';
+import { isFilledLineItem, resolveProposalValue } from './proposalService.ts';
+
+describe('proposalService — isFilledLineItem', () => {
+  const item = (over = {}) => ({ description: '', quantity: 0, unit_price: 0, vat_rate: 0, ...over });
+
+  it('keeps a row that has a description', () => {
+    expect(isFilledLineItem(item({ description: 'Venue' }))).toBe(true);
+  });
+
+  // The row that used to be silently thrown away, taking the quotation's whole
+  // value with it.
+  it('keeps a priced row even when the description is still blank', () => {
+    expect(isFilledLineItem(item({ quantity: 2, unit_price: 5000 }))).toBe(true);
+  });
+
+  it('drops a row nobody touched', () => {
+    expect(isFilledLineItem(item())).toBe(false);
+    expect(isFilledLineItem(item({ description: '   ' }))).toBe(false);
+  });
+
+  it('drops a row with a quantity but no price', () => {
+    expect(isFilledLineItem(item({ quantity: 3 }))).toBe(false);
+  });
+});
+
+describe('proposalService — resolveProposalValue', () => {
+  it('uses the line-item total when there is one', () => {
+    expect(resolveProposalValue(12000, 5000)).toBe(12000);
+  });
+
+  it('keeps the existing figure when a legacy quotation has no line items', () => {
+    expect(resolveProposalValue(0, 5000)).toBe(5000);
+  });
+
+  it('is zero only when there is genuinely nothing', () => {
+    expect(resolveProposalValue(0, 0)).toBe(0);
+    expect(resolveProposalValue(0)).toBe(0);
+  });
+});
+
 import type { Proposal } from '@shared/types.ts';
 import { calcWinRate, proposalValue } from './proposalService.ts';
 

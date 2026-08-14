@@ -10,6 +10,7 @@ import { canTransition } from '@shared/documents/docTransitions.ts';
 import {
   fetchProposals, createProposal, updateProposal, deleteProposal, calcWinRate,
   fetchProposalLineItems, upsertProposalLineItems, proposalValue,
+  isFilledLineItem, resolveProposalValue,
 } from './proposalService.ts';
 import { fetchClients } from '@hq/clients/clientService.ts';
 import { _clients, _proposals, setClients, setProposals } from '@hq/core/state.ts';
@@ -72,6 +73,23 @@ export async function saveProposal() {
   const vatAmount  = rows.reduce((s, r) => s + r.quantity * r.unit_price * (r.vat_rate / 100), 0);
   const totalAmount = subtotal + vatAmount;
 
+  // A priced row with no wording is kept now rather than dropped, so say what
+  // is missing instead of saving a quotation the client cannot read.
+  if (rows.some(r => !r.description.trim())) {
+    toast('Every line item needs a description — fill it in, or clear the row', 'error');
+    return;
+  }
+
+  const existingValue = _proposals.find(p => p.id === _editingProposalId)?.value ?? 0;
+  const resolvedValue = resolveProposalValue(totalAmount, existingValue);
+
+  // Saving a ₱0 quotation used to happen silently, and the zero followed it all
+  // the way to the client's PDF.
+  if (!resolvedValue) {
+    toast('Add a line item with a quantity and unit price — this quotation would save as ₱0', 'error');
+    return;
+  }
+
   const payload: Partial<Proposal> = {
     name,
     quo_number:       quoNum,
@@ -87,7 +105,7 @@ export async function saveProposal() {
     subtotal,
     vat_amount:  vatAmount,
     total_amount: totalAmount,
-    value:       totalAmount || _proposals.find(p => p.id === _editingProposalId)?.value || 0,
+    value:       resolvedValue,
   };
 
   const user  = await getCurrentUser();
@@ -119,7 +137,7 @@ function _collectQuoRows(): ProposalLineItem[] {
       unit_price:  parseFloat((row.querySelector('.quo-li-price') as HTMLInputElement).value) || 0,
       vat_rate:    parseFloat((row.querySelector('.quo-li-vat')   as HTMLInputElement).value) || 0,
     }))
-    .filter(r => r.description);
+    .filter(isFilledLineItem);
 }
 
 export function addQuoRow() {
