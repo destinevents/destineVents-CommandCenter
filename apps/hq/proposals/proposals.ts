@@ -153,7 +153,22 @@ async function _syncLinkedProjectValue(
   actor: string | null,
 ): Promise<void> {
   const project = _projects.find(p => p.proposal_id === proposalId);
-  if (!project || project.value === newValue) return;
+
+  // Projects created before the link column existed have no proposal_id, so
+  // there is nothing to sync and saving looks like it did nothing. Say so when
+  // a project of the same name is clearly the one meant.
+  if (!project) {
+    const name = (document.getElementById('fp-name') as HTMLInputElement | null)?.value.trim() ?? '';
+    const unlinked = name
+      ? _projects.find(p => !p.proposal_id && p.name.trim().toLowerCase() === name.toLowerCase())
+      : undefined;
+    if (unlinked) {
+      toast(`Project “${unlinked.name}” is not linked to this quotation, so its value was left alone`, 'error');
+    }
+    return;
+  }
+
+  if (project.value === newValue) return;
 
   const ok = await updateProject(project.id, {
     value: newValue,

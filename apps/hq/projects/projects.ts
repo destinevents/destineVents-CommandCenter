@@ -107,7 +107,18 @@ export async function saveProject() {
 // producing a document that contradicts itself.
 async function _syncLinkedProposalValue(projectId: number, newValue: number): Promise<void> {
   const project = _projects.find(p => p.id === projectId);
-  if (!project?.proposal_id) return;
+  if (!project) return;
+
+  // Projects predating the link column have no proposal_id, so nothing syncs
+  // and the save looks like it did nothing. Point at the quotation that is
+  // plainly the same job rather than staying quiet.
+  if (!project.proposal_id) {
+    const orphan = _proposals.find(p => p.name.trim().toLowerCase() === project.name.trim().toLowerCase());
+    if (orphan) {
+      toast(`Quotation ${orphan.quo_number ?? orphan.name} is not linked to this project, so its value was left alone`, 'error');
+    }
+    return;
+  }
 
   const proposal = _proposals.find(p => p.id === project.proposal_id);
   if (!proposal || proposal.value === newValue) return;
