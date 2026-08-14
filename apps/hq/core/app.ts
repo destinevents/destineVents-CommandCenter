@@ -68,7 +68,7 @@ import {
   setBIRReportPeriod, setBIRReportYear, setBIRReportMonth, setBIRReportQuarter,
   printBIRReport, exportBIRReportCSV, exportBIRReportExcel,
   setLedgerFilter, clearLedgerFilters,
-  openAddLedgerEntry, openEditLedgerEntry, handleDeleteLedgerEntry,
+  openAddLedgerEntry, openEditLedgerEntry, handleDeleteLedgerEntry, openLedgerAttachment,
   openAddAccount, openEditAccount, handleDeleteAccount, setDefaultAccount,
   openAddFounderEntry, openEditFounderEntry, handleDeleteFounderEntry,
   setMonthlySummaryFilter,
@@ -539,6 +539,7 @@ declare global {
     setLedgerFilter: typeof setLedgerFilter; clearLedgerFilters: typeof clearLedgerFilters;
     openAddLedgerEntry: typeof openAddLedgerEntry; openEditLedgerEntry: typeof openEditLedgerEntry;
     handleDeleteLedgerEntry: typeof handleDeleteLedgerEntry;
+    openLedgerAttachment: typeof openLedgerAttachment;
     openAddAccount: typeof openAddAccount; openEditAccount: typeof openEditAccount;
     handleDeleteAccount: typeof handleDeleteAccount; setDefaultAccount: typeof setDefaultAccount;
     openAddFounderEntry: typeof openAddFounderEntry; openEditFounderEntry: typeof openEditFounderEntry;
@@ -626,7 +627,7 @@ Object.assign(window, {
   printBIRReport, exportBIRReportCSV, exportBIRReportExcel,
   // Cash Ledger + Settings + Founder Capital
   setLedgerFilter, clearLedgerFilters,
-  openAddLedgerEntry, openEditLedgerEntry, handleDeleteLedgerEntry,
+  openAddLedgerEntry, openEditLedgerEntry, handleDeleteLedgerEntry, openLedgerAttachment,
   openAddAccount, openEditAccount, handleDeleteAccount, setDefaultAccount,
   openAddFounderEntry, openEditFounderEntry, handleDeleteFounderEntry,
   setMonthlySummaryFilter,

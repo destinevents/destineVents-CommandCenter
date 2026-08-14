@@ -6,7 +6,7 @@ create table if not exists invoices (
   amount     numeric default 0,
   date       text,
   due        text,
-  status     text default 'Unpaid',
+  status     text default 'Draft',
   created_at timestamptz default now()
 );
 

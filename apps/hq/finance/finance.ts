@@ -65,7 +65,7 @@ import {
 import {
   renderCashLedger, renderAccountsSettings,
   setLedgerFilter, clearLedgerFilters,
-  openAddLedgerEntry, openEditLedgerEntry, handleDeleteLedgerEntry,
+  openAddLedgerEntry, openEditLedgerEntry, handleDeleteLedgerEntry, openLedgerAttachment,
   openAddAccount, openEditAccount, handleDeleteAccount, setDefaultAccount,
 } from './ledger.ts';
 import {
@@ -112,7 +112,7 @@ export {
   // Cash Ledger + Settings
   renderCashLedger, renderAccountsSettings,
   setLedgerFilter, clearLedgerFilters,
-  openAddLedgerEntry, openEditLedgerEntry, handleDeleteLedgerEntry,
+  openAddLedgerEntry, openEditLedgerEntry, handleDeleteLedgerEntry, openLedgerAttachment,
   openAddAccount, openEditAccount, handleDeleteAccount, setDefaultAccount,
   // Founder Capital
   renderFounderCapital,

@@ -23,8 +23,10 @@ export const APP_SETTINGS = {
     clientTypes: ['Government', 'Corporate', 'Education', 'NGO', 'Community', 'Startup'],
     clientStatuses: ['Lead', 'Active', 'Completed'],
     proposalStatuses: ['Draft', 'Sent', 'Won', 'Lost', 'Expired'],
-    invoiceStatuses: ['Unpaid', 'Paid', 'Overdue'],
-    billStatuses: ['Unpaid', 'Paid'],
+    // Invoice and bill statuses deliberately live in shared/documents/
+    // docTransitions.ts, which mirrors the database state machine. The lists
+    // that used to sit here were read by nothing and still named the retired
+    // 'Unpaid' / 'Overdue' statuses, so they only misled.
     billCategories: [
       'Venue',
       'Catering',

@@ -19,6 +19,11 @@ const gVal = (id: string) => (document.getElementById(id) as HTMLInputElement).v
 
 let _editingProjectId: number | null = null;
 
+// Set only while converting a Won proposal, so the new project records where it
+// came from. Cleared by every other way of opening the form, or a later
+// unrelated save would inherit the link.
+let _convertingProposalId: number | null = null;
+
 export async function loadProjects() {
   const [projs, clients] = await Promise.all([fetchProjects(), fetchClients()]);
   setProjects(projs);
@@ -42,6 +47,7 @@ function showProjectError(msg: string) {
 
 export function openAddProject() {
   _editingProjectId = null;
+  _convertingProposalId = null;
   openModal('New Project', projectFormHTML(_clients), saveProject);
 }
 
@@ -49,6 +55,7 @@ export function openEditProject(id: number) {
   const p = _projects.find(x => x.id === id);
   if (!p) return;
   _editingProjectId = id;
+  _convertingProposalId = null;
   openModal('Edit Project', projectFormHTML(_clients, p), saveProject);
 }
 
@@ -74,10 +81,17 @@ export async function saveProject() {
     if (!ok) { showProjectError('Could not update project. Please try again.'); return; }
     toast('Project updated', 'success');
   } else {
-    const result = await createProject({ ...payload, updated_at: new Date().toISOString() });
+    const result = await createProject({
+      ...payload,
+      // Only set when this came from Proposals -> Project, so the project
+      // remembers which quotation won it.
+      ...(_convertingProposalId ? { proposal_id: _convertingProposalId } : {}),
+      updated_at: new Date().toISOString(),
+    });
     if (!result.ok) { showProjectError(result.message || 'Could not save project. Please try again.'); return; }
     toast('Project added', 'success');
   }
+  _convertingProposalId = null;
   closeModal();
   loadProjects();
 }
@@ -115,6 +129,7 @@ export function convertProposalToProject(proposalId: number) {
   const p = _proposals.find(x => x.id === proposalId);
   if (!p) return;
   _editingProjectId = null;
+  _convertingProposalId = proposalId;
 
   const clientName   = p.client?.trim() ?? '';
   const clientExists = !clientName || !!findClientByName(clientName, _clients);

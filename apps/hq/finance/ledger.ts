@@ -17,6 +17,7 @@ import {
   ledgerRowHTML, ledgerFormHTML, accountRowHTML, accountFormHTML,
 } from './templates/ledger.ts';
 import { runningBalanceMap, accountBalance, cashPosition } from './ledgerCalc.ts';
+import { RECEIPTS_BUCKET, signAttachment } from './ledgerAttachment.ts';
 import { canManageFinance } from './financePermissions.ts';
 import { APP_SETTINGS } from '@config/settings.ts';
 import { loadFinance } from './finance.ts';
@@ -188,18 +189,35 @@ function _readLedgerForm(): Partial<CashLedgerEntry> | null {
   };
 }
 
-// Upload an optional ledger attachment to the shared receipts bucket; returns a
-// signed URL, or null on failure (upload issues never block saving the entry).
-const ATTACHMENT_TTL_SECONDS = 60 * 60 * 24 * 90; // 90 days
-
+// Upload an optional ledger attachment to the shared receipts bucket; returns
+// the object's path, or null on failure (upload issues never block saving the
+// entry). The path is what gets stored — see ledgerAttachment.ts for why a
+// signed URL must not be.
 async function _uploadLedgerAttachment(file: File): Promise<string | null> {
   if (file.size > 5 * 1024 * 1024) { toast('Attachment must be under 5 MB', 'error'); return null; }
   const ext = (file.name.split('.').pop() ?? 'bin').slice(0, 10);
   const path = `ledger/${crypto.randomUUID()}.${ext}`;
-  const { error } = await sb.storage.from('receipts').upload(path, file, { upsert: false });
+  const { error } = await sb.storage.from(RECEIPTS_BUCKET).upload(path, file, { upsert: false });
   if (error) { console.error('ledger attachment upload failed:', error); toast('Attachment upload failed', 'error'); return null; }
-  const { data } = await sb.storage.from('receipts').createSignedUrl(path, ATTACHMENT_TTL_SECONDS);
-  return data?.signedUrl ?? null;
+  return path;
+}
+
+// Open a receipt in a new tab, signing it fresh on the way. The blank tab is
+// opened first, synchronously — a window.open after an await is treated as a
+// popup and blocked.
+export async function openLedgerAttachment(id: number): Promise<void> {
+  const entry = _ledger.find(e => e.id === id);
+  if (!entry?.attachment_url) { toast('No attachment on this entry', 'error'); return; }
+
+  const tab = window.open('', '_blank', 'noopener');
+  const url = await signAttachment(entry.attachment_url);
+  if (!url) {
+    tab?.close();
+    toast('Could not open the receipt — it may have been removed from storage', 'error');
+    return;
+  }
+  if (tab) tab.location.href = url;
+  else window.location.href = url; // popup blocked — fall back to this tab
 }
 
 export async function saveLedgerEntry(): Promise<void> {
@@ -207,12 +225,12 @@ export async function saveLedgerEntry(): Promise<void> {
   const payload = _readLedgerForm();
   if (!payload) return;
 
-  // Optional attachment — upload before persisting so the URL is part of the row.
+  // Optional attachment — upload before persisting so the path is part of the row.
   const fileInput = document.getElementById('cl-attachment') as HTMLInputElement | null;
   const file = fileInput?.files?.[0] ?? null;
   if (file) {
-    const url = await _uploadLedgerAttachment(file);
-    if (url) payload.attachment_url = url;
+    const path = await _uploadLedgerAttachment(file);
+    if (path) payload.attachment_url = path;
   }
   try {
     const user = await getCurrentUser();
