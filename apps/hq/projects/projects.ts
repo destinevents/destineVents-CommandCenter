@@ -9,7 +9,7 @@ import { fetchProposals, proposalValue, updateProposal } from '@hq/proposals/pro
 import { fetchInvoices } from '@hq/finance/financeService.ts';
 import { _clients, _proposals, _projects, setClients, setProjects, setProposals } from '@hq/core/state.ts';
 import { toast, openModal, closeModal } from '@hq/core/ui.ts';
-import type { Project } from '@shared/types.ts';
+import type { Invoice, Project } from '@shared/types.ts';
 import {
   projectTableHTML, projectFormHTML, projectDetailHTML, newClientBannerHTML,
 } from './projects.templates.ts';
@@ -19,15 +19,23 @@ const gVal = (id: string) => (document.getElementById(id) as HTMLInputElement).v
 
 let _editingProjectId: number | null = null;
 
+// Invoices behind the list's OR column. Held here rather than in shared state
+// because the Projects page loads independently of Finance.
+let _projectInvoices: Invoice[] = [];
+
 // Set only while converting a Won proposal, so the new project records where it
 // came from. Cleared by every other way of opening the form, or a later
 // unrelated save would inherit the link.
 let _convertingProposalId: number | null = null;
 
 export async function loadProjects() {
-  const [projs, clients] = await Promise.all([fetchProjects(), fetchClients()]);
+  // Invoices come along so the list can show each project's OR numbers.
+  const [projs, clients, invoices] = await Promise.all([
+    fetchProjects(), fetchClients(), fetchInvoices(),
+  ]);
   setProjects(projs);
   setClients(clients || []);
+  _projectInvoices = invoices || [];
   renderProjects(_projects);
 }
 
@@ -35,7 +43,7 @@ export function renderProjects(projects: Project[]) {
   const total = projects.reduce((s, p) => s + (p.value || 0), 0);
   gEl('projects-summary').textContent =
     `${projects.length} project${projects.length !== 1 ? 's' : ''} · ${formatCurrency(total)} total value`;
-  gEl('projects-tbody').innerHTML = projectTableHTML(projects);
+  gEl('projects-tbody').innerHTML = projectTableHTML(projects, _projectInvoices);
 }
 
 function showProjectError(msg: string) {

@@ -12,7 +12,22 @@ function activityDot(status: string): string {
 
 // ── Project list templates ────────────────────────────────────────────────────
 
-export function projectRowHTML(p: Project): string {
+// The OR numbers raised against a project. Matched on the invoice's project
+// link, not on the client's name — a client with several projects would
+// otherwise show the same receipts under every one of them.
+function projectORCell(p: Project, invoices: Invoice[]): string {
+  const mine = invoices.filter(i => i.project_id === p.id && !i.archived_at);
+  if (!mine.length) return '<span style="font-size:11px;color:var(--ink-3)">—</span>';
+
+  return mine
+    .map(i => `<div style="font-size:11px;white-space:nowrap">
+      <span style="color:var(--ink-2)">${escapeHtml(i.or_num)}</span>
+      <span class="badge badge-${statusClass(i.status)}" style="font-size:9px;margin-left:4px">${escapeHtml(i.status)}</span>
+    </div>`)
+    .join('');
+}
+
+export function projectRowHTML(p: Project, invoices: Invoice[] = []): string {
   return `
     <tr>
       <td>
@@ -23,6 +38,7 @@ export function projectRowHTML(p: Project): string {
       <td style="font-size:11.5px;color:var(--ink-3)">${escapeHtml(p.category || '—')}</td>
       <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(p.brand || '—')}</td>
       <td class="project-value">${formatCurrency(p.value)}</td>
+      <td>${projectORCell(p, invoices)}</td>
       <td style="font-size:10.5px;color:var(--ink-3)">${formatDateShort((p.updated_at || p.created_at || '').slice(0, 10))}</td>
       <td>
         <div class="flex-gap" style="gap:4px;flex-wrap:wrap">
@@ -34,10 +50,10 @@ export function projectRowHTML(p: Project): string {
     </tr>`;
 }
 
-export function projectTableHTML(projects: Project[]): string {
+export function projectTableHTML(projects: Project[], invoices: Invoice[] = []): string {
   return projects.length
-    ? projects.map(projectRowHTML).join('')
-    : `<tr><td colspan="7"><div class="empty-state">No projects yet — start one with \\ New Project</div></td></tr>`;
+    ? projects.map(p => projectRowHTML(p, invoices)).join('')
+    : `<tr><td colspan="8"><div class="empty-state">No projects yet — start one with \\ New Project</div></td></tr>`;
 }
 
 // ── Project form template ─────────────────────────────────────────────────────
@@ -80,6 +96,11 @@ export function projectDetailHTML(p: Project, proposals: Proposal[], invoices: I
   // list below, which is every proposal sharing the client's name.
   const origin = p.proposal_id ? proposals.find(x => x.id === p.proposal_id) ?? null : null;
   const pInvs  = invoices.filter(i => match(i.client));
+  // Invoices raised against this project, kept apart from the client's others.
+  // Mixing them meant a client with several projects saw the same receipts on
+  // every one, with no way to tell which job had actually been billed.
+  const mineInvs  = invoices.filter(i => i.project_id === p.id);
+  const otherInvs = pInvs.filter(i => i.project_id !== p.id);
   const paid   = pInvs.filter(i => i.status === 'Paid').reduce((s, i) => s + (i.amount || 0), 0);
   const owed   = pInvs.filter(i => i.status !== 'Paid').reduce((s, i) => s + (i.amount || 0), 0);
 
@@ -106,14 +127,22 @@ export function projectDetailHTML(p: Project, proposals: Proposal[], invoices: I
           <span class="badge badge-${statusClass(x.status)}">${escapeHtml(x.status)}</span>
         </div>
       </div>`).join('') : '<div style="font-size:11px;color:var(--ink-3);padding:4px 0 10px">No proposals for this client</div>'}
-    <div class="card-title" style="margin:12px 0 6px">Client Invoices (${pInvs.length})</div>
-    ${pInvs.length ? pInvs.map(i => `
-      <div class="activity-item">
-        <div class="activity-dot ${activityDot(i.status)}"></div>
-        <div style="flex:1"><div class="activity-text">${escapeHtml(i.or_num)}</div></div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-family:'Cormorant Garamond',serif;font-size:13px">${formatCurrency(i.amount)}</span>
-          <span class="badge badge-${statusClass(i.status)}">${escapeHtml(i.status)}</span>
-        </div>
-      </div>`).join('') : '<div style="font-size:11px;color:var(--ink-3);padding:4px 0">No invoices for this client</div>'}`;
+    <div class="card-title" style="margin:12px 0 6px">Invoices &amp; Official Receipts (${mineInvs.length})</div>
+    ${mineInvs.length ? mineInvs.map(invoiceLineHTML).join('') : '<div style="font-size:11px;color:var(--ink-3);padding:4px 0">No invoices raised against this project yet</div>'}
+    ${otherInvs.length ? `
+      <div class="card-title" style="margin:12px 0 6px">Other invoices for ${escapeHtml(p.client ?? 'this client')} (${otherInvs.length})</div>
+      <div style="font-size:10.5px;color:var(--ink-3);margin-bottom:4px">Not linked to this project</div>
+      ${otherInvs.map(invoiceLineHTML).join('')}` : ''}`;
+}
+
+function invoiceLineHTML(i: Invoice): string {
+  return `
+    <div class="activity-item">
+      <div class="activity-dot ${activityDot(i.status)}"></div>
+      <div style="flex:1"><div class="activity-text">${escapeHtml(i.or_num)}</div></div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-family:'Cormorant Garamond',serif;font-size:13px">${formatCurrency(i.amount)}</span>
+        <span class="badge badge-${statusClass(i.status)}">${escapeHtml(i.status)}</span>
+      </div>
+    </div>`;
 }
