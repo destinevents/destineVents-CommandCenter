@@ -6,6 +6,7 @@
 import { logger } from '@shared/utils/logger.ts';
 import { populateOutputTypeSelect } from '@shared/utils/helpers.ts';
 import { toggleActivityText } from '@shared/components/activityText.ts';
+import { pageNeeds } from './pageData.ts';
 import { sb } from '@shared/core/supabase';
 import { getCurrentUser, signOut } from '@shared/core/authService.ts';
 import {
@@ -41,19 +42,6 @@ import {
 import { isHQRole, isPending } from '@config/roles.ts';
 
 // ─── PAGE ROUTING ────────────────────────────────────────────────────────────
-const PAGE_DATA = {
-  dashboard: ['tasks', 'timesheets'],
-  tasks: ['tasks'],
-  timesheets: ['timesheets'],
-  outputs: ['tasks'],
-  approvals: ['timesheets'],
-  interns: ['users', 'tasks', 'timesheets'],
-  reports: ['users', 'tasks', 'timesheets'],
-  audit: ['users'],
-  account: [],
-  calendar: ['timesheets', 'tasks'],
-};
-
 export async function goPage(page) {
   document.querySelectorAll('.page').forEach((p) => p.classList.remove('active'));
   document.getElementById('page-' + page)?.classList.add('active');
@@ -95,12 +83,11 @@ export async function renderPage(page) {
     calendar: renderCalendar,
   };
 
-  const needs = PAGE_DATA[page] ?? [];
   try {
     await Promise.all([
-      needs.includes('tasks') ? loadLiveTasks() : Promise.resolve(),
-      needs.includes('timesheets') ? loadLiveTimesheets() : Promise.resolve(),
-      needs.includes('users') ? loadLiveUsers() : Promise.resolve(),
+      pageNeeds(page, 'tasks') ? loadLiveTasks() : Promise.resolve(),
+      pageNeeds(page, 'timesheets') ? loadLiveTimesheets() : Promise.resolve(),
+      pageNeeds(page, 'users') ? loadLiveUsers() : Promise.resolve(),
     ]);
     const fn = map[page];
     if (fn) await fn();
@@ -131,12 +118,14 @@ function queueRealtime(kind, handler) {
     .catch((err) => logger.error('realtime', err?.message || 'handler failed', err));
 }
 
+// A page is redrawn when a table it reads from changes — the same dependency
+// PAGE_DATA declares for loading, so the two can never drift apart.
 function setupRealtime() {
   sb.channel('intern-realtime')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'intern_tasks' }, () => queueRealtime('tasks', async () => {
       await loadLiveTasks();
       await updateBadges();
-      if (activePage === 'tasks' || activePage === 'dashboard' || activePage === 'outputs') {
+      if (pageNeeds(activePage, 'tasks')) {
         await renderPage(activePage);
       }
     }))
@@ -146,11 +135,7 @@ function setupRealtime() {
       () => queueRealtime('timesheets', async () => {
         await loadLiveTimesheets();
         await updateBadges();
-        if (
-          activePage === 'timesheets' ||
-          activePage === 'dashboard' ||
-          activePage === 'approvals'
-        ) {
+        if (pageNeeds(activePage, 'timesheets')) {
           await renderPage(activePage);
         }
       })
@@ -171,7 +156,7 @@ function setupRealtime() {
             applyRoleVisibility();
           }
         }
-        if (activePage === 'interns' || activePage === 'reports') {
+        if (pageNeeds(activePage, 'users')) {
           await renderPage(activePage);
         }
       })

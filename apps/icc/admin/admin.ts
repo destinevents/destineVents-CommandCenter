@@ -206,8 +206,11 @@ export async function renderInterns() {
       const approved = iSheets
         .filter((t) => t.status === 'approved')
         .reduce((s, t) => s + t.hours, 0);
-      const pending = iSheets.filter((t) => t.status === 'pending').length;
-      const done = liveTasks.filter(
+      // Two different things sit side by side in the card: tasks assigned to
+      // this person that are finished, and timesheet entries of theirs still
+      // waiting in the approval queue. The labels have to say which is which.
+      const pendingEntries = iSheets.filter((t) => t.status === 'pending').length;
+      const tasksDone = liveTasks.filter(
         (t) => t.assigned_to === intern.id && ['completed', 'reviewed'].includes(t.status)
       ).length;
       const topSkills = topSkillsFor(iSheets.filter((t) => t.status === 'approved'), 3);
@@ -223,8 +226,8 @@ export async function renderInterns() {
       </div>
       <div class="intern-stats">
         <div class="intern-stat"><div class="sv">${intern.required_hours ? `${approved} / ${intern.required_hours}h` : approved + 'h'}</div><div class="sl">${intern.required_hours ? `Approved (${Math.max(0, intern.required_hours - approved)}h left)` : 'Approved hrs'}</div></div>
-        <div class="intern-stat"><div class="sv">${done}</div><div class="sl">Tasks done</div></div>
-        <div class="intern-stat"><div class="sv">${pending}</div><div class="sl">Pending</div></div>
+        <div class="intern-stat"><div class="sv">${tasksDone}</div><div class="sl">Tasks done</div></div>
+        <div class="intern-stat"><div class="sv">${pendingEntries}</div><div class="sl">Entries to review</div></div>
       </div>
       <div class="intern-skills">
         ${topSkills.length ? `<div class="section-label">TOP SKILLS</div><div class="flex-wrap">${topSkills.map(skillPill).join('')}</div>` : '<div style="font-size:12px;color:var(--faint)">No approved entries yet.</div>'}

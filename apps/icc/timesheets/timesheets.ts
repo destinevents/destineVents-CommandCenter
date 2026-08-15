@@ -13,7 +13,6 @@ import { logAudit } from '../audit/auditService.ts';
 import { currentUser, activePage, sheetFilter, setSheetFilterValue, liveTasks, liveUsers, liveTimesheets, myTasks, mySheets } from '../core/state.ts';
 import { toast, openModal, closeModal, updateBadges, MODAL_CLOSE_HOOKS } from '../core/ui.ts';
 import { loadLiveTimesheets } from '../core/data.ts';
-import { renderDashboard } from '../dashboard/dashboard.ts';
 import { renderPage } from '../core/app.ts';
 
 let pendingRejectId = null;
@@ -240,10 +239,18 @@ export async function approveSheet(id) {
   logAudit('approved_timesheet', 'timesheet', id, { approved_by: currentUser.id }, currentUser.id);
 
   toast('Entry approved ✓');
+  await refreshAfterSheetChange();
+}
+
+// Approving from the Approvals queue used to redraw the Timesheets table and
+// the Dashboard — neither of which is on screen at the time — so the entry
+// just approved stayed in the queue, and the Interns cards kept their old
+// counts. Redraw whichever page the user is actually looking at, always from
+// freshly loaded rows.
+async function refreshAfterSheetChange() {
   await loadLiveTimesheets();
   await updateBadges();
-  await renderTimesheets();
-  await renderDashboard();
+  await renderPage(activePage);
 }
 
 export function rejectSheet(id) {
@@ -267,9 +274,9 @@ export async function confirmReject() {
     logAudit('rejected_timesheet', 'timesheet', pendingRejectId, { reason }, currentUser.id);
     closeModal('modal-reject-reason');
     pendingRejectId = null;
-    await updateBadges();
-    await loadLiveTimesheets();
-    await renderPage(activePage);
+    // Badges are counted from the loaded rows, so the reload has to come
+    // first — otherwise the queue count still includes the entry just rejected.
+    await refreshAfterSheetChange();
     toast('Entry rejected — intern will see the reason.');
   } else {
     toast('Error rejecting entry. Please try again.');
@@ -286,10 +293,7 @@ export async function deleteSheet(id) {
 
   logAudit('timesheet_deleted', 'timesheet', id, { date: ts.date, hours: ts.hours }, currentUser.id);
   toast('Entry deleted.');
-  await loadLiveTimesheets();
-  await updateBadges();
-  await renderTimesheets();
-  await renderDashboard();
+  await refreshAfterSheetChange();
 }
 
 export async function logHours() {
@@ -372,8 +376,5 @@ export async function logHours() {
 
   ['lh-date','lh-hours','lh-activity'].forEach(id => document.getElementById(id).value = '');
   resetSkillPicker('lh-skills-picker');
-  await loadLiveTimesheets();
-  await updateBadges();
-  await renderTimesheets();
-  await renderDashboard();
+  await refreshAfterSheetChange();
 }
