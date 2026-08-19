@@ -187,19 +187,81 @@
    4 cards leaves no empty (shaded) grid cells. */
 .finance-stat-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:1px; background:var(--ink-4); border:1px solid var(--ink-4); margin-bottom:20px; }
 
-/* The Overview's KPI board is one grid for all seven groups, with the group
-   labels as full-width rows, so a card is the same width wherever it sits —
-   under auto-fit per group, its width told you only how many cards that group
-   happened to hold. Empty tracks stay unshaded because each card draws its own
-   hairline and overlaps its neighbour's by 1px, rather than the grid painting
-   its background through 1px gaps. */
+/* ─── FINANCE OVERVIEW ───
+   Read top to bottom: what needs chasing, where we stand, how the month is
+   going, then reference figures. The type sizes are the hierarchy — 30px for
+   the three standing figures, 22px for the month, plain rows for the rest. */
+
+/* What needs chasing. Each chip is a real destination, so it looks pressable. */
+.attn-band { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px; }
+.attn-band.is-clear {
+  font-size:11.5px; color:var(--ink-3); background:var(--linen-2);
+  border:1px solid var(--ink-4); border-left:3px solid var(--green);
+  padding:10px 14px;
+}
+.attn-chip {
+  display:inline-flex; align-items:center; gap:8px;
+  background:var(--linen-2); border:1px solid var(--ink-4); border-left-width:3px;
+  padding:8px 12px; font-family:inherit; font-size:11.5px; color:var(--ink-2);
+  cursor:pointer; transition:background 0.12s, border-color 0.12s;
+}
+.attn-chip:hover { background:var(--linen-3); border-color:var(--ink-3); }
+.attn-chip.is-bad  { border-left-color:var(--red); }
+.attn-chip.is-warn { border-left-color:var(--amber); }
+.attn-dot { width:6px; height:6px; border-radius:50%; background:currentColor; opacity:.5; }
+.attn-chip.is-bad .attn-dot  { background:var(--red); opacity:1; }
+.attn-chip.is-warn .attn-dot { background:var(--amber); opacity:1; }
+.attn-amount { font-family:'Cormorant Garamond',serif; font-size:14px; font-weight:600; color:var(--ink); }
+.attn-go { color:var(--ink-3); font-size:12px; }
+
+/* One grid for both card rows, so a card is the same width wherever it sits.
+   Cards draw their own hairline and overlap a neighbour's by 1px, which keeps
+   the joined look without a grid background showing through empty tracks. */
 .kpi-board { display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); padding-left:1px; margin-bottom:20px; }
-.kpi-board .stat-card { border:1px solid var(--ink-4); margin:0 0 -1px -1px; }
-.kpi-board .kpi-hero { grid-column:1 / -1; }
-.kpi-board .kpi-group-label { grid-column:1 / -1; margin:18px 0 8px; }
-.kpi-board .kpi-group-label:first-child { margin-top:0; }
-.kpi-group-label { font-size:9px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-3); font-weight:600; margin-bottom:8px; }
-.kpi-group-source { text-transform:none; letter-spacing:0.04em; font-weight:500; opacity:0.7; margin-left:8px; }
+.kpi-board .kpi-card { border:1px solid var(--ink-4); margin:0 0 -1px -1px; }
+.kpi-board .kpi-row { display:contents; }
+.kpi-row-label {
+  grid-column:1 / -1; margin:18px 0 8px;
+  font-size:9px; letter-spacing:0.18em; text-transform:uppercase;
+  color:var(--ink-3); font-weight:600;
+}
+.kpi-row-label:first-child { margin-top:0; }
+.kpi-card .stat-value { font-size:22px; }
+.kpi-card.is-hero .stat-value { font-size:30px; }
+
+/* Only the cards that lead somewhere take the hover and the pointer. The
+   selectors have to outweigh .stat-card:hover, which loads after this file. */
+.kpi-board .kpi-card:not(.is-link):hover { background:var(--stat-card-bg, var(--linen)); }
+.kpi-board .kpi-card.is-link { cursor:pointer; }
+.kpi-board .kpi-card.is-link:hover { background:var(--linen-2); }
+.kpi-board .kpi-card.is-link:focus-visible { outline:2px solid var(--gold); outline-offset:-2px; }
+
+.stat-change.is-good { color:var(--green); }
+.stat-change.is-bad  { color:var(--red); }
+.stat-change.is-flat { color:var(--ink-3); }
+
+.kpi-empty-hint {
+  font-size:11.5px; color:var(--ink-3); background:var(--linen-2);
+  border:1px dashed var(--ink-4); padding:10px 14px; margin-bottom:20px;
+}
+
+/* Reference figures: present, quiet, not competing with the cash balance. */
+.detail-strip {
+  display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:24px;
+  border-top:1px solid var(--ink-4); padding-top:14px; margin-bottom:4px;
+}
+.detail-col-title {
+  font-size:9px; letter-spacing:0.18em; text-transform:uppercase;
+  color:var(--ink-3); font-weight:600; margin-bottom:8px;
+}
+.detail-row {
+  display:flex; justify-content:space-between; align-items:baseline; gap:12px;
+  padding:5px 0; border-bottom:1px solid var(--ink-5); font-size:11.5px;
+}
+.detail-row:last-child { border-bottom:none; }
+.detail-label { color:var(--ink-3); }
+.detail-value { font-family:'Cormorant Garamond',serif; font-size:14px; font-weight:600; color:var(--ink); }
+
 .bir-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
 .bir-card { background:var(--linen-2); border:1px solid var(--ink-4); padding:18px; transition:box-shadow 0.15s; }
 .bir-card:hover { box-shadow:var(--shadow-sm); }
