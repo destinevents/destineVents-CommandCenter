@@ -29,6 +29,10 @@ import { renderSOB } from './sob.ts';
 import { renderPayroll } from './payroll.ts';
 import type { Invoice, Bill } from '@shared/types.ts';
 
+// The ⋯ row menu now lives with the other shared components; re-exported here
+// so app.ts's window shims keep finding it where they always have.
+export { toggleActionMenu } from '@shared/components/actionMenu.ts';
+
 // ── Sub-module imports (circular refs are safe — used only in function bodies)
 import {
   renderAR, renderARPipeline, renderReceivablesDashboard, renderOfficialReceipts,
@@ -130,18 +134,6 @@ export {
 };
 
 const gEl = (id: string) => document.getElementById(id)!;
-let _menuListenersSetup = false;
-
-export function toggleActionMenu(btn: HTMLElement) {
-  document.querySelectorAll('.action-menu-dropdown.open').forEach(el => el.classList.remove('open'));
-  const menu = btn.nextElementSibling as HTMLElement | null;
-  if (!menu) return;
-  const rect = btn.getBoundingClientRect();
-  menu.style.top   = `${rect.bottom + 4}px`;
-  menu.style.right = `${window.innerWidth - rect.right}px`;
-  menu.classList.add('open');
-}
-
 
 export async function loadFinance() {
   const [inv, bil, pay, bir, clients, projs, parts, sobs, pos, accts, ledger, founder, budgets] = await Promise.all([
@@ -172,16 +164,6 @@ export async function loadFinance() {
   setLedger(ledger || []);
   setFounderCapital(founder || []);
   setBudgets(budgets || []);
-  if (!_menuListenersSetup) {
-    _menuListenersSetup = true;
-    document.addEventListener('click', e => {
-      if (!(e.target as HTMLElement).closest('.action-menu'))
-        document.querySelectorAll('.action-menu-dropdown.open').forEach(el => el.classList.remove('open'));
-    }, { capture: true });
-    document.addEventListener('scroll', () => {
-      document.querySelectorAll('.action-menu-dropdown.open').forEach(el => el.classList.remove('open'));
-    }, { capture: true, passive: true });
-  }
   renderFinanceOverview(_invoices, _bills);
   renderReceivablesDashboard();
   renderARPipeline();

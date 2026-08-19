@@ -2,6 +2,7 @@ import type { Client, Project, Proposal, Invoice } from '@shared/types.ts';
 import { escapeHtml, statusClass } from '@shared/utils/helpers.ts';
 import { formatCurrency } from '@shared/utils/formatUtils.ts';
 import { formatDateShort } from '@shared/utils/dateUtils.ts';
+import { actionMenuHTML } from '@shared/components/actionMenu.ts';
 import { APP_SETTINGS } from '@config/settings.ts';
 
 function activityDot(status: string): string {
@@ -40,12 +41,13 @@ export function projectRowHTML(p: Project, invoices: Invoice[] = []): string {
       <td class="project-value">${formatCurrency(p.value)}</td>
       <td>${projectORCell(p, invoices)}</td>
       <td style="font-size:10.5px;color:var(--ink-3)">${formatDateShort((p.updated_at || p.created_at || '').slice(0, 10))}</td>
-      <td>
-        <div class="flex-gap" style="gap:4px;flex-wrap:wrap">
-          <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="openProjectDetail(${p.id})">View</button>
-          <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="openEditProject(${p.id})">Edit</button>
-          <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--red)" onclick="handleDeleteProject(${p.id})">Delete</button>
-        </div>
+      <td style="text-align:right;width:1%;white-space:nowrap">
+        ${actionMenuHTML(`
+          <button role="menuitem" onclick="openProjectDetail(${p.id})">View</button>
+          <button role="menuitem" onclick="openEditProject(${p.id})">Edit</button>
+          <div class="action-menu-sep"></div>
+          <button role="menuitem" class="menu-danger" onclick="handleDeleteProject(${p.id})">Delete</button>`,
+          `Actions for ${p.name}`)}
       </td>
     </tr>`;
 }
