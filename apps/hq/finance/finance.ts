@@ -24,10 +24,7 @@ import {
 } from '@hq/core/state.ts';
 import { cashPosition, founderEquity } from './ledgerCalc.ts';
 import { monthlySummary, expenseByCategory, revenueByCategory } from './reportsCalc.ts';
-import { barChartHTML, monthlyBarsHTML, cashFlowTrendHTML } from './templates/reports.ts';
-import {
-  attentionBandHTML, deltaHTML, detailStripHTML, kpiRowHTML, ledgerEmptyHintHTML,
-} from './templates/overview.ts';
+import { barChartHTML, chartHeadingHTML, monthlyBarsHTML, cashFlowTrendHTML } from './templates/reports.ts';
 import { renderSOB } from './sob.ts';
 import { renderPayroll } from './payroll.ts';
 import type { Invoice, Bill } from '@shared/types.ts';
@@ -186,19 +183,11 @@ export async function loadFinance() {
   renderAccountsSettings();
 }
 
-// `el` is optional so anything on the page can send someone to a tab — the
-// Overview's attention chips do — rather than only the tab strip itself.
-export function showFinanceTab(name: string, el?: HTMLElement) {
-  const tab = document.getElementById('ftab-' + name);
-  if (!tab) return;
+export function showFinanceTab(name: string, el: HTMLElement) {
   document.querySelectorAll('.ftab').forEach(t => t.classList.remove('active'));
-  tab.classList.add('active');
+  gEl('ftab-' + name).classList.add('active');
   document.querySelectorAll('#finance-subtabs .sub-tab').forEach(t => t.classList.remove('active'));
-  const strip = el ?? document.querySelector<HTMLElement>(`#finance-subtabs .sub-tab[data-ftab="${name}"]`);
-  strip?.classList.add('active');
-  // A tab opened from halfway down the Overview would otherwise land at
-  // whatever scroll position the Overview was left at.
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  el.classList.add('active');
 }
 
 export function showReceivablesTab(name: string, el: HTMLElement) {
@@ -258,112 +247,70 @@ function renderRevenueByProject(invoices: Invoice[], projects: typeof _projects)
     </table>`;
 }
 
-// The §2 Dashboard, ordered by what someone does with it: what needs chasing,
-// where the business stands now, how this month is going, and — quieter, as
-// rows rather than cards — the year, all time and founder capital.
-//
-// Ledger figures come from the Cash Ledger + Founder Capital; AR/AP and the
-// attention band come from invoices and bills. The charts below read revenue
-// from paid invoices, so the two can differ honestly; each says which.
-function _dashboardHTML(summary: ReturnType<typeof calcFinanceSummary>): string {
-  const pos   = cashPosition(_ledger, _accounts);
-  const eq    = founderEquity(_founderCapital);
-  const now   = new Date();
-  const year  = now.getFullYear();
+// The §2 Dashboard as 7 labeled KPI groups (Cash Position, Revenue, Expenses,
+// Profitability, Cash Flow, Receivables & Payables, Founder Capital) sharing
+// one grid. Ledger figures come from the Cash Ledger + Founder Capital; AR/AP
+// come from the invoice/bill summary, which is why each group says which — the
+// charts below read revenue from paid invoices instead, and the two disagree
+// legitimately. One canonical card per metric.
+function _dashboardGroupsHTML(summary: ReturnType<typeof calcFinanceSummary>): string {
+  const pos  = cashPosition(_ledger, _accounts);
+  const eq   = founderEquity(_founderCapital);
+  const now  = new Date();
+  const year = now.getFullYear();
   const month = now.getMonth() + 1;
-
-  const period = (y: number | null, m: number | null) =>
-    monthlySummary(_ledger, _founderCapital, { year: y, month: m, projectId: null });
-  const thisMonth = period(year, month);
-  const thisYear  = period(year, null);
-  const allTime   = period(null, null);
-
-  // December's previous month is last November, not month zero.
-  const prev      = new Date(year, month - 2, 1);
-  const lastMonth = period(prev.getFullYear(), prev.getMonth() + 1);
-  const lastLabel = prev.toLocaleString('en-PH', { month: 'long' });
-
+  const thisMonth = monthlySummary(_ledger, _founderCapital, { year, month, projectId: null });
+  const thisYear  = monthlySummary(_ledger, _founderCapital, { year, month: null, projectId: null });
+  const allTime   = monthlySummary(_ledger, _founderCapital, { year: null, month: null, projectId: null });
   const activeCount = _accounts.filter(a => a.is_active).length;
-  const money = (n: number) => formatCurrency(n);
 
-  const standing = kpiRowHTML('Where we stand', [
-    {
-      label: 'Cash on Hand', value: pos.total, color: 'var(--green)',
-      sub: `Across ${activeCount} account${activeCount !== 1 ? 's' : ''}`, tab: 'ledger',
-    },
-    {
-      label: 'Owed to Us', value: summary.arOutstanding, tab: 'receivables',
-      sub: summary.overdueCount > 0
-        ? `${summary.overdueCount} overdue · ${money(summary.overdueTotal)}`
-        : 'None overdue',
-    },
-    {
-      label: 'We Owe', value: summary.apOutstanding, tab: 'payables',
-      sub: `${summary.pendingBillsCount} bill${summary.pendingBillsCount !== 1 ? 's' : ''} outstanding`,
-    },
-  ], 'hero');
+  const card = (label: string, value: number, color = '', sub = '', wide = false) =>
+    `<div class="stat-card${wide ? ' kpi-hero' : ''}"><div class="stat-label">${label}</div><div class="stat-value" style="font-size:22px${color ? `;color:${color}` : ''}">${formatCurrency(value)}</div>${sub ? `<div class="stat-change">${sub}</div>` : ''}</div>`;
+  // The groups label rows of one continuous grid rather than each opening a
+  // grid of its own. Separate grids sized their columns to how many cards the
+  // group happened to hold, so a card's width told you nothing and no two
+  // groups lined up down the page.
+  const group = (label: string, source: string, cards: string) =>
+    `<div class="kpi-group-label">${label}${source ? `<span class="kpi-group-source">${source}</span>` : ''}</div>${cards}`;
 
-  const thisMonthRow = kpiRowHTML(`This month · against ${lastLabel}`, [
-    {
-      label: 'Revenue', value: thisMonth.revenue, color: 'var(--green)',
-      extra: deltaHTML(thisMonth.revenue, lastMonth.revenue, { higherIsBetter: true, periodLabel: lastLabel }),
-    },
-    {
-      label: 'Expenses', value: thisMonth.expenses, color: 'var(--red)',
-      extra: deltaHTML(thisMonth.expenses, lastMonth.expenses, { higherIsBetter: false, periodLabel: lastLabel }),
-    },
-    {
-      label: 'Net Profit', value: thisMonth.netProfit,
-      color: thisMonth.netProfit >= 0 ? 'var(--green)' : 'var(--red)',
-      extra: deltaHTML(thisMonth.netProfit, lastMonth.netProfit, { higherIsBetter: true, periodLabel: lastLabel }),
-    },
-  ]);
-
-  const strip = detailStripHTML([
-    {
-      title: `${year} so far`,
-      rows: [
-        { label: 'Revenue',        value: money(thisYear.revenue) },
-        { label: 'Expenses',       value: money(thisYear.expenses) },
-        { label: 'Gross income',   value: money(thisYear.grossProfit) },
-        { label: 'Net profit',     value: money(thisYear.netProfit), color: thisYear.netProfit >= 0 ? 'var(--green)' : 'var(--red)' },
-      ],
-    },
-    {
-      title: 'All time',
-      rows: [
-        { label: 'Total cash in',  value: money(allTime.totalCashIn) },
-        { label: 'Total cash out', value: money(allTime.totalCashOut) },
-      ],
-    },
-    {
-      title: 'Collection',
-      rows: [
-        { label: 'Collected today',      value: money(summary.collectedToday) },
-        { label: 'Avg. days to collect', value: summary.avgCollectionDays ? `${summary.avgCollectionDays} days` : '—' },
-      ],
-    },
-    {
-      title: 'Founder capital',
-      rows: [
-        { label: 'Capital invested',  value: money(eq.totalCapital) },
-        { label: 'Owner withdrawals', value: money(eq.totalWithdrawals) },
-        { label: 'Net owner equity',  value: money(eq.netEquity) },
-      ],
-    },
-  ]);
-
-  return attentionBandHTML(summary) +
-    `<div class="kpi-board">${standing}${thisMonthRow}</div>` +
-    (_ledger.length === 0 ? ledgerEmptyHintHTML() : '') +
-    strip;
+  return `<div class="kpi-board">${[
+    // One figure, not four. The per-type split is still computed and still
+    // available per account in the Cash Ledger's own filter — it was just noise
+    // at dashboard level, where the question is only "how much have we got".
+    group('Cash Position', 'Cash ledger',
+      card('Current Cash Balance', pos.total, 'var(--green)', `Across ${activeCount} account${activeCount !== 1 ? 's' : ''}`, true)),
+    group('Revenue', 'Cash ledger',
+      card('Revenue This Month', thisMonth.revenue, 'var(--green)') +
+      card('Revenue This Year', thisYear.revenue, 'var(--green)')),
+    group('Expenses', 'Cash ledger',
+      card('Expenses This Month', thisMonth.expenses, 'var(--red)') +
+      card('Expenses This Year', thisYear.expenses, 'var(--red)')),
+    // Operating Expenses used to sit here too, holding thisYear.expenses — the
+    // same number as Expenses This Year directly above, and worse, placed
+    // beside Gross Income as though the two subtracted to Net Profit. They do
+    // not: gross income takes off only the cost of services, net profit takes
+    // off everything.
+    group('Profitability', 'Cash ledger',
+      card('Net Profit', thisYear.netProfit, thisYear.netProfit >= 0 ? 'var(--green)' : 'var(--red)', 'This year · revenue − all expenses') +
+      card('Gross Income', thisYear.grossProfit, '', 'This year · revenue − cost of services')),
+    group('Cash Flow', 'Cash ledger',
+      card('Total Cash In', allTime.totalCashIn, 'var(--green)', 'All time') +
+      card('Total Cash Out', allTime.totalCashOut, 'var(--red)', 'All time')),
+    group('Receivables &amp; Payables', 'Invoices and bills',
+      card('Accounts Receivable', summary.arOutstanding, '', `${summary.overdueCount} overdue invoice${summary.overdueCount !== 1 ? 's' : ''}`) +
+      card('Accounts Payable', summary.apOutstanding, '', `${summary.pendingBillsCount} pending bills`)),
+    group('Founder Capital', '',
+      card('Capital Invested', eq.totalCapital) +
+      card('Owner Withdrawals', eq.totalWithdrawals) +
+      card('Net Owner Equity', eq.netEquity, '', 'Capital − withdrawals')),
+  ].join('')}</div>`;
 }
 
 export function renderFinanceOverview(invoices: Invoice[], bills: Bill[]) {
   const summary = calcFinanceSummary(invoices, bills, _payroll);
 
   // ── KPI groups (handout §2) ─────────────────────────────────────────────────
-  gEl('finance-stats').innerHTML = _dashboardHTML(summary);
+  gEl('finance-stats').innerHTML = _dashboardGroupsHTML(summary);
 
   // ── Charts ────────────────────────────────────────────────────────────────
   const now = new Date();
@@ -382,12 +329,26 @@ export function renderFinanceOverview(invoices: Invoice[], bills: Bill[]) {
     const k = (b.date ?? '').slice(0, 7);
     if (k in expByMonth) expByMonth[k] += b.amount || 0;
   });
+  const maxAR_AP  = Math.max(summary.arOutstanding, summary.apOutstanding, 1);
+
+  // project profitability
+  const projProfit: { name: string; amount: number }[] = [];
+  const projMap: Record<string | number, number> = {};
+  invoices.filter(i => i.status === 'Paid' && i.project_id).forEach(i => {
+    projMap[i.project_id!] = (projMap[i.project_id!] || 0) + (i.amount || 0);
+  });
+  Object.entries(projMap).forEach(([pid, amt]) => {
+    const proj = _projects.find(p => p.id === +pid);
+    if (proj) projProfit.push({ name: proj.name, amount: amt });
+  });
+  projProfit.sort((a, b) => b.amount - a.amount);
+  const maxProj = Math.max(...projProfit.map(p => p.amount), 1);
 
   const chartsEl = document.getElementById('finance-charts');
   if (chartsEl) {
-    // Two pairs, not three. Receivables vs Payables drew the same two figures
-    // that now open the page as cards, and Project Profitability was the first
-    // five rows of the Revenue by Project table directly below it.
+    // Both monthly charts read the same paid invoices and bills, so they say so
+    // — the KPI cards above them count revenue from the cash ledger instead,
+    // and the two figures are allowed to differ.
     const paidDocs = 'From paid invoices and bills';
     chartsEl.innerHTML = `
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
@@ -405,8 +366,33 @@ export function renderFinanceOverview(invoices: Invoice[], bills: Bill[]) {
         )}
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
-        ${barChartHTML('Revenue by Category', revenueByCategory(_ledger), 'var(--green)', 'From the cash ledger')}
+        <div class="card" style="padding:16px">
+          ${chartHeadingHTML('Receivables vs Payables', 'Unpaid invoices and bills')}
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:11px;color:var(--ink-2)">AR Outstanding</span><span style="font-size:11px;font-weight:600">${formatCurrency(summary.arOutstanding)}</span></div>
+              <div style="height:8px;background:var(--linen-3);border-radius:4px"><div style="height:100%;width:${Math.round(summary.arOutstanding / maxAR_AP * 100)}%;background:var(--gold);border-radius:4px"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:11px;color:var(--ink-2)">AP Outstanding</span><span style="font-size:11px;font-weight:600">${formatCurrency(summary.apOutstanding)}</span></div>
+              <div style="height:8px;background:var(--linen-3);border-radius:4px"><div style="height:100%;width:${Math.round(summary.apOutstanding / maxAR_AP * 100)}%;background:var(--red);border-radius:4px;opacity:0.7"></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="padding:16px">
+          ${chartHeadingHTML('Project Profitability', 'Paid invoices, by project')}
+          ${projProfit.length === 0
+            ? '<div style="font-size:12px;color:var(--ink-3)">No paid invoices linked to projects yet</div>'
+            : projProfit.slice(0, 5).map(p => `
+              <div style="margin-bottom:8px">
+                <div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:11px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:65%">${escapeHtml(p.name)}</span><span style="font-size:11px;font-weight:600">${formatCurrency(p.amount)}</span></div>
+                <div style="height:6px;background:var(--linen-3);border-radius:3px"><div style="height:100%;width:${Math.round(p.amount / maxProj * 100)}%;background:var(--green);border-radius:3px;opacity:0.8"></div></div>
+              </div>`).join('')}
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
         ${barChartHTML('Expense by Category', expenseByCategory(_ledger), 'var(--red)', 'From the cash ledger')}
+        ${barChartHTML('Revenue by Category', revenueByCategory(_ledger), 'var(--green)', 'From the cash ledger')}
       </div>`;
   }
 
