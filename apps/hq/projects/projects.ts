@@ -6,6 +6,7 @@ import {
 } from '@hq/projects/projectService.ts';
 import { fetchClients, createClient, findClientByName } from '@hq/clients/clientService.ts';
 import { fetchProposals, proposalValue, updateProposal } from '@hq/proposals/proposalService.ts';
+import { renderProposals } from '@hq/proposals/proposals.ts';
 import { fetchInvoices } from '@hq/finance/financeService.ts';
 import { _clients, _proposals, _projects, setClients, setProjects, setProposals } from '@hq/core/state.ts';
 import { toast, openModal, closeModal } from '@hq/core/ui.ts';
@@ -100,9 +101,14 @@ export async function saveProject() {
     if (!result.ok) { showProjectError(result.message || 'Could not save project. Please try again.'); return; }
     toast('Project added', 'success');
   }
+  // The conversion happened on the Proposals page, and that row now reads
+  // differently — it offers the project rather than a second conversion — so
+  // redraw it once the new project is in hand.
+  const converted = _convertingProposalId !== null;
   _convertingProposalId = null;
   closeModal();
-  loadProjects();
+  await loadProjects();
+  if (converted) renderProposals(_proposals);
 }
 
 // The mirror of _syncLinkedProjectValue in proposals.ts: a project and the

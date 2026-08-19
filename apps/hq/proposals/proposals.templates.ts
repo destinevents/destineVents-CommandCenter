@@ -1,8 +1,9 @@
-import type { Client, Proposal, ProposalLineItem, ProposalStats } from '@shared/types.ts';
+import type { Client, Project, Proposal, ProposalLineItem, ProposalStats } from '@shared/types.ts';
 import { escapeHtml, statusClass } from '@shared/utils/helpers.ts';
 import { formatCurrency } from '@shared/utils/formatUtils.ts';
 import { formatDateShort } from '@shared/utils/dateUtils.ts';
 import { statusOptions, canTransition } from '@shared/documents/docTransitions.ts';
+import { actionMenuHTML } from '@shared/components/actionMenu.ts';
 import { proposalValue } from './proposalService.ts';
 
 function toISODate(val: string | null | undefined): string {
@@ -18,8 +19,26 @@ function displayDate(val: string | null | undefined): string {
   return escapeHtml(String(val));
 }
 
-export function proposalRowHTML(p: Proposal): string {
+// The one action a quotation is actually waiting for, kept out of the ⋯ menu.
+// A Draft wants sending; a Won one wants converting — unless it already has
+// been, in which case the button would only ever produce the "already the
+// project …" refusal, so it points at that project instead.
+function proposalPrimaryAction(p: Proposal, projects: Project[]): string {
+  if (canTransition('quotation', p.status, 'Sent'))
+    return `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--blue)" onclick="markQuotationSent(${p.id})">Mark Sent</button>`;
+
+  if (p.status !== 'Won') return '';
+
+  const linked = projects.find(x => x.proposal_id === p.id);
+  if (!linked)
+    return `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--green)" onclick="convertProposalToProject(${p.id})">→ Project</button>`;
+
+  return `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--ink-3)" title="Open ${escapeHtml(linked.name)}" onclick="openProjectDetail(${linked.id})">${escapeHtml(linked.code || 'View Project')}</button>`;
+}
+
+export function proposalRowHTML(p: Proposal, projects: Project[] = []): string {
   const displayValue = proposalValue(p);
+  const quoRef = escapeHtml(p.quo_number ?? String(p.id));
   return `
     <tr>
       <td style="font-size:11px;color:var(--ink-3)">${escapeHtml(p.quo_number ?? '—')}</td>
@@ -28,23 +47,25 @@ export function proposalRowHTML(p: Proposal): string {
       <td style="font-size:11px;color:var(--ink-3)">${displayDate(p.sent)}</td>
       <td style="font-size:11px;color:var(--ink-3)">${displayDate(p.followup)}</td>
       <td><span class="badge badge-${statusClass(p.status)}">${escapeHtml(p.status)}</span></td>
-      <td>
-        <div class="flex-gap" style="gap:4px;flex-wrap:wrap">
-          ${p.status === 'Won' ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--green)" onclick="convertProposalToProject(${p.id})">→ Project</button>` : ''}
-          ${canTransition('quotation', p.status, 'Sent') ? `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--blue)" onclick="markQuotationSent(${p.id})">Mark Sent</button>` : ''}
-          <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="printQuotation(${p.id})">PDF</button>
-          <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--blue)" onclick="sendQuotationEmail(${p.id})">Email</button>
-          <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="openEditProposal(${p.id})">Edit</button>
-          <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--ink-3)" onclick="openDocActivityLog('quotation',${p.id},'${escapeHtml(p.quo_number ?? String(p.id))}')">Activity</button>
-          <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--red)" onclick="handleDeleteProposal(${p.id})">Delete</button>
+      <td style="text-align:right;width:1%;white-space:nowrap">
+        <div class="flex-gap" style="gap:4px;justify-content:flex-end">
+          ${proposalPrimaryAction(p, projects)}
+          ${actionMenuHTML(`
+            <button role="menuitem" onclick="printQuotation(${p.id})">PDF</button>
+            <button role="menuitem" onclick="sendQuotationEmail(${p.id})">Email</button>
+            <button role="menuitem" onclick="openEditProposal(${p.id})">Edit</button>
+            <button role="menuitem" onclick="openDocActivityLog('quotation',${p.id},'${quoRef}')">Activity Log</button>
+            <div class="action-menu-sep"></div>
+            <button role="menuitem" class="menu-danger" onclick="handleDeleteProposal(${p.id})">Delete</button>`,
+            `Actions for ${p.quo_number ?? p.name}`)}
         </div>
       </td>
     </tr>`;
 }
 
-export function proposalTableHTML(proposals: Proposal[]): string {
+export function proposalTableHTML(proposals: Proposal[], projects: Project[] = []): string {
   return proposals.length
-    ? proposals.map(proposalRowHTML).join('')
+    ? proposals.map(p => proposalRowHTML(p, projects)).join('')
     : `<tr><td colspan="7"><div class="empty-state">No proposals yet</div></td></tr>`;
 }
 

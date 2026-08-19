@@ -29,9 +29,14 @@ const gEl  = (id: string) => document.getElementById(id)!;
 let _editingProposalId: number | null = null;
 
 export async function loadProposals() {
-  const [proposals, clients] = await Promise.all([fetchProposals(), fetchClients()]);
+  // Projects come along so a Won quotation can say whether it has already been
+  // converted; the page loads on its own, so _projects may be empty otherwise.
+  const [proposals, clients, projects] = await Promise.all([
+    fetchProposals(), fetchClients(), fetchProjects(),
+  ]);
   setProposals(proposals);
   setClients(clients || []);
+  setProjects(projects || []);
   renderProposals(_proposals);
 }
 
@@ -41,7 +46,7 @@ export function renderProposals(proposals: Proposal[]) {
   gEl('win-rate-breakdown').innerHTML          = proposalWinRateHTML(stats);
   gEl('proposals-value-summary').innerHTML     = proposalValueSummaryHTML(stats);
   gEl('proposals-summary').textContent         = `${stats.total} proposals`;
-  gEl('proposals-tbody').innerHTML             = proposalTableHTML(proposals);
+  gEl('proposals-tbody').innerHTML             = proposalTableHTML(proposals, _projects);
 }
 
 export async function openAddProposal() {
