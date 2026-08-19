@@ -1,5 +1,5 @@
 import { formatCurrency } from '@shared/utils/formatUtils.ts';
-import { formatDateShort } from '@shared/utils/dateUtils.ts';
+import { formatDateShort, todayISO } from '@shared/utils/dateUtils.ts';
 import { escapeHtml, statusClass } from '@shared/utils/helpers.ts';
 import { validateRequired } from '@shared/utils/validators.ts';
 import { isFilledLineItem, itemsMissingDescription } from '@shared/documents/lineItems.ts';
@@ -14,6 +14,13 @@ import { nextDocNumber } from '@shared/services/documents/docNumberService.ts';
 import { statusOptions } from '@shared/documents/docTransitions.ts';
 import { logDocActivity } from '@shared/services/documents/activityLogService.ts';
 import { getCurrentUser } from '@shared/core/authService.ts';
+import { fetchProposalLineItems } from '@hq/proposals/proposalService.ts';
+import {
+  sobLineItemsFor, shouldAdvanceOnBilling, dueDateFrom, defaultPaymentInstructions,
+} from './sobFromProject.ts';
+import { updateProject } from '@hq/projects/projectService.ts';
+// Circular by module graph, safe by use: only called inside a function body.
+import { loadFinance } from './finance.ts';
 import {
   buildDocPDF, docPDFLineItemsTable, docPDFTotals,
 } from '@shared/documents/pdfTemplate.ts';
@@ -225,6 +232,40 @@ export function toggleArchivedSOBs() {
   renderSOB(_sobs);
 }
 
+// The Billing Pipeline's → SOB button.
+//
+// A project only reaches this stage by winning a quotation, and that quotation
+// was itemised when it was written — so the statement opens on those same
+// lines, VAT and all, rather than on an empty form. The pipeline used to write
+// a single lump sum with no line items at all, which meant the invoice
+// converted from it had none either, and every line was typed a third time.
+//
+// It also opens the real statement form rather than the five-field one it kept
+// to itself, so a statement raised from a project can carry everything one
+// raised from this tab can.
+export async function openSOBForProject(projectId: number) {
+  const p = _projects.find(x => x.id === projectId);
+  if (!p) { toast('Project not found', 'error'); return; }
+  _editingSOBId = null;
+
+  const quoted = p.proposal_id ? await fetchProposalLineItems(p.proposal_id) : [];
+  const items  = sobLineItemsFor(p, quoted);
+
+  const user  = await getCurrentUser();
+  const issue = todayISO();
+  openModal('Statement of Billing — ' + p.name, sobFormHTML({
+    sob_num:     nextDocNumber('SOB', _sobs.map(x => x.sob_num)),
+    client:      p.client,
+    project_id:  p.id,
+    status:      'Draft',
+    currency:    'PHP',
+    issue_date:  issue,
+    due_date:    dueDateFrom(issue),
+    prepared_by: user?.name ?? user?.email ?? '',
+    payment_instructions: defaultPaymentInstructions(),
+  }, items), saveSOB);
+}
+
 export function openAddSOB() {
   _editingSOBId = null;
   const autoNum = nextDocNumber('SOB', _sobs.map(s => s.sob_num));
@@ -328,6 +369,7 @@ export async function saveSOB() {
   const user = await getCurrentUser();
   const actor = user?.name ?? user?.email ?? null;
   let sobId = _editingSOBId;
+  let billedProject = false;
   if (sobId) {
     const ok = await updateSOB(sobId, payload);
     if (!ok) { toast('Could not update billing statement', 'error'); return; }
@@ -339,6 +381,7 @@ export async function saveSOB() {
     sobId = result.id;
     toast('Billing statement created', 'success');
     await logDocActivity('sob', sobId, sob_num, 'created', actor);
+    if (payload.project_id) billedProject = await advanceProjectOnBilling(payload.project_id);
   }
 
   if (sobId && lineItems.length) {
@@ -346,9 +389,28 @@ export async function saveSOB() {
   }
 
   closeModal();
+  // A project that just moved along the pipeline needs the whole tab redrawn,
+  // since the pipeline table lives on the Receivables overview rather than here.
+  if (billedProject) { loadFinance(); return; }
   const fresh = await fetchSOBs();
   setSOBs(fresh);
   renderSOB(fresh);
+}
+
+// Billing a project is what advances it, whichever door the statement came
+// from. Raising one from this tab used to leave the project at Proposal
+// Approved, so the pipeline went on offering → SOB and a duplicate statement
+// was one click away — and nothing in the project form could correct the stage,
+// which does not offer the pipeline's own statuses.
+async function advanceProjectOnBilling(projectId: number): Promise<boolean> {
+  const proj = _projects.find(p => p.id === projectId);
+  if (!shouldAdvanceOnBilling(proj)) return false;
+  const ok = await updateProject(projectId, {
+    status: 'Statement of Billing',
+    updated_at: new Date().toISOString(),
+  });
+  if (ok) toast(`${proj.name} moved to Statement of Billing`, 'success');
+  return ok;
 }
 
 export async function handleDeleteSOB(id: number) {

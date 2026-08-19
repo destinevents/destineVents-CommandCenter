@@ -15,7 +15,8 @@ import {
   createInvoice, updateInvoice, deleteInvoice,
   calcFinanceSummary, fetchLineItems, upsertLineItems,
 } from '@hq/finance/financeService.ts';
-import { updateSOB, createSOB } from '@hq/finance/sobService.ts';
+import { updateSOB } from '@hq/finance/sobService.ts';
+import { openSOBForProject } from '../sob.ts';
 import { createInvoicePaymentLink } from '@hq/finance/paymentService.ts';
 import { updateProject } from '@hq/projects/projectService.ts';
 import {
@@ -124,39 +125,10 @@ export function renderARPipeline() {
     </div>`;
 }
 
+// The statement itself is built in sob.ts, from the same form the Statement of
+// Billing tab uses and prefilled from the project's winning quotation.
 export function openARProjectSOB(id: number) {
-  const p = _projects.find(x => x.id === id);
-  if (!p) return;
-  openModal('Create Statement of Billing', `<div class="form-grid">
-    <div class="form-group"><div class="form-label">SOB Number</div><input class="form-input" id="arsob-num" placeholder="SOB-2026-001"/></div>
-    <div class="form-group"><div class="form-label">Client</div><input class="form-input" id="arsob-client" value="${escapeHtml(p.client || '')}"/></div>
-    <div class="form-group"><div class="form-label">Amount (₱)</div><input class="form-input" id="arsob-amount" type="number" value="${p.value || 0}" min="0"/></div>
-    <div class="form-group"><div class="form-label">Issue Date</div><input class="form-input" id="arsob-issue" type="date" value="${todayISO()}"/></div>
-    <div class="form-group"><div class="form-label">Due Date</div><input class="form-input" id="arsob-due" type="date"/></div>
-    <div class="form-group full" style="font-size:11px;color:var(--ink-3)">Project: <strong>${escapeHtml(p.name)}</strong> · ${formatCurrency(p.value)}</div>
-  </div>`, async () => {
-    const sob_num = (document.getElementById('arsob-num') as HTMLInputElement).value.trim();
-    if (!sob_num) { toast('SOB number is required', 'error'); return; }
-    const amount = +(document.getElementById('arsob-amount') as HTMLInputElement).value || 0;
-    const result = await createSOB({
-      sob_num,
-      client:       (document.getElementById('arsob-client') as HTMLInputElement).value.trim(),
-      total_amount: amount,
-      subtotal:     amount,
-      discount:     0,
-      vat_amount:   0,
-      issue_date:   (document.getElementById('arsob-issue') as HTMLInputElement).value || null,
-      due_date:     (document.getElementById('arsob-due') as HTMLInputElement).value || null,
-      project_id:   p.id,
-      status:       'Draft',
-      currency:     'PHP',
-    });
-    if (!result) { toast('Could not create SOB. Please try again.', 'error'); return; }
-    await updateProject(p.id, { status: 'Statement of Billing', updated_at: new Date().toISOString() });
-    toast('SOB created — project moved to Statement of Billing', 'success');
-    closeModal();
-    loadFinance();
-  });
+  return openSOBForProject(id);
 }
 
 
@@ -326,7 +298,14 @@ export function openAddInvoice() {
 export function openInvoiceFromSOB(draft: Partial<Invoice>, items: InvoiceLineItem[], sobId: number) {
   _editingInvoiceId   = null;
   _pendingSOBConvertId = sobId;
-  openModal('New Invoice from SOB', invoiceFormHTML(draft, items, _clients, _projects), saveInvoice);
+  // Converting a statement carried everything except the number, which had to
+  // be typed by hand — while New Invoice on this same tab has always filled one
+  // in. Same numbering, either route.
+  const withNumber: Partial<Invoice> = {
+    ...draft,
+    or_num: draft.or_num || nextDocNumber('OR', _invoices.map(i => i.or_num)),
+  };
+  openModal('New Invoice from SOB', invoiceFormHTML(withNumber, items, _clients, _projects), saveInvoice);
 }
 
 export async function openEditInvoice(id: number) {

@@ -37,6 +37,9 @@ export const APP_SETTINGS = {
       'Other',
     ],
     payrollStatuses: ['Draft', 'Pending', 'Paid'],
+    // Days from issue to due, used to fill in a statement's due date so it does
+    // not have to be worked out by hand on every one.
+    paymentTermDays: 30,
   },
   ai: {
     apiUrl: 'https://api.anthropic.com/v1/messages',
