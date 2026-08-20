@@ -4,6 +4,7 @@ import { formatCurrency } from '@shared/utils/formatUtils.ts';
 import { formatDateShort } from '@shared/utils/dateUtils.ts';
 import { actionMenuHTML } from '@shared/components/actionMenu.ts';
 import { APP_SETTINGS } from '@config/settings.ts';
+import { statusOptions, isDocumentDerived, documentDerivedNote } from '@shared/projects/projectStatus.ts';
 
 function activityDot(status: string): string {
   if (status === 'Won' || status === 'Active' || status === 'Paid') return 'green';
@@ -60,9 +61,27 @@ export function projectTableHTML(projects: Project[], invoices: Invoice[] = []):
 
 // ── Project form template ─────────────────────────────────────────────────────
 
+// A stage a document put the project in is shown, not offered. Editing the
+// project's notes must never be able to walk its billing back a step, and a
+// status that disagrees with the paperwork is worse than one you cannot change
+// here — the Billing Pipeline moves it when the next document is raised.
+//
+// The hidden input keeps #fp2-status readable by saveProject either way.
+function statusFieldHTML(current: string, options: string): string {
+  if (!isDocumentDerived(current))
+    return `<select class="form-input" id="fp2-status">${options}</select>`;
+
+  return `
+    <input type="hidden" id="fp2-status" value="${escapeHtml(current)}"/>
+    <div class="form-input" style="background:var(--ink-5);color:var(--ink-2);display:flex;align-items:center;gap:6px;cursor:not-allowed">
+      <span class="badge badge-${statusClass(current)}">${escapeHtml(current)}</span>
+    </div>
+    <div style="font-size:10.5px;color:var(--ink-3);margin-top:4px">${escapeHtml(documentDerivedNote(current))}</div>`;
+}
+
 export function projectFormHTML(clients: Client[], p: Partial<Project> = {}): string {
   const brands     = (APP_SETTINGS.company.brands || ['DestineVents', 'DDC', 'AYA Baguio']).map((b: string) => `<option${b === p.brand ? ' selected' : ''}>${escapeHtml(b)}</option>`).join('');
-  const statuses   = ['Lead', 'Proposal Sent', 'Proposal Approved', 'Active', 'Completed'].map(s => `<option${s === p.status ? ' selected' : ''}>${s}</option>`).join('');
+  const statuses   = statusOptions(p.status ?? '').map(s => `<option${s === p.status ? ' selected' : ''}>${escapeHtml(s)}</option>`).join('');
   const cats       = ['Events', 'Training', 'Digital', 'CSR', 'Community'].map(c => `<option${c === p.category ? ' selected' : ''}>${c}</option>`).join('');
   const clientOpts = clients.map(c => `<option value="${escapeHtml(c.name)}"/>`).join('');
   return `
@@ -75,7 +94,7 @@ export function projectFormHTML(clients: Client[], p: Partial<Project> = {}): st
       <div class="form-group"><div class="form-label">Value (₱)</div><input class="form-input" id="fp2-value" type="number" value="${p.value || 0}" min="0"/></div>
       <div class="form-group"><div class="form-label">Brand</div><select class="form-input" id="fp2-brand">${brands}</select></div>
       <div class="form-group"><div class="form-label">Category</div><select class="form-input" id="fp2-category">${cats}</select></div>
-      <div class="form-group"><div class="form-label">Status</div><select class="form-input" id="fp2-status">${statuses}</select></div>
+      <div class="form-group"><div class="form-label">Status</div>${statusFieldHTML(p.status ?? '', statuses)}</div>
       <div class="form-group full"><div class="form-label">Notes</div><textarea class="form-input" id="fp2-notes" rows="2" placeholder="Any relevant details…">${escapeHtml(p.notes || '')}</textarea></div>
     </div>`;
 }

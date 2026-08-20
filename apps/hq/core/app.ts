@@ -4,6 +4,7 @@
 import { sb } from '@shared/core/supabase';
 import { signIn, signOut, getSession } from '@shared/core/authService.ts';
 import { formatCurrency } from '@shared/utils/formatUtils.ts';
+import { isInFlight } from '@shared/projects/projectStatus.ts';
 import { formatDateShort, todayISO } from '@shared/utils/dateUtils.ts';
 import { escapeHtml } from '@shared/utils/helpers.ts';
 import { fetchClients } from '@hq/clients/clientService.ts';
@@ -382,7 +383,10 @@ function renderDashboard() {
   const el = (id: string) => document.getElementById(id)!;
 
   // ── Stat cards ──
-  const activeProjects  = _projects.filter(p => p.status === 'Active').length;
+  // Every project still moving through billing, not just the ones someone
+  // remembered to mark. The old 'Active' status sat outside the pipeline, so
+  // this card read 0 while the whole book was being invoiced.
+  const activeProjects  = _projects.filter(p => isInFlight(p.status)).length;
   // Same source as the Proposals page, so the two pages cannot disagree.
   const proposalStats   = calcWinRate(_proposals);
   const openLeads       = _clients.filter(c => c.status === 'Lead').length;

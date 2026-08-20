@@ -11,6 +11,7 @@ import { fetchInvoices } from '@hq/finance/financeService.ts';
 import { _clients, _proposals, _projects, setClients, setProjects, setProposals } from '@hq/core/state.ts';
 import { toast, openModal, closeModal } from '@hq/core/ui.ts';
 import type { Invoice, Project } from '@shared/types.ts';
+import { completionWarning } from '@shared/projects/projectStatus.ts';
 import {
   projectTableHTML, projectFormHTML, projectDetailHTML, newClientBannerHTML,
 } from './projects.templates.ts';
@@ -85,6 +86,8 @@ export async function saveProject() {
     status:   gVal('fp2-status'),
     notes:    gVal('fp2-notes').trim(),
   };
+  if (!confirmCompletion(payload.status)) return;
+
   if (_editingProjectId) {
     const ok = await updateProject(_editingProjectId, payload);
     if (!ok) { showProjectError('Could not update project. Please try again.'); return; }
@@ -109,6 +112,26 @@ export async function saveProject() {
   closeModal();
   await loadProjects();
   if (converted) renderProposals(_proposals);
+}
+
+// Completing a project is the one status change that ends something: it leaves
+// the Billing Pipeline and does not come back. Outstanding money is counted from
+// invoices, not projects, so a job completed before it was receipted stops being
+// visible in either place — nothing left anywhere says you are still owed for it.
+//
+// Not a block. A CSR job, a cancellation, or work settled outside HQ genuinely
+// finishes unpaid, and refusing those would only push people to Delete instead.
+// One deliberate click for those, a real stop for the one someone forgot to bill.
+function confirmCompletion(status: string): boolean {
+  if (status !== 'Completed' || !_editingProjectId) return true;
+
+  const project = _projects.find(p => p.id === _editingProjectId);
+  if (!project || project.status === 'Completed') return true;
+
+  const warning = completionWarning(project, _projectInvoices);
+  if (!warning) return true;
+
+  return confirm(`${warning}\n\nMark “${project.name}” as Completed anyway?`);
 }
 
 // The mirror of _syncLinkedProjectValue in proposals.ts: a project and the

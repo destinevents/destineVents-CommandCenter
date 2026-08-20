@@ -24,6 +24,7 @@ import {
 } from '@hq/core/state.ts';
 import { reverseSourceFromLedger, syncSourceLedger } from '../ledgerPosting.ts';
 import { canTransition } from '@shared/documents/docTransitions.ts';
+import { PROJECT_PIPELINE, isInFlight, type ProjectStatus } from '@shared/projects/projectStatus.ts';
 import { toast, openModal, closeModal } from '@hq/core/ui.ts';
 import type { Invoice, InvoiceLineItem, SOB } from '@shared/types.ts';
 import { loadFinance } from '../finance.ts';
@@ -79,20 +80,16 @@ export function setORPage(page: number) {
 
 // ── AR Billing Pipeline ────────────────────────────────────────────────────────
 
-const AR_PIPELINE = [
-  'Proposal Approved',
-  'Statement of Billing',
-  'Invoice',
-  'Payment',
-  'Official Receipt',
-  'Completed',
-] as const;
-type ARStage = typeof AR_PIPELINE[number];
+// The stages live in @shared/projects/projectStatus.ts so this table and the
+// Projects edit form cannot drift apart — each keeping its own copy is what let
+// an edit reset a project's billing stage.
+const AR_PIPELINE = PROJECT_PIPELINE;
+type ARStage = ProjectStatus;
 
 export function renderARPipeline() {
   const el = document.getElementById('ar-pipeline');
   if (!el) return;
-  const active = _projects.filter(p => AR_PIPELINE.includes(p.status as ARStage) && p.status !== 'Completed');
+  const active = _projects.filter(p => isInFlight(p.status));
   if (!active.length) { el.innerHTML = ''; return; }
   const sorted = [...active].sort((a, b) =>
     AR_PIPELINE.indexOf(a.status as ARStage) - AR_PIPELINE.indexOf(b.status as ARStage)
